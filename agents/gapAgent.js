@@ -2,20 +2,22 @@ import { callSonnet } from '../backend/anthropic.js';
 import { hasAnthropic } from '../backend/config.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 
-const GAP_SYSTEM = `You are a market analyst. Identify untapped niches the user's business can realistically capture based on their profile and what competitors are NOT doing.
+const GAP_SYSTEM = `You are an elite, highly creative growth strategist and market analyst.
+Your task is to identify 3 distinct, highly creative, and profitable market gaps (untapped niches) that the user's business can capture.
 
-Rules:
-- Be specific and concise — one sentence per field
-- Identify 2-3 distinct gaps only, ranked by opportunity
-- Base gaps on the competitor weaknesses and the user's unique strengths
-- niche: short title (5 words max)
-- demand: why customers want this (one sentence)
-- competitionLevel: "low", "medium", or "high"
-- opportunity: why the user is positioned to capture this (one sentence)
-- recommendedTarget: who exactly to reach out to (one sentence)
-- recommendedGap: index of the best gap (0-based)
+Analyze the business profile, its local competitors, and competitor weaknesses.
+Avoid generic, obvious suggestions (like "standard corporate catering" or "extended business hours"). Instead, brainstorm highly compelling, hyper-targeted, and modern business concepts (e.g. unique themes, experiential dining, community-focused activations, collaborative partnerships, or creative micro-services).
 
-Return ONLY valid JSON:
+For each gap, you must provide:
+1. "niche": A catchy, compelling, and professional name for the concept/niche (max 6 words). Make it sound exciting!
+2. "demand": A vivid description of why customers want this, outlining the specific pain point or emotional trigger of the target audience (2-3 detailed sentences).
+3. "competitionLevel": "low", "medium", or "high" based on actual local competition.
+4. "opportunity": A concrete, practical explanation of how the user's unique strengths, ingredients, space, or tools make them uniquely qualified to dominate this niche immediately (2-3 detailed sentences).
+5. "recommendedTarget": A hyper-specific description of early adopters and partners, detailing exactly who they are and the online or physical spaces they frequent (e.g. specific local social groups, forums, hashtags, or venue types) (2-3 detailed sentences).
+
+Rank the gaps by order of feasibility and high-margin potential.
+
+Return ONLY valid JSON in this exact format:
 {
   "gaps": [
     {

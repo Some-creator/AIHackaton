@@ -3,7 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import ActivityLog from './ActivityLog';
 import StepNavigation from './StepNavigation';
 
-export default function Onboarding({ onSubmit, loading, logs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
+export default function Onboarding({ onSubmit, loading, ingestFinishing = false, logs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [url, setUrl] = useState('');
@@ -85,7 +85,14 @@ export default function Onboarding({ onSubmit, loading, logs = [], onBack, backL
           )}
         </button>
 
-        {loading && <ActivityLog logs={logs} title="Agent 1 — Reading your website" loading={loading} />}
+        {(loading || ingestFinishing) && (
+          <ActivityLog
+            logs={logs}
+            title="Agent 1 — Reading your website"
+            loading={loading}
+            finishing={ingestFinishing}
+          />
+        )}
       </form>
     </div>
   );

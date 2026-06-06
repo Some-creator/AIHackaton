@@ -60,6 +60,7 @@ export default function App() {
   const [streamComplete, setStreamComplete] = useState(false);
   const [skippedLeads, setSkippedLeads] = useState(new Set());
   const [ingestLogs, setIngestLogs] = useState([]);
+  const [ingestFinishing, setIngestFinishing] = useState(false);
   const [analysisLogs, setAnalysisLogs] = useState([]);
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
   const [gapLogs, setGapLogs] = useState([]);
@@ -79,6 +80,9 @@ export default function App() {
         });
       });
 
+      setIngestFinishing(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       setContext({
         business: ingestResult.business,
         companyId: ingestResult.companyId,
@@ -89,6 +93,7 @@ export default function App() {
     } catch (err) {
       setError(err.message);
     } finally {
+      setIngestFinishing(false);
       setLoading(false);
       setIngestLogs([]);
     }
@@ -450,6 +455,7 @@ const currentStepIndex = STEPS.indexOf(step);
           <Onboarding
             onSubmit={handleIngest}
             loading={loading}
+            ingestFinishing={ingestFinishing}
             logs={ingestLogs}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.onboarding]}
@@ -511,6 +517,9 @@ const currentStepIndex = STEPS.indexOf(step);
         {step === 'leads' && (
           <LeadGeneration
             leads={leads}
+            business={context.business}
+            analysis={context.analysis}
+            marketGap={context.gaps?.[context.recommendedGap]}
             streaming={streaming}
             streamComplete={streamComplete}
             onSkip={handleSkip}
