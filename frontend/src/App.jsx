@@ -6,7 +6,6 @@ import BusinessAnalysis from './components/BusinessAnalysis';
 import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
-import OptimizedSitePreview from './components/OptimizedSitePreview';
 import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
@@ -65,7 +64,6 @@ export default function App() {
   const [analysisLogs, setAnalysisLogs] = useState([]);
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
   const [gapLogs, setGapLogs] = useState([]);
-  const [showSitePreview, setShowSitePreview] = useState(false);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
@@ -483,7 +481,6 @@ const currentStepIndex = STEPS.indexOf(step);
             onNext={nextStep ? handleNext : null}
             nextLabel={nextLabel}
             navDisabled={navDisabled}
-            onPreviewSite={() => setShowSitePreview(true)}
           />
         )}
 
@@ -520,6 +517,9 @@ const currentStepIndex = STEPS.indexOf(step);
         {step === 'leads' && (
           <LeadGeneration
             leads={leads}
+            business={context.business}
+            analysis={context.analysis}
+            marketGap={context.gaps?.[context.recommendedGap]}
             streaming={streaming}
             streamComplete={streamComplete}
             onSkip={handleSkip}
@@ -532,14 +532,6 @@ const currentStepIndex = STEPS.indexOf(step);
           />
         )}
       </main>
-
-      {showSitePreview && (
-        <OptimizedSitePreview
-          business={context.business}
-          onClose={() => setShowSitePreview(false)}
-          theme={theme}
-        />
-      )}
     </div>
   );
 }

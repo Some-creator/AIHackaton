@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { buildLeadEmailTemplate, buildMailtoLink } from '../lib/leadEmailTemplate';
 
 function ScoreBadge({ label, score, highlight, isDark }) {
   const badgeClass = highlight
@@ -43,9 +45,11 @@ function formatWebsiteUrl(website) {
   return website.startsWith('http') ? website : `https://${website}`;
 }
 
-export default function LeadCard({ lead, onSkip, skipped }) {
+export default function LeadCard({ lead, business, analysis, marketGap, onSkip, skipped, selected = false, onSelect }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const [showEmail, setShowEmail] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (skipped) return null;
 
@@ -54,8 +58,53 @@ export default function LeadCard({ lead, onSkip, skipped }) {
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`
     : null;
 
+  const emailTemplate = buildLeadEmailTemplate({ lead, business, analysis, marketGap });
+  const mailtoLink = buildMailtoLink(lead.email, emailTemplate.subject, emailTemplate.body);
+
+  const handleGenerateEmail = (e) => {
+    e.stopPropagation();
+    setShowEmail((prev) => !prev);
+    setCopied(false);
+  };
+
+  const handleCopyEmail = async (e) => {
+    e.stopPropagation();
+    const text = `Subject: ${emailTemplate.subject}\n\n${emailTemplate.body}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  const handleCardClick = (e) => {
+    if (e.target.closest('a, button')) return;
+    onSelect?.();
+  };
+
   return (
-    <div className={`rounded-2xl border p-6 transition-all duration-300 hover:shadow-md ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200 shadow-sm'}`}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect?.();
+        }
+      }}
+      className={`rounded-2xl border p-6 transition-all duration-300 cursor-pointer ${
+        selected
+          ? isDark
+            ? 'bg-zinc-900 border-hookline-500 ring-2 ring-hookline-500/60 shadow-lg shadow-hookline-500/10'
+            : 'bg-white border-hookline-500 ring-2 ring-hookline-500/40 shadow-lg'
+          : isDark
+            ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md hover:shadow-md hover:border-zinc-700'
+            : 'bg-white border-gray-200 shadow-sm hover:shadow-md'
+      }`}
+    >
       <div className="mb-4">
         <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>{lead.name}</h3>
       </div>
@@ -116,10 +165,79 @@ export default function LeadCard({ lead, onSkip, skipped }) {
         </ContactRow>
       </div>
 
+      <button
+        type="button"
+        onClick={handleGenerateEmail}
+        className={`w-full mb-4 px-4 py-2.5 font-semibold rounded-xl transition text-sm ${
+          showEmail
+            ? isDark
+              ? 'bg-hookline-500/10 text-hookline-300 border border-hookline-500/30 hover:bg-hookline-500/15'
+              : 'bg-hookline-50 text-hookline-700 border border-hookline-200 hover:bg-hookline-100'
+            : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-md shadow-hookline-500/20'
+        }`}
+      >
+        {showEmail ? 'Hide template email' : 'Generate template email'}
+      </button>
+
+      {showEmail && (
+        <div
+          className={`rounded-xl p-4 mb-4 space-y-3 border ${
+            isDark
+              ? 'bg-hookline-500/10 border-hookline-500/30'
+              : 'bg-hookline-50 border-hookline-200'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div>
+            <p className={`text-xs font-bold uppercase tracking-wide mb-1 ${isDark ? 'text-hookline-400' : 'text-hookline-600'}`}>
+              Subject
+            </p>
+            <p className={`text-sm font-medium ${isDark ? 'text-hookline-300' : 'text-hookline-900'}`}>{emailTemplate.subject}</p>
+          </div>
+          <div>
+            <p className={`text-xs font-bold uppercase tracking-wide mb-1 ${isDark ? 'text-hookline-400' : 'text-hookline-600'}`}>
+              Message
+            </p>
+            <pre className={`text-sm whitespace-pre-wrap font-sans leading-relaxed ${isDark ? 'text-hookline-300' : 'text-hookline-900'}`}>
+              {emailTemplate.body}
+            </pre>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleCopyEmail}
+              className={`px-3 py-2 text-xs font-semibold rounded-lg transition ${
+                isDark
+                  ? 'bg-zinc-800/80 text-zinc-200 hover:bg-zinc-700 border border-zinc-700'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+              }`}
+            >
+              {copied ? 'Copied!' : 'Copy to clipboard'}
+            </button>
+            {mailtoLink ? (
+              <a
+                href={mailtoLink}
+                onClick={(e) => e.stopPropagation()}
+                className="px-3 py-2 text-xs font-semibold rounded-lg bg-hookline-500 hover:bg-hookline-600 text-white transition"
+              >
+                Open in email app
+              </a>
+            ) : (
+              <span className={`px-3 py-2 text-xs ${isDark ? 'text-hookline-400' : 'text-gray-400'}`}>
+                No email on file — copy and send manually
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-end">
         <button
           type="button"
-          onClick={() => onSkip(lead)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSkip(lead);
+          }}
           className={`px-4 py-2.5 font-semibold rounded-xl transition text-sm ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-gray-400 hover:text-gray-600'}`}
         >
           Dismiss

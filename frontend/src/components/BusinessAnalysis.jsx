@@ -35,7 +35,7 @@ function AnalysisSection({ title, items, color, isDark }) {
   );
 }
 
-export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], onBack, backLabel, onNext, nextLabel, navDisabled, onPreviewSite }) {
+export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [profile, setProfile] = useState({ ...business });
@@ -175,26 +175,6 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
           <div className="mb-8">
             <h2 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Analysis</h2>
             <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>AI-powered assessment of your strengths and opportunities.</p>
-          </div>
-
-          {/* AI Optimizer Suggestion Card */}
-          <div className={`p-5 rounded-2xl border-2 border-dashed mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-            isDark ? 'bg-hookline-950/10 border-hookline-900/40' : 'bg-hookline-50/50 border-hookline-100'
-          }`}>
-            <div>
-              <h3 className={`font-bold text-sm flex items-center gap-2 ${isDark ? 'text-hookline-300' : 'text-hookline-700'}`}>
-                <span className="text-base">✨</span> AI Website Optimizer Ready
-              </h3>
-              <p className={`text-xs mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
-                We found missing components in your online profile (e.g. no reservation booking, third-party platform host). We pre-generated an optimized landing page for you.
-              </p>
-            </div>
-            <button
-              onClick={onPreviewSite}
-              className="px-5 py-2.5 bg-hookline-500 hover:bg-hookline-600 text-white font-semibold text-xs rounded-xl transition shadow-md hover:shadow-hookline-500/20 whitespace-nowrap self-start md:self-center"
-            >
-              Preview Optimized Site
-            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
