@@ -35,9 +35,11 @@ Return ONLY valid JSON matching this exact schema:
   }
 }`;
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function mockFallback(reason) {
   console.warn(`[analysisAgent] Falling back to mock data: ${reason}`);
-  return { ...mockData, mock: true };
+  return { ...mockData, mock: true, mockReason: reason };
 }
 
 function normalizeStringArray(value, fieldName) {
@@ -69,39 +71,82 @@ function validateAndNormalize(parsed) {
   return { analysis: normalized, mock: false };
 }
 
-function shouldUseMock() {
-  if (USE_MOCK) return true;
-  if (!hasAnthropic) return true;
-  return false;
+function getMockBlockReason() {
+  if (USE_MOCK) return 'USE_MOCK is enabled';
+  if (!hasAnthropic) return 'ANTHROPIC_API_KEY is missing';
+  return null;
 }
 
-export async function analysisAgent(context) {
+function shouldUseMock() {
+  return Boolean(getMockBlockReason());
+}
+
+export async function* streamAnalysis(context) {
   if (!context?.business) {
     throw new Error('Business profile required');
   }
 
-  if (shouldUseMock()) {
-    return mockFallback('USE_MOCK enabled or ANTHROPIC_API_KEY missing');
+  const { business } = context;
+  const serviceCount = business.services?.length || 0;
+
+  yield { type: 'log', message: 'Starting business analysis...' };
+  await delay(300);
+
+  const mockBlockReason = getMockBlockReason();
+  if (mockBlockReason) {
+    yield { type: 'log', message: `Live analysis unavailable — ${mockBlockReason}` };
+    await delay(400);
+    yield { type: 'log', message: `Reviewing profile for ${business.name}...` };
+    await delay(500);
+    yield { type: 'log', message: `Evaluating ${serviceCount} service${serviceCount === 1 ? '' : 's'} and target market...` };
+    await delay(500);
+    yield { type: 'log', message: 'Identifying strengths and gaps...' };
+    await delay(400);
+    yield { type: 'log', message: 'Building recommendations...' };
+    await delay(400);
+    const result = mockFallback(mockBlockReason);
+    yield { type: 'log', message: 'Analysis complete (demo data)' };
+    yield { type: 'complete', ...result };
+    return;
   }
 
   try {
-    console.log(`[analysisAgent] Analyzing business: ${context.business.name}`);
+    yield { type: 'log', message: `Reviewing profile for ${business.name}...` };
+    await delay(400);
+    yield { type: 'log', message: `Evaluating ${serviceCount} service${serviceCount === 1 ? '' : 's'} in ${business.location || 'your market'}...` };
+    await delay(300);
+    yield { type: 'log', message: 'AI is assessing strengths, weaknesses, and opportunities...' };
+
     const { content } = await callSonnet({
       system: ANALYSIS_SYSTEM,
       messages: [
         {
           role: 'user',
-          content: `Analyze this verified business profile:\n\n${JSON.stringify(context.business, null, 2)}`,
+          content: `Analyze this verified business profile:\n\n${JSON.stringify(business, null, 2)}`,
         },
       ],
     });
 
+    yield { type: 'log', message: 'Structuring strengths and improvement areas...' };
     const parsed = parseClaudeJson(content);
     const result = validateAndNormalize(parsed);
 
-    console.log(`[analysisAgent] Analysis complete for: ${context.business.name}`);
-    return result;
+    yield {
+      type: 'log',
+      message: `Analysis complete — ${result.analysis.strengths.length} strengths, ${result.analysis.improvements.length} recommendations`,
+    };
+    yield { type: 'complete', ...result };
   } catch (err) {
-    return mockFallback(err.message);
+    yield { type: 'log', message: 'Switching to backup analysis data...' };
+    const result = mockFallback(err.message);
+    yield { type: 'complete', ...result };
   }
+}
+
+export async function analysisAgent(context) {
+  let result = null;
+  for await (const event of streamAnalysis(context)) {
+    if (event.type === 'complete') result = event;
+  }
+  return { analysis: result.analysis, mock: result.mock, mockReason: result.mockReason };
 }

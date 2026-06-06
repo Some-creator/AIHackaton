@@ -5,12 +5,19 @@ import path from 'path';
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { ingestionAgent, streamIngestion } from '../agents/ingestionAgent.js';
-import { analysisAgent } from '../agents/analysisAgent.js';
+import { analysisAgent, streamAnalysis } from '../agents/analysisAgent.js';
 import { benchmarkAgent, streamBenchmark } from '../agents/benchmarkAgent.js';
-import { gapAgent } from '../agents/gapAgent.js';
+import { gapAgent, streamGaps } from '../agents/gapAgent.js';
 import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
 import { createCompany, updateCompany, getCompany, initFirebase, getFirebaseStatus } from './firebase.js';
+import {
+  USE_MOCK,
+  hasAnthropic,
+  hasGooglePlaces,
+  hasFirecrawl,
+  hasApify,
+} from './config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
@@ -26,6 +33,8 @@ const PORT = process.env.PORT || 3001;
 const leadSessions = new Map();
 const ingestSessions = new Map();
 const benchmarkSessions = new Map();
+const gapSessions = new Map();
+const analysisSessions = new Map();
 
 app.use(cors());
 app.use(express.json());
@@ -33,7 +42,19 @@ app.use(express.json());
 initFirebase();
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'hookline-backend', firebase: getFirebaseStatus() });
+  res.json({
+    status: 'ok',
+    service: 'hookline-backend',
+    firebase: getFirebaseStatus(),
+    services: {
+      useMock: USE_MOCK,
+      anthropic: hasAnthropic,
+      googlePlaces: hasGooglePlaces,
+      firecrawl: hasFirecrawl,
+      apify: hasApify,
+      agent3Live: !USE_MOCK && hasAnthropic && hasGooglePlaces,
+    },
+  });
 });
 
 app.post('/api/ingest', async (req, res) => {
@@ -184,6 +205,67 @@ app.post('/api/analyze', async (req, res) => {
   }
 });
 
+app.post('/api/analyze/session', (req, res) => {
+  try {
+    const context = req.body;
+    if (!context.business) return res.status(400).json({ error: 'Business profile required' });
+
+    const sessionId = `analyze-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    analysisSessions.set(sessionId, context);
+
+    setTimeout(() => analysisSessions.delete(sessionId), 10 * 60 * 1000);
+
+    res.json({ sessionId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/analyze/stream/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const context = analysisSessions.get(sessionId);
+
+  if (!context) {
+    return res.status(404).json({ error: 'Session not found or expired' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  try {
+    for await (const event of streamAnalysis(context)) {
+      if (event.type === 'log') {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'complete') {
+        if (context.companyId) {
+          await updateCompany(context.companyId, {
+            business: context.business,
+            analysis: event.analysis,
+            socialScrapes: context.socialScrapes || [],
+            step: 'analyzed',
+          });
+        }
+
+        res.write(`data: ${JSON.stringify({
+          type: 'complete',
+          analysis: event.analysis,
+          mock: event.mock ?? false,
+          mockReason: event.mockReason || null,
+        })}\n\n`);
+      }
+    }
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+  } finally {
+    analysisSessions.delete(sessionId);
+    res.end();
+  }
+});
+
 app.post('/api/benchmark', async (req, res) => {
   try {
     const context = req.body;
@@ -257,6 +339,7 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
           type: 'complete',
           competitors: event.competitors,
           mock: event.mock ?? false,
+          mockReason: event.mockReason || null,
         })}\n\n`);
       }
     }
@@ -289,6 +372,72 @@ app.post('/api/gap', async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/gap/session', (req, res) => {
+  try {
+    const context = req.body;
+    if (!context.business || !context.competitors) {
+      return res.status(400).json({ error: 'Business and competitors required' });
+    }
+
+    const sessionId = `gap-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    gapSessions.set(sessionId, context);
+
+    setTimeout(() => gapSessions.delete(sessionId), 10 * 60 * 1000);
+
+    res.json({ sessionId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/gap/stream/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const context = gapSessions.get(sessionId);
+
+  if (!context) {
+    return res.status(404).json({ error: 'Session not found or expired' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  try {
+    for await (const event of streamGaps(context)) {
+      if (event.type === 'log') {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'complete') {
+        if (context.companyId) {
+          await updateCompany(context.companyId, {
+            business: context.business,
+            analysis: context.analysis,
+            competitors: context.competitors,
+            gaps: event.gaps,
+            recommendedGap: event.recommendedGap,
+            step: 'gap_analyzed',
+          });
+        }
+
+        res.write(`data: ${JSON.stringify({
+          type: 'complete',
+          gaps: event.gaps,
+          recommendedGap: event.recommendedGap,
+          mock: event.mock ?? false,
+          mockReason: event.mockReason || null,
+        })}\n\n`);
+      }
+    }
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+  } finally {
+    gapSessions.delete(sessionId);
+    res.end();
   }
 });
 

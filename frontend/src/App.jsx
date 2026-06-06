@@ -21,6 +21,32 @@ const stepLabels = {
   leads: 'Leads',
 };
 
+const PREVIOUS_STEP = {
+  auth: 'home',
+  onboarding: 'home',
+  analysis: 'onboarding',
+  competitors: 'analysis',
+  gap: 'competitors',
+  leads: 'gap',
+};
+
+const BACK_LABELS = {
+  home: 'Home',
+  onboarding: 'Start',
+  analysis: 'Analysis',
+  competitors: 'Competitors',
+  gap: 'Market Gap',
+};
+
+const NEXT_LABELS = {
+  analysis: 'Analysis',
+  competitors: 'Competitors',
+  gap: 'Market Gap',
+  leads: 'Leads',
+};
+
+const FLOW_STEPS = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+
 export default function App() {
   const { theme } = useTheme();
   const { user, loading: authLoading, logout } = useAuth();
@@ -35,7 +61,9 @@ export default function App() {
   const [sentLeads, setSentLeads] = useState(new Set());
   const [skippedLeads, setSkippedLeads] = useState(new Set());
   const [ingestLogs, setIngestLogs] = useState([]);
+  const [analysisLogs, setAnalysisLogs] = useState([]);
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
+  const [gapLogs, setGapLogs] = useState([]);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
@@ -70,19 +98,32 @@ export default function App() {
   const handleAnalyze = async (updatedBusiness) => {
     setLoading(true);
     setError(null);
+    setAnalysisLogs([]);
     try {
       const updatedContext = { ...context, business: updatedBusiness };
       setContext(updatedContext);
-      const analysisResult = await api.analyze(updatedContext);
+
+      const { sessionId } = await api.createAnalysisSession(updatedContext);
+
+      const analysisResult = await new Promise((resolve, reject) => {
+        api.streamAnalysis(sessionId, {
+          onLog: (message) => setAnalysisLogs((prev) => [...prev, message]),
+          onComplete: resolve,
+          onError: reject,
+        });
+      });
+
       setContext((prev) => ({
         ...prev,
         business: updatedBusiness,
         analysis: analysisResult.analysis,
+        analysisMock: analysisResult.mock ?? false,
       }));
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setAnalysisLogs([]);
     }
   };
 
@@ -104,7 +145,12 @@ export default function App() {
         });
       });
 
-      setContext((prev) => ({ ...prev, competitors: benchmarkResult.competitors }));
+      setContext((prev) => ({
+        ...prev,
+        competitors: benchmarkResult.competitors,
+        competitorsMock: benchmarkResult.mock ?? false,
+        competitorsMockReason: benchmarkResult.mockReason || null,
+      }));
       setStep('competitors');
     } catch (err) {
       setError(err.message);
@@ -117,18 +163,31 @@ export default function App() {
   const handleFindGaps = async () => {
     setLoading(true);
     setError(null);
+    setGapLogs([]);
     try {
-      const gapResult = await api.findGaps(context);
+      const { sessionId } = await api.createGapSession(context);
+
+      const gapResult = await new Promise((resolve, reject) => {
+        api.streamGaps(sessionId, {
+          onLog: (message) => setGapLogs((prev) => [...prev, message]),
+          onComplete: resolve,
+          onError: reject,
+        });
+      });
+
       setContext((prev) => ({
         ...prev,
         gaps: gapResult.gaps,
         recommendedGap: gapResult.recommendedGap,
+        gapsMock: gapResult.mock ?? false,
+        gapsMockReason: gapResult.mockReason || null,
       }));
       setStep('gap');
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setGapLogs([]);
     }
   };
 
@@ -205,6 +264,78 @@ export default function App() {
     setError(null);
   }, [logout]);
 
+  const canNavigateToStep = useCallback((targetStep) => {
+    switch (targetStep) {
+      case 'onboarding':
+        return Boolean(user);
+      case 'analysis':
+        return Boolean(context.business);
+      case 'competitors':
+        return Boolean(context.competitors);
+      case 'gap':
+        return Boolean(context.gaps);
+      case 'leads':
+        return leads.length > 0 || streaming || streamComplete;
+      default:
+        return false;
+    }
+  }, [user, context, leads.length, streaming, streamComplete]);
+
+  const getNextCompletedStep = useCallback(() => {
+    const currentIndex = FLOW_STEPS.indexOf(step);
+    if (currentIndex < 0) return null;
+
+    for (let i = currentIndex + 1; i < FLOW_STEPS.length; i += 1) {
+      const targetStep = FLOW_STEPS[i];
+      if (canNavigateToStep(targetStep)) return targetStep;
+    }
+    return null;
+  }, [step, canNavigateToStep]);
+
+  const handleGoToStep = useCallback((targetStep) => {
+    if (loading) return;
+
+    const targetIndex = STEPS.indexOf(targetStep);
+    const currentIndex = STEPS.indexOf(step);
+    if (targetIndex < 0 || targetIndex === currentIndex) return;
+    if (!canNavigateToStep(targetStep)) return;
+
+    setError(null);
+    if (step === 'leads' && targetStep !== 'leads') {
+      setStreaming(false);
+      setStreamComplete(false);
+    }
+    setStep(targetStep);
+  }, [loading, step, canNavigateToStep]);
+
+  const handleBack = useCallback(() => {
+    if (loading || (streaming && step !== 'leads')) return;
+
+    const previousStep = PREVIOUS_STEP[step];
+    if (!previousStep) return;
+
+    setError(null);
+    if (step === 'leads') {
+      setStreaming(false);
+      setStreamComplete(false);
+    }
+    setStep(previousStep);
+  }, [loading, streaming, step]);
+
+  const handleNext = useCallback(() => {
+    if (loading || (streaming && step !== 'leads')) return;
+
+    const nextStep = getNextCompletedStep();
+    if (!nextStep) return;
+
+    setError(null);
+    setStep(nextStep);
+  }, [loading, streaming, step, getNextCompletedStep]);
+
+  const nextStep = getNextCompletedStep();
+  const nextLabel = nextStep ? NEXT_LABELS[nextStep] : null;
+  const navDisabled = loading || (streaming && step !== 'leads');
+
   useEffect(() => {
     const protectedSteps = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
     if (!authLoading && !user && protectedSteps.includes(step)) {
@@ -252,29 +383,47 @@ export default function App() {
               {STEPS.slice(3).map((s, i) => {
                 const stepIndex = i + 3;
                 const isActive = currentStepIndex === stepIndex;
-                const isComplete = currentStepIndex > stepIndex;
+                const isBehind = currentStepIndex > stepIndex;
+                const isAheadComplete = currentStepIndex < stepIndex && canNavigateToStep(s);
+                const isClickable = !loading && (isBehind || isAheadComplete);
                 return (
                   <div key={s} className="flex items-center">
                     {i > 0 && (
                       <div
-                        className={`w-8 h-0.5 ${isComplete ? 'bg-[#0071e3]' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
+                        className={`w-8 h-0.5 ${isBehind || isAheadComplete ? 'bg-[#0071e3]' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
                       />
                     )}
-                    <span
-                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        isActive
-                          ? 'bg-[#0071e3] text-white'
-                          : isComplete
-                            ? isDark
+                    {isClickable ? (
+                      <button
+                        type="button"
+                        onClick={() => handleGoToStep(s)}
+                        className={`px-3 py-1 text-xs font-semibold rounded-full transition hover:opacity-80 ${
+                          isActive
+                            ? 'bg-[#0071e3] text-white'
+                            : isDark
                               ? 'bg-blue-500/20 text-sky-400'
                               : 'bg-blue-50 text-[#0071e3]'
-                            : isDark
-                              ? 'bg-zinc-800 text-zinc-500'
-                              : 'bg-gray-100 text-gray-400'
-                      }`}
-                    >
-                      {stepLabels[s]}
-                    </span>
+                        }`}
+                      >
+                        {stepLabels[s]}
+                      </button>
+                    ) : (
+                      <span
+                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                          isActive
+                            ? 'bg-[#0071e3] text-white'
+                            : isBehind || isAheadComplete
+                              ? isDark
+                                ? 'bg-blue-500/20 text-sky-400'
+                                : 'bg-blue-50 text-[#0071e3]'
+                              : isDark
+                                ? 'bg-zinc-800 text-zinc-500'
+                                : 'bg-gray-100 text-gray-400'
+                        }`}
+                      >
+                        {stepLabels[s]}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -360,11 +509,20 @@ export default function App() {
         )}
 
         {step === 'auth' && (
-          <AuthPage onSuccess={handleAuthSuccess} onClose={() => setStep('home')} />
+          <AuthPage onSuccess={handleAuthSuccess} onClose={handleBack} />
         )}
 
         {step === 'onboarding' && user && (
-          <Onboarding onSubmit={handleIngest} loading={loading} logs={ingestLogs} />
+          <Onboarding
+            onSubmit={handleIngest}
+            loading={loading}
+            logs={ingestLogs}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.onboarding]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
+          />
         )}
 
         {step === 'analysis' && context.business && (
@@ -376,15 +534,29 @@ export default function App() {
             onAnalyze={handleAnalyze}
             onContinue={handleContinueToBenchmark}
             loading={loading}
+            analysisLogs={analysisLogs}
             benchmarkLogs={benchmarkLogs}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.analysis]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
 
         {step === 'competitors' && context.competitors && (
           <CompetitorBenchmark
             competitors={context.competitors}
+            mock={context.competitorsMock}
+            mockReason={context.competitorsMockReason}
             onContinue={handleFindGaps}
             loading={loading}
+            gapLogs={gapLogs}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.competitors]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
 
@@ -394,6 +566,11 @@ export default function App() {
             recommendedGap={context.recommendedGap}
             onConfirm={handleConfirmGap}
             loading={loading}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.gap]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
 
@@ -406,6 +583,11 @@ export default function App() {
             onSkip={handleSkip}
             sentLeads={sentLeads}
             skippedLeads={skippedLeads}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.leads]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
       </main>

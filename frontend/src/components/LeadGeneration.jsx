@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../context/ThemeContext';
 import LeadCard from './LeadCard';
+import StepNavigation from './StepNavigation';
 
 const createDotIcon = (lead, isDark) => {
   const isPriority = parseFloat(lead.priorityScore) >= 8.0;
@@ -92,6 +93,11 @@ export default function LeadGeneration({
   onSkip,
   sentLeads,
   skippedLeads,
+  onBack,
+  backLabel,
+  onNext,
+  nextLabel,
+  navDisabled,
 }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -112,6 +118,14 @@ export default function LeadGeneration({
 
   return (
     <div className="max-w-6xl mx-auto">
+      <StepNavigation
+        onBack={onBack}
+        backLabel={backLabel}
+        onNext={onNext}
+        nextLabel={nextLabel}
+        backDisabled={navDisabled}
+        nextDisabled={navDisabled}
+      />
       <div className="mb-8">
         <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Leads</h2>
         <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>

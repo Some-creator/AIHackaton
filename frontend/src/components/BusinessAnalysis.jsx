@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import ServiceTags from './ServiceTags';
 import SocialProfileTags from './SocialProfileTags';
 import ActivityLog from './ActivityLog';
+import StepNavigation from './StepNavigation';
 
 const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
@@ -34,7 +35,7 @@ function AnalysisSection({ title, items, color, isDark }) {
   );
 }
 
-export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, benchmarkLogs = [] }) {
+export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [profile, setProfile] = useState({ ...business });
@@ -47,6 +48,14 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
 
   return (
     <div className="max-w-4xl mx-auto">
+      <StepNavigation
+        onBack={onBack}
+        backLabel={backLabel}
+        onNext={onNext}
+        nextLabel={nextLabel}
+        backDisabled={navDisabled}
+        nextDisabled={navDisabled}
+      />
       <div className="mb-8">
         <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Profile</h2>
         <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
@@ -134,27 +143,33 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
       </div>
 
       {!hasAnalysis ? (
-        <button
-          onClick={() => onAnalyze(profile)}
-          disabled={loading}
-          className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-            loading
-              ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-              : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
-          }`}
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Analyzing your business...
-            </>
-          ) : (
-            'Analyze My Business'
+        <>
+          <button
+            onClick={() => onAnalyze(profile)}
+            disabled={loading}
+            className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+              loading
+                ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
+                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+            }`}
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Analyzing your business...
+              </>
+            ) : (
+              'Analyze My Business'
+            )}
+          </button>
+
+          {loading && (
+            <ActivityLog logs={analysisLogs} title="Agent 2 — Analyzing your business" />
           )}
-        </button>
+        </>
       ) : (
         <>
           <div className="mb-8">
