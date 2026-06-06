@@ -1,37 +1,105 @@
-const USE_MOCK = true;
+import { useMockFor, OPENROUTER_MODEL, OPENROUTER_HAIKU_MODEL } from './config.js';
 
-export async function callClaude({ system, messages, model = 'claude-sonnet-4-6' }) {
-  if (USE_MOCK) {
-    return { content: '', model, mock: true };
-  }
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+const FALLBACK_MODELS = [
+  'anthropic/claude-3.5-sonnet',
+  'anthropic/claude-3-haiku',
+  'google/gemini-2.0-flash-001',
+];
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+const LEGACY_MODEL_MAP = {
+  'claude-sonnet-4-6': OPENROUTER_MODEL,
+  'claude-3-5-haiku-latest': OPENROUTER_HAIKU_MODEL,
+};
+
+const PRIVACY_ERROR_HINT =
+  'OpenRouter privacy settings are blocking this model. ' +
+  'Go to https://openrouter.ai/settings/privacy and allow data collection ' +
+  'or disable strict Zero Data Retention for Anthropic models.';
+
+function resolveModel(model) {
+  return LEGACY_MODEL_MAP[model] || model || OPENROUTER_MODEL;
+}
+
+function isPolicyError(status, errBody) {
+  return (
+    status === 404 &&
+    (errBody.includes('guardrail') ||
+      errBody.includes('data policy') ||
+      errBody.includes('No endpoints'))
+  );
+}
+
+async function requestOpenRouter({ model, system, messages, maxTokens }) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+
+  const response = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'https://github.com/Some-creator/AIHackaton',
+      'X-Title': process.env.OPENROUTER_APP_NAME || 'HookLine',
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
-      system,
-      messages,
+      max_tokens: maxTokens,
+      messages: [
+        { role: 'system', content: system },
+        ...messages,
+      ],
+      provider: {
+        data_collection: 'allow',
+      },
     }),
   });
 
-  if (!response.ok) throw new Error(`Anthropic API failed: ${response.status}`);
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    const error = new Error(`OpenRouter API failed (${response.status}): ${errBody.slice(0, 300)}`);
+    error.status = response.status;
+    error.isPolicyError = isPolicyError(response.status, errBody);
+    throw error;
+  }
+
   const data = await response.json();
-  return {
-    content: data.content?.[0]?.text || '',
-    model,
-    mock: false,
-  };
+  const content = data.choices?.[0]?.message?.content || '';
+
+  if (!content) {
+    throw new Error('OpenRouter returned empty response');
+  }
+
+  return { content, model, mock: false };
+}
+
+export async function callClaude({ system, messages, model = OPENROUTER_MODEL, maxTokens = 4096 }) {
+  if (useMockFor('openrouter')) {
+    return { content: '', model: resolveModel(model), mock: true };
+  }
+
+  const primaryModel = resolveModel(model);
+  const modelsToTry = [primaryModel, ...FALLBACK_MODELS.filter((m) => m !== primaryModel)];
+
+  let lastPolicyError = null;
+
+  for (const tryModel of modelsToTry) {
+    try {
+      console.log(`[openrouter] Trying model: ${tryModel}`);
+      return await requestOpenRouter({ model: tryModel, system, messages, maxTokens });
+    } catch (err) {
+      if (err.isPolicyError) {
+        lastPolicyError = err;
+        console.warn(`[openrouter] Policy block on ${tryModel}, trying fallback...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw new Error(`${lastPolicyError?.message || 'All models blocked'}. ${PRIVACY_ERROR_HINT}`);
 }
 
 export async function callHaiku({ system, messages }) {
-  return callClaude({ system, messages, model: 'claude-3-5-haiku-latest' });
+  return callClaude({ system, messages, model: OPENROUTER_HAIKU_MODEL });
 }
