@@ -139,6 +139,40 @@
     font-family: var(--font-heading);
     font-weight: 600;
   }
+
+  .text-gradient-animate {
+    background: linear-gradient(
+      115deg,
+      #c084fc 0%,
+      #818cf8 12%,
+      #38bdf8 25%,
+      #2dd4bf 38%,
+      #f472b6 52%,
+      #fb923c 65%,
+      #facc15 78%,
+      #c084fc 90%,
+      #818cf8 100%
+    );
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: text-gradient-flow 4s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .text-gradient-animate {
+      animation: none;
+      background-position: 0% center;
+    }
+  }
+}
+
+@keyframes text-gradient-flow {
+  to {
+    background-position: 300% center;
+  }
 }
 
 #root {

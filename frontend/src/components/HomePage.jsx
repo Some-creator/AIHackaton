@@ -59,6 +59,7 @@ export default function HomePage({ onGetStarted }) {
         theme={theme}
         badge="AI Business Intelligence"
         title1="Are businesses ignoring you?"
+        title1Highlight="businesses"
         title2="Don't worry."
         description="Paste your website. HookLine analyzes your business, finds market gaps, and generates qualified leads — fast."
       >
