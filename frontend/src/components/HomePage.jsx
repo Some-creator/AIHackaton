@@ -46,7 +46,7 @@ const features = [
 
 function HookLineLogo({ className = 'w-8 h-8' }) {
   return (
-    <div className={`rounded-lg bg-hookline-500 flex items-center justify-center ${className}`}>
+    <div className={`rounded-lg bg-hookline-500 flex items-center justify-center shrink-0 ${className}`}>
       <svg className="w-1/2 h-1/2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
@@ -56,14 +56,14 @@ function HookLineLogo({ className = 'w-8 h-8' }) {
 
 export default function HomePage({ onGetStarted }) {
   return (
-    <div className="-mx-4 -my-10">
-      <section className="relative overflow-hidden bg-gradient-to-b from-hookline-50 via-white to-gray-50 px-4 py-20 sm:py-28">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-20 left-1/4 w-72 h-72 bg-hookline-100 rounded-full blur-3xl opacity-60" />
-          <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-hookline-50 rounded-full blur-3xl opacity-80" />
+    <div className="w-full overflow-x-hidden">
+      <section className="relative isolate bg-gradient-to-b from-hookline-50 via-white to-gray-50">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+          <div className="absolute top-24 left-1/4 w-72 h-72 bg-hookline-100 rounded-full blur-3xl opacity-60" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-hookline-50 rounded-full blur-3xl opacity-80" />
         </div>
 
-        <div className="relative max-w-4xl mx-auto text-center">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-20 sm:pt-16 sm:pb-28 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-hookline-100 text-hookline-700 text-sm font-medium mb-8 shadow-sm">
             <HookLineLogo className="w-5 h-5 rounded-md" />
             AI Business Intelligence
@@ -79,8 +79,9 @@ export default function HomePage({ onGetStarted }) {
             uncovers market gaps, and generates qualified leads with personalized outreach.
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-lg sm:max-w-none mx-auto">
             <button
+              type="button"
               onClick={onGetStarted}
               className="w-full sm:w-auto px-8 py-4 bg-hookline-500 hover:bg-hookline-600 text-white font-semibold rounded-xl transition shadow-lg shadow-hookline-500/25"
             >
@@ -88,7 +89,7 @@ export default function HomePage({ onGetStarted }) {
             </button>
             <a
               href="#how-it-works"
-              className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-200 transition"
+              className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-200 transition text-center"
             >
               See How It Works
             </a>
@@ -100,8 +101,8 @@ export default function HomePage({ onGetStarted }) {
         </div>
       </section>
 
-      <section id="how-it-works" className="px-4 py-20 bg-white">
-        <div className="max-w-6xl mx-auto">
+      <section id="how-it-works" className="scroll-mt-20 bg-white border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
           <div className="text-center mb-14">
             <h2 className="text-3xl font-bold text-gray-900">How HookLine works</h2>
             <p className="mt-3 text-gray-600 max-w-xl mx-auto">
@@ -116,10 +117,10 @@ export default function HomePage({ onGetStarted }) {
                 className="relative bg-gray-50 rounded-2xl border border-gray-100 p-6 hover:border-hookline-100 hover:bg-hookline-50/30 transition"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-hookline-500 text-white text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-hookline-500 text-white text-sm font-bold shrink-0">
                     {index + 1}
                   </span>
-                  <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-hookline-500">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-hookline-500 shrink-0">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       {step.icon}
                     </svg>
@@ -133,8 +134,8 @@ export default function HomePage({ onGetStarted }) {
         </div>
       </section>
 
-      <section className="px-4 py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
+      <section className="bg-gray-50 border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
           <div className="text-center mb-14">
             <h2 className="text-3xl font-bold text-gray-900">Everything you need to grow</h2>
             <p className="mt-3 text-gray-600 max-w-xl mx-auto">
@@ -161,20 +162,23 @@ export default function HomePage({ onGetStarted }) {
         </div>
       </section>
 
-      <section className="px-4 py-20">
-        <div className="max-w-3xl mx-auto text-center bg-hookline-900 rounded-3xl px-8 py-14 sm:px-16">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to find your next customers?
-          </h2>
-          <p className="text-hookline-100 mb-8 leading-relaxed">
-            Start with your website URL and let HookLine do the rest.
-          </p>
-          <button
-            onClick={onGetStarted}
-            className="px-8 py-4 bg-white hover:bg-gray-100 text-hookline-700 font-semibold rounded-xl transition"
-          >
-            Analyze My Business
-          </button>
+      <section className="bg-white border-t border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+          <div className="max-w-3xl mx-auto text-center bg-hookline-900 rounded-3xl px-8 py-14 sm:px-16">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Ready to find your next customers?
+            </h2>
+            <p className="text-hookline-100 mb-8 leading-relaxed">
+              Start with your website URL and let HookLine do the rest.
+            </p>
+            <button
+              type="button"
+              onClick={onGetStarted}
+              className="px-8 py-4 bg-white hover:bg-gray-100 text-hookline-700 font-semibold rounded-xl transition"
+            >
+              Analyze My Business
+            </button>
+          </div>
         </div>
       </section>
     </div>

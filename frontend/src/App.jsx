@@ -136,9 +136,9 @@ export default function App() {
   const currentStepIndex = STEPS.indexOf(step);
 
   return (
-    <div className="min-h-screen">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shrink-0">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <button
             type="button"
             onClick={() => setStep('home')}
@@ -154,8 +154,9 @@ export default function App() {
 
           {step === 'home' && (
             <button
+              type="button"
               onClick={() => setStep('onboarding')}
-              className="px-5 py-2 bg-hookline-500 hover:bg-hookline-600 text-white text-sm font-semibold rounded-lg transition"
+              className="px-5 py-2.5 bg-hookline-500 hover:bg-hookline-600 text-white text-sm font-semibold rounded-lg transition shrink-0"
             >
               Get Started
             </button>
@@ -189,7 +190,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className={`max-w-6xl mx-auto px-4 ${step === 'home' ? '' : 'py-10'}`}>
+      <main className={step === 'home' ? 'flex-1 w-full' : 'flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full'}>
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
             {error}
