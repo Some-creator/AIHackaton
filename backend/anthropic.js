@@ -2,29 +2,28 @@ import {
   useMockFor,
   OPENROUTER_MODEL,
   OPENROUTER_REASONING_MODEL,
-  OPENROUTER_FAST_MODEL,
+  OPENROUTER_HAIKU_MODEL,
 } from './config.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const DEEPSEEK_FALLBACKS = [
-  'deepseek/deepseek-chat',
-  'deepseek/deepseek-r1',
-  'deepseek/deepseek-r1-0528',
+const CLAUDE_FALLBACKS = [
+  'anthropic/claude-3.5-sonnet',
+  'anthropic/claude-3-haiku',
+  'anthropic/claude-sonnet-4',
 ];
 
-const PRIVACY_ERROR_HINT =
-  'OpenRouter privacy settings are blocking DeepSeek models. ' +
-  'Go to https://openrouter.ai/settings/privacy and allow DeepSeek under your data policy.';
+const LEGACY_MODEL_MAP = {
+  'claude-sonnet-4-6': OPENROUTER_REASONING_MODEL,
+  'claude-3-5-haiku-latest': OPENROUTER_HAIKU_MODEL,
+};
 
-function isDeepSeekModel(model) {
-  return model?.startsWith('deepseek/');
-}
+const PRIVACY_ERROR_HINT =
+  'OpenRouter privacy settings are blocking Claude models. ' +
+  'Go to https://openrouter.ai/settings/privacy and allow Anthropic under your data policy.';
 
 function resolveModel(model) {
-  if (!model || isDeepSeekModel(model)) return model || OPENROUTER_MODEL;
-  console.warn(`[openrouter] Non-DeepSeek model "${model}" blocked — using ${OPENROUTER_MODEL}`);
-  return OPENROUTER_MODEL;
+  return LEGACY_MODEL_MAP[model] || model || OPENROUTER_MODEL;
 }
 
 function isPolicyError(status, errBody) {
@@ -56,7 +55,6 @@ async function requestOpenRouter({ model, system, messages, maxTokens }) {
       ],
       provider: {
         data_collection: 'allow',
-        only: ['DeepSeek'],
       },
     }),
   });
@@ -81,7 +79,7 @@ async function requestOpenRouter({ model, system, messages, maxTokens }) {
 
 async function callWithFallbacks({ system, messages, model, maxTokens }) {
   const primaryModel = resolveModel(model);
-  const modelsToTry = [primaryModel, ...DEEPSEEK_FALLBACKS.filter((m) => m !== primaryModel)];
+  const modelsToTry = [primaryModel, ...CLAUDE_FALLBACKS.filter((m) => m !== primaryModel)];
 
   let lastPolicyError = null;
 
@@ -99,7 +97,7 @@ async function callWithFallbacks({ system, messages, model, maxTokens }) {
     }
   }
 
-  throw new Error(`${lastPolicyError?.message || 'All DeepSeek models blocked'}. ${PRIVACY_ERROR_HINT}`);
+  throw new Error(`${lastPolicyError?.message || 'All Claude models blocked'}. ${PRIVACY_ERROR_HINT}`);
 }
 
 export async function callClaude({ system, messages, model = OPENROUTER_MODEL, maxTokens = 4096 }) {
@@ -115,5 +113,5 @@ export async function callReasoning({ system, messages, maxTokens = 4096 }) {
 }
 
 export async function callHaiku({ system, messages }) {
-  return callClaude({ system, messages, model: OPENROUTER_FAST_MODEL });
+  return callClaude({ system, messages, model: OPENROUTER_HAIKU_MODEL });
 }
