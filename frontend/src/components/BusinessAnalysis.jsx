@@ -133,7 +133,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <GlassAnalysisCard title="Strengths" items={analysis.strengths} color="green" isDark={isDark} />
-            <GlassAnalysisCard title="Weaknesses" items={analysis.weaknesses} color="yellow" isDark={isDark} />
+            <GlassAnalysisCard title="Weaknesses" items={analysis.weaknesses} color="amber" isDark={isDark} />
             <GlassAnalysisCard title="Improvements" items={analysis.improvements} color="blue" isDark={isDark} />
             <GlassAnalysisCard title="Missing" items={analysis.missing} color="red" isDark={isDark} />
           </div>

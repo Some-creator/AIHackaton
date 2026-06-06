@@ -7,7 +7,6 @@ import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
 import { Header } from '@/components/ui/header-03';
-import { GlassFilter } from '@/components/ui/liquid-glass';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import * as api from './api';
@@ -254,7 +253,6 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-[#f5f5f7]'}`}>
-      <GlassFilter />
       <Header
         onLogoClick={() => setStep('home')}
         onSignIn={() => setStep('auth')}
