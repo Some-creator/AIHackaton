@@ -66,13 +66,13 @@ export default function HomePage({ onGetStarted }) {
           <button
             type="button"
             onClick={onGetStarted}
-            className="w-full sm:w-auto px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold rounded-full transition shadow-lg shadow-blue-500/20"
+            className="w-full sm:w-auto px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-button rounded-full transition shadow-lg shadow-blue-500/20"
           >
             Get Started — It&apos;s Free
           </button>
           <a
             href="#how-it-works"
-            className={`w-full sm:w-auto px-8 py-3.5 font-bold rounded-full transition text-center ${
+            className={`w-full sm:w-auto px-8 py-3.5 font-button rounded-full transition text-center ${
               isDark
                 ? 'bg-white/10 hover:bg-white/15 text-white border border-white/25 backdrop-blur-sm'
                 : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300/80 shadow-sm'
@@ -81,7 +81,7 @@ export default function HomePage({ onGetStarted }) {
             See How It Works
           </a>
         </div>
-        <p className={`mt-6 text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+        <p className={`mt-6 text-sm font-body-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           No credit card required · Works in demo mode instantly
         </p>
       </HeroGeometric>
@@ -91,14 +91,14 @@ export default function HomePage({ onGetStarted }) {
         titleComponent={
           <div className="space-y-4">
             <p
-              className={`text-sm font-bold uppercase tracking-widest ${
+              className={`text-sm font-ui uppercase tracking-widest ${
                 isDark ? 'text-sky-400' : 'text-[#0071e3]'
               }`}
             >
               Scroll to explore
             </p>
             <h2
-              className={`text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight ${
+              className={`font-section-title text-3xl sm:text-4xl md:text-5xl ${
                 isDark ? 'text-white' : 'text-gray-900'
               }`}
             >
@@ -121,10 +121,10 @@ export default function HomePage({ onGetStarted }) {
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
           <div className="text-center mb-14">
-            <h2 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h2 className={`font-section-title text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>
               How HookLine works
             </h2>
-            <p className={`mt-3 max-w-xl mx-auto font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            <p className={`mt-3 max-w-xl mx-auto font-body-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               From website URL to actionable leads in four simple steps.
             </p>
           </div>
@@ -153,8 +153,8 @@ export default function HomePage({ onGetStarted }) {
                     </svg>
                   </div>
                 </div>
-                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{step.title}</h3>
-                <p className={`text-sm leading-relaxed font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <h3 className={`font-section-title mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{step.title}</h3>
+                <p className={`text-sm font-body ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                   {step.description}
                 </p>
               </div>
@@ -171,10 +171,10 @@ export default function HomePage({ onGetStarted }) {
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
           <div className="text-center mb-14">
-            <h2 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h2 className={`font-section-title text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Everything you need to grow
             </h2>
-            <p className={`mt-3 max-w-xl mx-auto font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            <p className={`mt-3 max-w-xl mx-auto font-body-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               One tool for analysis, competitive research, and outbound sales.
             </p>
           </div>
@@ -198,8 +198,8 @@ export default function HomePage({ onGetStarted }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h3>
-                <p className={`text-sm leading-relaxed font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                <h3 className={`font-section-title mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h3>
+                <p className={`text-sm font-body ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                   {feature.description}
                 </p>
               </div>
@@ -221,16 +221,16 @@ export default function HomePage({ onGetStarted }) {
                 : 'bg-[#f5f5f7] border border-gray-200'
             }`}
           >
-            <h2 className={`text-3xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h2 className={`font-section-title text-3xl mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Ready to find your next customers?
             </h2>
-            <p className={`mb-8 leading-relaxed font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            <p className={`mb-8 font-body-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               Start with your website URL and let HookLine do the rest.
             </p>
             <button
               type="button"
               onClick={onGetStarted}
-              className="px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold rounded-full transition"
+              className="px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-button rounded-full transition"
             >
               Analyze My Business
             </button>

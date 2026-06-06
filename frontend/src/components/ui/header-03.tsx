@@ -54,7 +54,7 @@ export function Header({
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary-foreground/15 md:h-9 md:w-9">
               <Zap className="h-4 w-4 text-primary-foreground md:h-5 md:w-5" aria-hidden="true" />
             </div>
-            <span className="hidden pr-1 text-lg font-semibold text-primary-foreground sm:inline md:text-xl">
+            <span className="hidden pr-1 font-heading text-lg font-bold text-primary-foreground sm:inline md:text-xl">
               HookLine
             </span>
           </button>
@@ -67,7 +67,7 @@ export function Header({
                 <a
                   key={item.name}
                   href={item.href}
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                  className="rounded-lg px-4 py-2 font-body text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
                 >
                   {item.name}
                 </a>
@@ -80,7 +80,7 @@ export function Header({
             {user ? (
               <>
                 <span
-                  className="max-w-[140px] truncate text-xs font-semibold text-muted-foreground"
+                  className="max-w-[140px] truncate font-body text-xs font-medium text-muted-foreground"
                   title={user.email || user.displayName || undefined}
                 >
                   {user.displayName || user.email}
@@ -118,7 +118,7 @@ export function Header({
                   <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
                     <Zap className="h-5 w-5 text-primary-foreground" />
                   </div>
-                  <span className="text-lg font-semibold">HookLine</span>
+                  <span className="font-heading text-lg font-bold">HookLine</span>
                 </div>
 
                 {showHomeNav && (
@@ -127,7 +127,7 @@ export function Header({
                       <a
                         key={item.name}
                         href={item.href}
-                        className="rounded-lg px-3 py-3 text-base font-semibold text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                        className="rounded-lg px-3 py-3 font-body text-base font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
                         onClick={() => setIsOpen(false)}
                       >
                         {item.name}
@@ -140,13 +140,13 @@ export function Header({
 
                 <div className="mt-auto space-y-4 pt-8">
                   <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
-                    <span className="text-sm font-semibold">Theme</span>
+                    <span className="font-body text-sm font-medium">Theme</span>
                     <ModeToggle compact />
                   </div>
 
                   {user ? (
                     <div className="space-y-3">
-                      <p className="truncate text-sm font-medium text-muted-foreground">
+                      <p className="truncate font-body text-sm font-medium text-muted-foreground">
                         {user.displayName || user.email}
                       </p>
                       <Button variant="outline" className="w-full" onClick={() => { onSignOut?.(); setIsOpen(false); }}>

@@ -4,6 +4,18 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        heading: ['"General Sans"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      letterSpacing: {
+        hero: '-0.02em',
+        heading: '-0.01em',
+      },
+      lineHeight: {
+        hero: '1.1',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
