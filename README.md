@@ -23,7 +23,8 @@ Open `http://localhost:5173`
 | Variable | Required for demo |
 |---|---|
 | `OPENROUTER_API_KEY` | No (mock mode) |
-| `OPENROUTER_MODEL` | No (defaults to `anthropic/claude-3.5-sonnet`) |
+| `OPENROUTER_MODEL` | No (defaults to `deepseek/deepseek-chat` for agents 1–3) |
+| `OPENROUTER_REASONING_MODEL` | No (defaults to `deepseek/deepseek-r1` for agents 4–5) |
 | `GOOGLE_PLACES_API_KEY` | No (mock mode) |
 | `YELP_API_KEY` | No (mock mode) |
 | `FIRECRAWL_API_KEY` | No (mock mode) |
@@ -43,4 +44,4 @@ If you see `No endpoints available matching your guardrail restrictions and data
 3. Under **Zero Data Retention**, disable ZDR for Anthropic unless you have credits on ZDR-only endpoints
 4. Save settings and retry
 
-HookLine also auto-falls back across several models (`claude-3.5-sonnet`, `claude-3-haiku`, `gemini-2.0-flash`) if the primary model is blocked.
+HookLine uses DeepSeek-only models and auto-falls back across `deepseek-chat`, `deepseek-r1`, and `deepseek-r1-0528` if the primary model is blocked.

@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { callClaude } from '../backend/anthropic.js';
+import { callReasoning } from '../backend/anthropic.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const USE_MOCK = true;
@@ -16,7 +16,7 @@ export async function gapAgent(context) {
   }
 
   try {
-    const { content } = await callClaude({
+    const { content } = await callReasoning({
       system: 'You are a market gap analysis agent. Identify untapped niches competitors are not serving. Rank gaps by opportunity size. Return valid JSON with gaps array and recommendedGap index.',
       messages: [
         {

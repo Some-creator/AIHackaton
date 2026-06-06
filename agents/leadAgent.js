@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import { searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { getBusinessReviews } from '../backend/yelp.js';
-import { callClaude } from '../backend/anthropic.js';
+import { callReasoning } from '../backend/anthropic.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const USE_MOCK = true;
@@ -48,7 +48,7 @@ export async function leadAgent(context) {
 
         if (isFranchise(name, scraped.content)) return null;
 
-        const { content } = await callClaude({
+        const { content } = await callReasoning({
           system: 'You are a lead generation agent. Analyze lead data and return hook, scores, email, and send strategy. Return valid JSON only.',
           messages: [
             {
