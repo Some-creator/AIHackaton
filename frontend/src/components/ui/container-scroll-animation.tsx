@@ -37,25 +37,25 @@ export function ContainerScroll({
     restDelta: 0.001,
   });
 
-  const headerY = useTransform(smoothProgress, [0, 0.4, 1], [32, 0, -40]);
-  const headerOpacity = useTransform(smoothProgress, [0, 0.15, 0.8, 1], [0.5, 1, 1, 0.6]);
+  const headerY = useTransform(smoothProgress, [0, 0.2, 0.7, 1], [32, 0, 0, -40]);
+  const headerOpacity = useTransform(smoothProgress, [0, 0.1, 0.8, 1], [0.5, 1, 1, 0.6]);
 
   const cardY = useTransform(
     smoothProgress,
-    [0, 0.35, 0.55, 1],
-    isMobile ? [56, 16, 0, -28] : [88, 24, 0, -36],
+    [0, 0.1, 0.2, 0.7, 1],
+    isMobile ? [56, 16, 0, 0, -28] : [88, 24, 0, 0, -36],
   );
   const cardScale = useTransform(
     smoothProgress,
-    [0, 0.35, 0.55, 1],
-    isMobile ? [0.9, 0.96, 1, 0.97] : [0.86, 0.94, 1, 0.96],
+    [0, 0.1, 0.2, 0.7, 1],
+    isMobile ? [0.9, 0.96, 1, 1, 0.97] : [0.86, 0.94, 1, 1, 0.96],
   );
   const cardRotate = useTransform(
     smoothProgress,
-    [0, 0.25, 0.45, 0.65, 1],
-    isMobile ? [18, 10, 0, 0, -6] : [28, 16, 0, 0, -10],
+    [0, 0.1, 0.2, 0.7, 1],
+    isMobile ? [18, 9, 0, 0, -6] : [28, 14, 0, 0, -10],
   );
-  const cardOpacity = useTransform(smoothProgress, [0, 0.12, 0.85, 1], [0.55, 1, 1, 0.82]);
+  const cardOpacity = useTransform(smoothProgress, [0, 0.08, 0.85, 1], [0.55, 1, 1, 0.82]);
 
   return (
     <div
