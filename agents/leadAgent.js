@@ -324,8 +324,16 @@ async function buildLeadFromPlace(place, business, selectedGap, searchPlan) {
   const website = place.websiteUri || '';
 
   const [scraped, yelpData] = await Promise.all([
-    website ? scrapeWebsite(website) : Promise.resolve({ content: '' }),
-    getBusinessReviews(name, business.location),
+    website
+      ? scrapeWebsite(website).catch((err) => {
+          console.warn(`[leadAgent] Scrape failed for ${website}: ${err.message}`);
+          return { content: '' };
+        })
+      : Promise.resolve({ content: '' }),
+    getBusinessReviews(name, business.location).catch((err) => {
+      console.warn(`[leadAgent] Yelp reviews failed for ${name}: ${err.message}`);
+      return null;
+    }),
   ]);
 
   const franchiseCheck = await isFranchise(name, scraped.content, place);
