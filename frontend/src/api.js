@@ -59,6 +59,33 @@ export async function analyze(context) {
   return post('/analyze', context);
 }
 
+export async function createAnalysisSession(context) {
+  return post('/analyze/session', context);
+}
+
+export function streamAnalysis(sessionId, { onLog, onComplete, onError }) {
+  const eventSource = new EventSource(`${API_BASE}/analyze/stream/${sessionId}`);
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'log') onLog?.(data.message);
+    else if (data.type === 'complete') {
+      onComplete?.(data);
+      eventSource.close();
+    } else if (data.type === 'error') {
+      onError?.(new Error(data.error));
+      eventSource.close();
+    }
+  };
+
+  eventSource.onerror = () => {
+    onError?.(new Error('Connection to analysis stream lost'));
+    eventSource.close();
+  };
+
+  return eventSource;
+}
+
 export async function benchmark(context) {
   return post('/benchmark', context);
 }

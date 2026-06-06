@@ -5,7 +5,7 @@ import path from 'path';
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { ingestionAgent, streamIngestion } from '../agents/ingestionAgent.js';
-import { analysisAgent } from '../agents/analysisAgent.js';
+import { analysisAgent, streamAnalysis } from '../agents/analysisAgent.js';
 import { benchmarkAgent, streamBenchmark } from '../agents/benchmarkAgent.js';
 import { gapAgent } from '../agents/gapAgent.js';
 import { streamLeads } from '../agents/leadAgent.js';
@@ -33,6 +33,7 @@ const PORT = process.env.PORT || 3001;
 const leadSessions = new Map();
 const ingestSessions = new Map();
 const benchmarkSessions = new Map();
+const analysisSessions = new Map();
 
 app.use(cors());
 app.use(express.json());
@@ -200,6 +201,67 @@ app.post('/api/analyze', async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/analyze/session', (req, res) => {
+  try {
+    const context = req.body;
+    if (!context.business) return res.status(400).json({ error: 'Business profile required' });
+
+    const sessionId = `analyze-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    analysisSessions.set(sessionId, context);
+
+    setTimeout(() => analysisSessions.delete(sessionId), 10 * 60 * 1000);
+
+    res.json({ sessionId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/analyze/stream/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const context = analysisSessions.get(sessionId);
+
+  if (!context) {
+    return res.status(404).json({ error: 'Session not found or expired' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  try {
+    for await (const event of streamAnalysis(context)) {
+      if (event.type === 'log') {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'complete') {
+        if (context.companyId) {
+          await updateCompany(context.companyId, {
+            business: context.business,
+            analysis: event.analysis,
+            socialScrapes: context.socialScrapes || [],
+            step: 'analyzed',
+          });
+        }
+
+        res.write(`data: ${JSON.stringify({
+          type: 'complete',
+          analysis: event.analysis,
+          mock: event.mock ?? false,
+          mockReason: event.mockReason || null,
+        })}\n\n`);
+      }
+    }
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+  } finally {
+    analysisSessions.delete(sessionId);
+    res.end();
   }
 });
 

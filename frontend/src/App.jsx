@@ -35,6 +35,7 @@ export default function App() {
   const [sentLeads, setSentLeads] = useState(new Set());
   const [skippedLeads, setSkippedLeads] = useState(new Set());
   const [ingestLogs, setIngestLogs] = useState([]);
+  const [analysisLogs, setAnalysisLogs] = useState([]);
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
 
   const handleIngest = async (url, socialProfiles) => {
@@ -70,19 +71,32 @@ export default function App() {
   const handleAnalyze = async (updatedBusiness) => {
     setLoading(true);
     setError(null);
+    setAnalysisLogs([]);
     try {
       const updatedContext = { ...context, business: updatedBusiness };
       setContext(updatedContext);
-      const analysisResult = await api.analyze(updatedContext);
+
+      const { sessionId } = await api.createAnalysisSession(updatedContext);
+
+      const analysisResult = await new Promise((resolve, reject) => {
+        api.streamAnalysis(sessionId, {
+          onLog: (message) => setAnalysisLogs((prev) => [...prev, message]),
+          onComplete: resolve,
+          onError: reject,
+        });
+      });
+
       setContext((prev) => ({
         ...prev,
         business: updatedBusiness,
         analysis: analysisResult.analysis,
+        analysisMock: analysisResult.mock ?? false,
       }));
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setAnalysisLogs([]);
     }
   };
 
@@ -379,6 +393,7 @@ export default function App() {
             onAnalyze={handleAnalyze}
             onContinue={handleContinueToBenchmark}
             loading={loading}
+            analysisLogs={analysisLogs}
             benchmarkLogs={benchmarkLogs}
           />
         )}
