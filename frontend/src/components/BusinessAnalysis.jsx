@@ -137,7 +137,11 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         <button
           onClick={() => onAnalyze(profile)}
           disabled={loading}
-          className="w-full md:w-auto px-8 py-3.5 bg-hookline-500 hover:bg-hookline-600 disabled:bg-gray-300 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2"
+          className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+            loading
+              ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
+              : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+          }`}
         >
           {loading ? (
             <>
@@ -168,7 +172,11 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
           <button
             onClick={() => onContinue(profile)}
             disabled={loading}
-            className="w-full md:w-auto px-8 py-3.5 bg-hookline-500 hover:bg-hookline-600 disabled:bg-gray-300 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2"
+            className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+              loading
+                ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
+                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+            }`}
           >
             {loading ? (
               <>

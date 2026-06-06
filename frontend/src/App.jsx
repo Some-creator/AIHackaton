@@ -218,6 +218,8 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-[#f5f5f7]'}`}>
+      {/* Global loading progress bar */}
+      {loading && <div className="loading-bar" style={{ width: '100%' }} />}
       <header
         className={`sticky top-0 z-50 shrink-0 border-b transition-all duration-300 ${
           isHomeOrAuth

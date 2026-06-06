@@ -29,3 +29,56 @@ body,
   width: 100%;
   border-radius: 0.75rem;
 }
+
+/* ─── Shimmer / skeleton animation ─── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(79, 110, 247, 0.15) 40%,
+    rgba(79, 110, 247, 0.3) 50%,
+    rgba(79, 110, 247, 0.15) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* ─── Loading progress bar at top of page ─── */
+@keyframes progress-bar {
+  0% { width: 0%; opacity: 1; }
+  80% { width: 90%; opacity: 1; }
+  100% { width: 100%; opacity: 0; }
+}
+
+.loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #4f6ef7, #818cf8, #4f6ef7);
+  background-size: 200% 100%;
+  animation: progress-bar 2.5s ease-in-out forwards, shimmer 1.5s ease-in-out infinite;
+  z-index: 9999;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ─── Terminal log scrollbar ─── */
+.font-mono::-webkit-scrollbar {
+  width: 4px;
+}
+.font-mono::-webkit-scrollbar-track {
+  background: transparent;
+}
+.font-mono::-webkit-scrollbar-thumb {
+  background: rgba(79, 110, 247, 0.3);
+  border-radius: 2px;
+}
+.font-mono::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 110, 247, 0.5);
+}

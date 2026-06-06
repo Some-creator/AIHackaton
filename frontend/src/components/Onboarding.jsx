@@ -57,7 +57,11 @@ export default function Onboarding({ onSubmit, loading, logs = [] }) {
         <button
           type="submit"
           disabled={loading || !url.trim()}
-          className="w-full mt-6 px-6 py-3.5 bg-hookline-500 hover:bg-hookline-600 disabled:bg-gray-300 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2"
+          className={`w-full mt-6 px-6 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
+            loading || !url.trim()
+              ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
+              : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+          }`}
         >
           {loading ? (
             <>
