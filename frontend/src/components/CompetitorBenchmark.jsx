@@ -1,14 +1,21 @@
 import { useTheme } from '../context/ThemeContext';
 import ActivityLog from './ActivityLog';
-import StepBackButton from './StepBackButton';
+import StepNavigation from './StepNavigation';
 
-export default function CompetitorBenchmark({ competitors, mock = false, mockReason, onContinue, loading, gapLogs = [], onBack, backLabel }) {
+export default function CompetitorBenchmark({ competitors, mock = false, mockReason, onContinue, loading, gapLogs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   return (
     <div className="max-w-5xl mx-auto">
-      <StepBackButton onBack={onBack} disabled={loading} label={backLabel} />
+      <StepNavigation
+        onBack={onBack}
+        backLabel={backLabel}
+        onNext={onNext}
+        nextLabel={nextLabel}
+        backDisabled={navDisabled}
+        nextDisabled={navDisabled}
+      />
       <div className="mb-8">
         <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Competitor Benchmark</h2>
         <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>

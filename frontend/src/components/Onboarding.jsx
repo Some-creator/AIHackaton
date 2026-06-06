@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import ActivityLog from './ActivityLog';
-import StepBackButton from './StepBackButton';
+import StepNavigation from './StepNavigation';
 
-export default function Onboarding({ onSubmit, loading, logs = [], onBack, backLabel }) {
+export default function Onboarding({ onSubmit, loading, logs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [url, setUrl] = useState('https://kahfe.square.site/');
@@ -22,7 +22,14 @@ export default function Onboarding({ onSubmit, loading, logs = [], onBack, backL
 
   return (
     <div className="max-w-xl mx-auto">
-      <StepBackButton onBack={onBack} disabled={loading} label={backLabel} />
+      <StepNavigation
+        onBack={onBack}
+        backLabel={backLabel}
+        onNext={onNext}
+        nextLabel={nextLabel}
+        backDisabled={navDisabled}
+        nextDisabled={navDisabled}
+      />
       <div className="text-center mb-10">
         <h1 className={`text-3xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Let&apos;s analyze your business</h1>
         <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>

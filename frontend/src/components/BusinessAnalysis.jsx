@@ -3,7 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import ServiceTags from './ServiceTags';
 import SocialProfileTags from './SocialProfileTags';
 import ActivityLog from './ActivityLog';
-import StepBackButton from './StepBackButton';
+import StepNavigation from './StepNavigation';
 
 const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
@@ -35,7 +35,7 @@ function AnalysisSection({ title, items, color, isDark }) {
   );
 }
 
-export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], onBack, backLabel }) {
+export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [profile, setProfile] = useState({ ...business });
@@ -48,7 +48,14 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
 
   return (
     <div className="max-w-4xl mx-auto">
-      <StepBackButton onBack={onBack} disabled={loading} label={backLabel} />
+      <StepNavigation
+        onBack={onBack}
+        backLabel={backLabel}
+        onNext={onNext}
+        nextLabel={nextLabel}
+        backDisabled={navDisabled}
+        nextDisabled={navDisabled}
+      />
       <div className="mb-8">
         <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Profile</h2>
         <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>

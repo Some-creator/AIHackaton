@@ -38,6 +38,15 @@ const BACK_LABELS = {
   gap: 'Market Gap',
 };
 
+const NEXT_LABELS = {
+  analysis: 'Analysis',
+  competitors: 'Competitors',
+  gap: 'Market Gap',
+  leads: 'Leads',
+};
+
+const FLOW_STEPS = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+
 export default function App() {
   const { theme } = useTheme();
   const { user, loading: authLoading, logout } = useAuth();
@@ -266,27 +275,38 @@ export default function App() {
       case 'gap':
         return Boolean(context.gaps);
       case 'leads':
-        return Boolean(context.gaps);
+        return leads.length > 0 || streaming || streamComplete;
       default:
         return false;
     }
-  }, [user, context]);
+  }, [user, context, leads.length, streaming, streamComplete]);
+
+  const getNextCompletedStep = useCallback(() => {
+    const currentIndex = FLOW_STEPS.indexOf(step);
+    if (currentIndex < 0) return null;
+
+    for (let i = currentIndex + 1; i < FLOW_STEPS.length; i += 1) {
+      const targetStep = FLOW_STEPS[i];
+      if (canNavigateToStep(targetStep)) return targetStep;
+    }
+    return null;
+  }, [step, canNavigateToStep]);
 
   const handleGoToStep = useCallback((targetStep) => {
     if (loading) return;
 
     const targetIndex = STEPS.indexOf(targetStep);
     const currentIndex = STEPS.indexOf(step);
-    if (targetIndex < 0 || targetIndex >= currentIndex) return;
+    if (targetIndex < 0 || targetIndex === currentIndex) return;
     if (!canNavigateToStep(targetStep)) return;
 
     setError(null);
-    if (step === 'leads') {
+    if (step === 'leads' && targetStep !== 'leads') {
       setStreaming(false);
       setStreamComplete(false);
     }
     setStep(targetStep);
-  }, [loading, streaming, step, canNavigateToStep]);
+  }, [loading, step, canNavigateToStep]);
 
   const handleBack = useCallback(() => {
     if (loading || (streaming && step !== 'leads')) return;
@@ -301,6 +321,20 @@ export default function App() {
     }
     setStep(previousStep);
   }, [loading, streaming, step]);
+
+  const handleNext = useCallback(() => {
+    if (loading || (streaming && step !== 'leads')) return;
+
+    const nextStep = getNextCompletedStep();
+    if (!nextStep) return;
+
+    setError(null);
+    setStep(nextStep);
+  }, [loading, streaming, step, getNextCompletedStep]);
+
+  const nextStep = getNextCompletedStep();
+  const nextLabel = nextStep ? NEXT_LABELS[nextStep] : null;
+  const navDisabled = loading || (streaming && step !== 'leads');
 
   useEffect(() => {
     const protectedSteps = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
@@ -347,20 +381,26 @@ export default function App() {
               {STEPS.slice(3).map((s, i) => {
                 const stepIndex = i + 3;
                 const isActive = currentStepIndex === stepIndex;
-                const isComplete = currentStepIndex > stepIndex;
+                const isBehind = currentStepIndex > stepIndex;
+                const isAheadComplete = currentStepIndex < stepIndex && canNavigateToStep(s);
+                const isClickable = !loading && (isBehind || isAheadComplete);
                 return (
                   <div key={s} className="flex items-center">
                     {i > 0 && (
                       <div
-                        className={`w-8 h-0.5 ${isComplete ? 'bg-[#0071e3]' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
+                        className={`w-8 h-0.5 ${isBehind || isAheadComplete ? 'bg-[#0071e3]' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
                       />
                     )}
-                    {isComplete && !loading ? (
+                    {isClickable ? (
                       <button
                         type="button"
                         onClick={() => handleGoToStep(s)}
                         className={`px-3 py-1 text-xs font-semibold rounded-full transition hover:opacity-80 ${
-                          isDark ? 'bg-blue-500/20 text-sky-400' : 'bg-blue-50 text-[#0071e3]'
+                          isActive
+                            ? 'bg-[#0071e3] text-white'
+                            : isDark
+                              ? 'bg-blue-500/20 text-sky-400'
+                              : 'bg-blue-50 text-[#0071e3]'
                         }`}
                       >
                         {stepLabels[s]}
@@ -370,7 +410,7 @@ export default function App() {
                         className={`px-3 py-1 text-xs font-semibold rounded-full ${
                           isActive
                             ? 'bg-[#0071e3] text-white'
-                            : isComplete
+                            : isBehind || isAheadComplete
                               ? isDark
                                 ? 'bg-blue-500/20 text-sky-400'
                                 : 'bg-blue-50 text-[#0071e3]'
@@ -477,6 +517,9 @@ export default function App() {
             logs={ingestLogs}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.onboarding]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
 
@@ -493,6 +536,9 @@ export default function App() {
             benchmarkLogs={benchmarkLogs}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.analysis]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
 
@@ -506,6 +552,9 @@ export default function App() {
             gapLogs={gapLogs}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.competitors]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
 
@@ -517,6 +566,9 @@ export default function App() {
             loading={loading}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.gap]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
 
@@ -531,6 +583,9 @@ export default function App() {
             skippedLeads={skippedLeads}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.leads]}
+            onNext={nextStep ? handleNext : null}
+            nextLabel={nextLabel}
+            navDisabled={navDisabled}
           />
         )}
       </main>
