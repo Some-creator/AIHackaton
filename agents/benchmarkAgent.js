@@ -19,6 +19,11 @@ const SEARCH_PLAN_SYSTEM = `You plan competitor discovery searches for a local b
 
 Read the business profile (Agent 1) and consultant analysis (Agent 2). Infer what the business ACTUALLY does — including every distinct concept (e.g. a hookah lounge that also serves coffee is BOTH a hookah lounge and a café, not just "café" because the name contains cafe).
 
+CRITICAL — use business.type to decide WHO counts as a competitor:
+- "mobile vendor": competitors are OTHER mobile/roving vendors (food trucks, catering trucks, mobile bars, mobile coffee carts, event vendors, pop-up operators). Search for mobile-specific terms. Do NOT search for brick-and-mortar restaurants, cafés, diners, or retail stores as competitors unless they explicitly operate a mobile unit.
+- "fixed location": competitors are local brick-and-mortar businesses with a storefront or permanent address in the same category.
+- "service provider": competitors are other businesses offering the same services (often office-based, home-based, or on-site service companies).
+
 Return ONLY valid JSON:
 {
   "businessSummary": "one sentence describing what this business really is",
@@ -34,16 +39,19 @@ Rules for searchQueries:
 - Use specific terms from services, target market, and analysis — not generic labels alone
 - Short queries only (2-5 words); never include city, state, or country — location is applied separately
 - Do not include the business's own name
+- For mobile vendors: prefer queries like "food truck", "mobile catering", "catering truck", "mobile bar", "coffee cart", "event catering" — never generic "restaurant" or "coffee shop" alone
 
 Rules for excludeTypes:
 - Business types that are clearly NOT competitors for this specific business
-- 3-6 items (e.g. "print shop" for a café, but NOT "hookah lounge" for a dual café+hookah venue)`;
+- 3-6 items (e.g. "print shop" for a café, but NOT "hookah lounge" for a dual café+hookah venue)
+- For mobile vendors: always exclude brick-and-mortar types like "restaurant", "diner", "cafe", "coffee shop", "retail store", "grocery" unless the user also runs a fixed location`;
 
 const BENCHMARK_SYSTEM = `You are a competitive analysis consultant. Compare local competitors directly to the user's business.
 
 Rules:
 - Base every point on the provided competitor data (Google listing + scraped website content)
 - Do not invent services, pricing, or features not supported by the data
+- Match competitor type to the user's business.type: mobile vendors compete with other mobile vendors; fixed locations with storefronts; service providers with similar service businesses
 - Use the SEARCH PLAN to understand ALL service lines the user operates — compare across the full offering, not just one label
 - strengths: 2-4 specific things each competitor does well
 - weaknesses: 2-4 honest gaps or shortcomings for each competitor
@@ -169,8 +177,61 @@ function candidateKey(place) {
   return `name:${normalizeName(getPlaceName(place))}`;
 }
 
+const MOBILE_VENDOR_SIGNALS = /\b(mobile|truck|trailer|cart|catering|pop[- ]?up|roaming|vendor|event)\b/i;
+const FIXED_STOREFRONT_SIGNALS = /\b(restaurant|cafe|café|diner|bistro|bakery|coffee shop|retail store|grocery|mall|storefront)\b/i;
+
+const MOBILE_VENDOR_SEARCH_TERMS = [
+  'food truck',
+  'mobile catering',
+  'catering truck',
+  'mobile food vendor',
+  'event catering',
+];
+
+const MOBILE_VENDOR_EXCLUDES = [
+  'restaurant',
+  'diner',
+  'cafe',
+  'coffee shop',
+  'retail store',
+  'grocery store',
+  'print shop',
+];
+
+function isMobileVendor(business) {
+  return String(business?.type || '').trim().toLowerCase() === 'mobile vendor';
+}
+
+function buildMobileVendorQueries(services) {
+  const queries = new Set(MOBILE_VENDOR_SEARCH_TERMS);
+  for (const service of services.slice(0, 4)) {
+    const s = String(service).trim();
+    if (!s) continue;
+    queries.add(`mobile ${s.split(/\s+/).slice(0, 2).join(' ')}`);
+    queries.add(`${s.split(/\s+/).slice(0, 2).join(' ')} truck`);
+  }
+  return [...queries].slice(0, 8);
+}
+
+function isFixedStorefrontOnly(place) {
+  const text = `${getPlaceName(place)} ${place.formattedAddress || ''}`;
+  return FIXED_STOREFRONT_SIGNALS.test(text) && !MOBILE_VENDOR_SIGNALS.test(text);
+}
+
 function fallbackSearchPlan(business, analysis) {
   const services = business.services?.filter(Boolean) || [];
+  const mobile = isMobileVendor(business);
+
+  if (mobile) {
+    return {
+      businessSummary: `${business.name} — mobile vendor`,
+      serviceLines: services.length ? services.slice(0, 4) : ['mobile vendor'],
+      searchQueries: buildMobileVendorQueries(services),
+      excludeTypes: MOBILE_VENDOR_EXCLUDES,
+      comparisonNotes: 'Compare other mobile and event-based vendors — not brick-and-mortar restaurants or shops.',
+    };
+  }
+
   return {
     businessSummary: `${business.name} — ${business.type || 'local business'}`,
     serviceLines: services.length ? services.slice(0, 4) : [business.type || 'local business'],
@@ -181,6 +242,29 @@ function fallbackSearchPlan(business, analysis) {
     ].filter(Boolean))].slice(0, 6),
     excludeTypes: ['print shop', 'shipping store', 'post office'],
     comparisonNotes: 'Compare based on listed services and target market.',
+  };
+}
+
+function applyBusinessTypeSearchRules(plan, business) {
+  if (!isMobileVendor(business)) return plan;
+
+  const mergedExcludes = [...new Set([
+    ...MOBILE_VENDOR_EXCLUDES,
+    ...(plan.excludeTypes || []),
+  ])];
+
+  const hasMobileQuery = (plan.searchQueries || []).some((q) => MOBILE_VENDOR_SIGNALS.test(q));
+  const searchQueries = hasMobileQuery
+    ? plan.searchQueries
+    : [...new Set([...buildMobileVendorQueries(business.services || []), ...(plan.searchQueries || [])])].slice(0, 8);
+
+  return {
+    ...plan,
+    searchQueries,
+    excludeTypes: mergedExcludes,
+    comparisonNotes: plan.comparisonNotes?.includes('mobile')
+      ? plan.comparisonNotes
+      : 'Compare other mobile and event-based vendors in the same service category — not brick-and-mortar-only businesses.',
   };
 }
 
@@ -201,13 +285,15 @@ function normalizeSearchPlan(raw, business, analysis) {
     .map((s) => String(s).trim())
     .filter(Boolean);
 
-  return {
+  const normalized = {
     businessSummary: String(plan.businessSummary || fallback.businessSummary).trim(),
     serviceLines: serviceLines.length ? serviceLines : fallback.serviceLines,
     searchQueries: searchQueries.length ? searchQueries : fallback.searchQueries,
     excludeTypes: excludeTypes.length ? excludeTypes : fallback.excludeTypes,
     comparisonNotes: String(plan.comparisonNotes || fallback.comparisonNotes).trim(),
   };
+
+  return applyBusinessTypeSearchRules(normalized, business);
 }
 
 async function planCompetitorSearch(business, analysis) {
@@ -222,6 +308,13 @@ async function planCompetitorSearch(business, analysis) {
         {
           role: 'user',
           content: `Plan competitor searches for this business.
+
+Business type: ${business.type || 'unknown'}
+${isMobileVendor(business)
+  ? 'This is a MOBILE VENDOR — find other mobile vendors, food trucks, catering trucks, and event operators. Exclude brick-and-mortar-only restaurants and shops.'
+  : business.type === 'fixed location'
+    ? 'This is a FIXED LOCATION business — find brick-and-mortar competitors with storefronts in the area.'
+    : 'This is a SERVICE PROVIDER — find other businesses offering the same services.'}
 
 --- BUSINESS PROFILE (Agent 1) ---
 ${JSON.stringify(business, null, 2)}
@@ -243,6 +336,10 @@ ${JSON.stringify(analysis, null, 2)}`,
 function addCompetitorCandidate(collected, seen, place, business, searchPlan, onLog) {
   if (collected.length >= MAX_COMPETITORS) return false;
   if (isOwnBusiness(place, business)) return false;
+  if (isMobileVendor(business) && isFixedStorefrontOnly(place)) {
+    onLog?.(`Skipping brick-and-mortar business: ${getPlaceName(place)}`);
+    return false;
+  }
   if (isExcludedPlace(place, searchPlan.excludeTypes)) {
     onLog?.(`Skipping excluded type: ${getPlaceName(place)}`);
     return false;
