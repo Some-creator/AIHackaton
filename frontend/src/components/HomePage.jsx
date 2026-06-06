@@ -1,5 +1,6 @@
 import { HeroGeometric } from '@/components/ui/shape-landing-hero';
 import { ContainerScroll } from '@/components/ui/container-scroll-animation';
+import DashboardPreview from './DashboardPreview';
 import { useTheme } from '../context/ThemeContext';
 
 const steps = [
@@ -87,7 +88,6 @@ export default function HomePage({ onGetStarted }) {
 
       <ContainerScroll
         theme={theme}
-        className="-mb-8 md:-mb-12"
         titleComponent={
           <div className="space-y-4">
             <p
@@ -110,13 +110,7 @@ export default function HomePage({ onGetStarted }) {
           </div>
         }
       >
-        <img
-          src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1400&q=80&auto=format&fit=crop"
-          alt="HookLine analytics dashboard preview"
-          className="mx-auto rounded-xl object-cover h-full w-full object-center"
-          draggable={false}
-          loading="lazy"
-        />
+        <DashboardPreview theme={theme} />
       </ContainerScroll>
 
       <section
