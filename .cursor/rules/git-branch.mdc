@@ -1,18 +1,19 @@
 ---
-description: Git branch policy — auto-commit all changes to Haider
+description: Git branch policy — commit and push to Jawad for Railway deploys
 alwaysApply: true
 ---
 
 # Git Branch Policy
 
-- Always work on the `Haider` branch for this project.
-- Before making changes, verify the current branch is `Haider` (`git checkout Haider` if not).
-- Never commit or push directly to `main`, `Hussain`, or `Jawad` unless the user explicitly requests it.
+- Work on the `Jawad` branch for this project.
+- Before making changes, verify the current branch is `Jawad` (`git checkout Jawad` if not).
 
-# Auto-Commit Policy
+# Deploy Policy (Railway)
 
-- After every change you make, automatically commit and push to `Haider`.
-- Do not wait for the user to ask — commit immediately once a logical unit of work is done.
+Production site: https://aihackaton-production-f0c0.up.railway.app/
+
+- After every logical change, **commit and push to `origin/Jawad`** so Railway redeploys.
+- Do not wait for the user to ask — commit and push once a unit of work is done.
 - Use clear commit messages describing what changed and why.
-- Stage all relevant changed files with `git add`, then `git commit`, then `git push origin Haider`.
-- A Cursor hook also auto-commits any remaining uncommitted changes when an agent session ends.
+- Stage relevant changed files with `git add`, then `git commit`, then `git push origin Jawad`.
+- Never commit `.env` or other secret files.
