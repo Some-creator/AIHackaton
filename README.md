@@ -2,6 +2,28 @@
 
 Paste a website URL. HookLine analyzes your business, benchmarks competitors, finds market gaps, and generates qualified leads with personalized outreach emails.
 
+## Firebase Authentication
+
+1. Go to [Firebase Console](https://console.firebase.google.com) and create a project.
+2. Open **Build → Authentication → Sign-in method** and enable:
+   - **Email/Password**
+   - **Google** (add your deployed domain + `localhost` to authorized domains)
+3. Open **Project settings → Your apps → Web** and register the app.
+4. Copy the config into `frontend/.env` (see `frontend/.env.example`):
+
+```bash
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+```
+
+5. Restart the frontend dev server. Users must sign in before starting analysis.
+
+For **Railway**, add the same `VITE_*` variables in the dashboard (they are baked in at build time).
+
 ## Local Development
 
 ```bash

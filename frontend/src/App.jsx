@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import HomePage from './components/HomePage';
+import AuthPage from './components/AuthPage';
 import Onboarding from './components/Onboarding';
 import BusinessAnalysis from './components/BusinessAnalysis';
 import CompetitorBenchmark from './components/CompetitorBenchmark';
@@ -7,9 +8,10 @@ import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
 import ThemeToggle from './components/ThemeToggle';
 import { useTheme } from './context/ThemeContext';
+import { useAuth } from './context/AuthContext';
 import * as api from './api';
 
-const STEPS = ['home', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+const STEPS = ['home', 'auth', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
 
 const stepLabels = {
   onboarding: 'Start',
@@ -21,6 +23,7 @@ const stepLabels = {
 
 export default function App() {
   const { theme } = useTheme();
+  const { user, loading: authLoading, logout } = useAuth();
   const isDark = theme === 'dark';
   const [step, setStep] = useState('home');
   const [loading, setLoading] = useState(false);
@@ -137,6 +140,33 @@ export default function App() {
     setSkippedLeads((prev) => new Set([...prev, lead.name]));
   }, []);
 
+  const requireAuth = useCallback(() => {
+    if (user) {
+      setStep('onboarding');
+    } else {
+      setStep('auth');
+    }
+  }, [user]);
+
+  const handleAuthSuccess = useCallback(() => {
+    setStep('onboarding');
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await logout();
+    setStep('home');
+    setContext({});
+    setLeads([]);
+    setError(null);
+  }, [logout]);
+
+  useEffect(() => {
+    const protectedSteps = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+    if (!authLoading && !user && protectedSteps.includes(step)) {
+      setStep('auth');
+    }
+  }, [authLoading, user, step]);
+
   const currentStepIndex = STEPS.indexOf(step);
 
   return (
@@ -168,10 +198,10 @@ export default function App() {
             </span>
           </button>
 
-          {step !== 'home' && step !== 'onboarding' && (
+          {step !== 'home' && step !== 'auth' && step !== 'onboarding' && (
             <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-              {STEPS.slice(2).map((s, i) => {
-                const stepIndex = i + 2;
+              {STEPS.slice(3).map((s, i) => {
+                const stepIndex = i + 3;
                 const isActive = currentStepIndex === stepIndex;
                 const isComplete = currentStepIndex > stepIndex;
                 return (
@@ -205,10 +235,48 @@ export default function App() {
           <div className="flex items-center gap-3 shrink-0">
             <ThemeToggle />
 
+            {user && (
+              <div className="hidden sm:flex items-center gap-2">
+                <span
+                  className={`text-xs font-semibold max-w-[120px] truncate ${
+                    isDark ? 'text-gray-400' : 'text-gray-600'
+                  }`}
+                  title={user.email || user.displayName}
+                >
+                  {user.displayName || user.email}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-full border transition ${
+                    isDark
+                      ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+
+            {step === 'home' && !user && (
+              <button
+                type="button"
+                onClick={() => setStep('auth')}
+                className={`hidden sm:inline-flex px-4 py-2 text-sm font-bold rounded-full border transition ${
+                  isDark
+                    ? 'border-zinc-600 text-white hover:bg-zinc-800'
+                    : 'border-gray-300 text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                Sign In
+              </button>
+            )}
+
             {step === 'home' && (
               <button
                 type="button"
-                onClick={() => setStep('onboarding')}
+                onClick={requireAuth}
                 className="hidden sm:inline-flex px-5 py-2.5 bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-semibold rounded-full transition"
               >
                 Get Started
@@ -219,18 +287,34 @@ export default function App() {
       </header>
 
       <main className={step === 'home' ? 'flex-1 w-full' : 'flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full'}>
+        {authLoading && step !== 'home' && (
+          <div className={`mb-6 text-center text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Checking authentication…
+          </div>
+        )}
+
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <div
+            className={`mb-6 p-4 rounded-xl text-sm font-semibold border ${
+              isDark
+                ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}
+          >
             {error}
             <button onClick={() => setError(null)} className="ml-4 underline">Dismiss</button>
           </div>
         )}
 
         {step === 'home' && (
-          <HomePage onGetStarted={() => setStep('onboarding')} />
+          <HomePage onGetStarted={requireAuth} />
         )}
 
-        {step === 'onboarding' && (
+        {step === 'auth' && (
+          <AuthPage onSuccess={handleAuthSuccess} />
+        )}
+
+        {step === 'onboarding' && user && (
           <Onboarding onSubmit={handleIngest} loading={loading} />
         )}
 
