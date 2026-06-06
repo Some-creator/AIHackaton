@@ -39,8 +39,12 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">Business Profile</h2>
         <p className="text-gray-600 mt-1">Review and edit your business details before we continue.</p>
-        {companyId && (
-          <p className="text-xs text-gray-400 mt-2">Saved to database · ID: {companyId}</p>
+        {companyId ? (
+          <p className="text-xs text-gray-400 mt-2">Saved to Firestore · companies/{companyId}</p>
+        ) : (
+          <p className="text-xs text-amber-600 mt-2">
+            Not saved to database — check Firebase credentials in .env (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)
+          </p>
         )}
       </div>
 

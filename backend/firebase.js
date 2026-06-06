@@ -1,9 +1,10 @@
 import admin from 'firebase-admin';
 
 let db = null;
+let initError = null;
 
 function getServiceAccount() {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT?.trim()) {
     try {
       return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     } catch {
@@ -12,29 +13,49 @@ function getServiceAccount() {
     }
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const projectId = process.env.FIREBASE_PROJECT_ID?.trim();
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  if (privateKey) {
+    privateKey = privateKey.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
+  }
 
   if (!projectId || !clientEmail || !privateKey) return null;
 
   return { project_id: projectId, client_email: clientEmail, private_key: privateKey };
 }
 
+export function getFirebaseStatus() {
+  const serviceAccount = getServiceAccount();
+  return {
+    configured: Boolean(serviceAccount),
+    connected: Boolean(db),
+    projectId: serviceAccount?.project_id || serviceAccount?.projectId || null,
+    error: initError,
+  };
+}
+
 export function initFirebase() {
   if (db) return db;
 
   const serviceAccount = getServiceAccount();
-  if (!serviceAccount) return null;
+  if (!serviceAccount) {
+    initError = 'Missing Firebase credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)';
+    console.warn(`[firebase] ${initError}`);
+    return null;
+  }
 
   try {
     if (!admin.apps.length) {
       admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     }
     db = admin.firestore();
-    console.log('[firebase] Connected to Firestore');
+    initError = null;
+    console.log(`[firebase] Connected to Firestore (project: ${serviceAccount.project_id || serviceAccount.projectId})`);
     return db;
   } catch (err) {
+    initError = err.message;
     console.warn(`[firebase] Init failed: ${err.message}`);
     return null;
   }
@@ -44,34 +65,70 @@ export function isFirebaseConfigured() {
   return Boolean(getServiceAccount());
 }
 
+const MAX_FIELD_CHARS = 50000;
+
+function truncateString(value, max = MAX_FIELD_CHARS) {
+  if (typeof value !== 'string' || value.length <= max) return value;
+  return `${value.slice(0, max)}… [truncated ${value.length - max} chars]`;
+}
+
+export function sanitizeForFirestore(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value === 'string') return truncateString(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizeForFirestore(item))
+      .filter((item) => item !== undefined);
+  }
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [key, val] of Object.entries(value)) {
+      const sanitized = sanitizeForFirestore(val);
+      if (sanitized !== undefined) out[key] = sanitized;
+    }
+    return out;
+  }
+  return value;
+}
+
 export async function createCompany(data) {
   const firestore = initFirebase();
-  if (!firestore) return { id: null, saved: false };
+  if (!firestore) {
+    console.warn('[firebase] Skipping createCompany — not connected');
+    return { id: null, saved: false, error: initError || 'Firebase not configured' };
+  }
 
-  const now = new Date().toISOString();
-  const ref = firestore.collection('companies').doc();
+  try {
+    const now = new Date().toISOString();
+    const ref = firestore.collection('companies').doc();
+    const payload = sanitizeForFirestore({ ...data, createdAt: now, updatedAt: now });
 
-  await ref.set({
-    ...data,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  console.log(`[firebase] Created company ${ref.id}`);
-  return { id: ref.id, saved: true };
+    await ref.set(payload);
+    console.log(`[firebase] Created company ${ref.id} (step: ${data.step || 'unknown'})`);
+    return { id: ref.id, saved: true };
+  } catch (err) {
+    console.error(`[firebase] createCompany failed: ${err.message}`);
+    return { id: null, saved: false, error: err.message };
+  }
 }
 
 export async function updateCompany(companyId, data) {
   const firestore = initFirebase();
-  if (!firestore || !companyId) return { saved: false };
+  if (!firestore || !companyId) {
+    console.warn(`[firebase] Skipping updateCompany — firestore=${Boolean(firestore)} companyId=${companyId}`);
+    return { saved: false, error: initError || 'Firebase not configured or missing companyId' };
+  }
 
-  await firestore.collection('companies').doc(companyId).set(
-    { ...data, updatedAt: new Date().toISOString() },
-    { merge: true }
-  );
-
-  console.log(`[firebase] Updated company ${companyId}`);
-  return { saved: true };
+  try {
+    const payload = sanitizeForFirestore({ ...data, updatedAt: new Date().toISOString() });
+    await firestore.collection('companies').doc(companyId).set(payload, { merge: true });
+    console.log(`[firebase] Updated company ${companyId} (step: ${data.step || 'unknown'})`);
+    return { saved: true };
+  } catch (err) {
+    console.error(`[firebase] updateCompany failed for ${companyId}: ${err.message}`);
+    return { saved: false, error: err.message };
+  }
 }
 
 export async function getCompany(companyId) {

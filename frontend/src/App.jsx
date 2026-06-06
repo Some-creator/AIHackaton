@@ -46,6 +46,7 @@ export default function App() {
       const updatedContext = {
         business: ingestResult.business,
         companyId: ingestResult.companyId,
+        saved: ingestResult.saved,
         socialScrapes: ingestResult.socialScrapes || [],
       };
       setContext(updatedContext);
