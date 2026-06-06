@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 export default function Onboarding({ onSubmit, loading }) {
-  const [url, setUrl] = useState('cosmicprintingandmail.com');
+  const [url, setUrl] = useState('https://kahfe.square.site/');
   const [socialLinks, setSocialLinks] = useState('');
 
   const handleSubmit = (e) => {
