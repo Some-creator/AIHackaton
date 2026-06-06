@@ -5,6 +5,8 @@ import BusinessAnalysis from './components/BusinessAnalysis';
 import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
+import ThemeToggle from './components/ThemeToggle';
+import { useTheme } from './context/ThemeContext';
 import * as api from './api';
 
 const STEPS = ['home', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
@@ -18,6 +20,8 @@ const stepLabels = {
 };
 
 export default function App() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [step, setStep] = useState('home');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -136,54 +140,58 @@ export default function App() {
   const currentStepIndex = STEPS.indexOf(step);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-[#f5f5f7]'}`}>
       <header
-        className={`sticky top-0 z-50 shrink-0 border-b ${
+        className={`sticky top-0 z-50 shrink-0 border-b transition-all duration-300 ${
           step === 'home'
-            ? 'bg-[#030303]/80 backdrop-blur-md border-white/10'
-            : 'bg-white border-gray-200'
+            ? isDark
+              ? 'bg-black/70 backdrop-blur-xl border-white/10'
+              : 'bg-[#f5f5f7]/80 backdrop-blur-xl border-black/5'
+            : isDark
+              ? 'bg-zinc-900 border-zinc-800'
+              : 'bg-white border-gray-200'
         }`}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={() => setStep('home')}
-            className="flex items-center gap-3 hover:opacity-80 transition"
+            className="flex items-center gap-3 hover:opacity-80 transition shrink-0"
           >
-            <div className="w-8 h-8 rounded-lg bg-hookline-500 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#0071e3] flex items-center justify-center shadow-sm">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className={`font-bold ${step === 'home' ? 'text-white' : 'text-gray-900'}`}>HookLine</span>
+            <span className={`font-bold text-lg tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              HookLine
+            </span>
           </button>
 
-          {step === 'home' && (
-            <button
-              type="button"
-              onClick={() => setStep('onboarding')}
-              className="px-5 py-2.5 bg-hookline-500 hover:bg-hookline-600 text-white text-sm font-semibold rounded-lg transition shrink-0"
-            >
-              Get Started
-            </button>
-          )}
-
           {step !== 'home' && step !== 'onboarding' && (
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
               {STEPS.slice(2).map((s, i) => {
                 const stepIndex = i + 2;
                 const isActive = currentStepIndex === stepIndex;
                 const isComplete = currentStepIndex > stepIndex;
                 return (
                   <div key={s} className="flex items-center">
-                    {i > 0 && <div className={`w-8 h-0.5 ${isComplete ? 'bg-hookline-500' : 'bg-gray-200'}`} />}
+                    {i > 0 && (
+                      <div
+                        className={`w-8 h-0.5 ${isComplete ? 'bg-[#0071e3]' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
+                      />
+                    )}
                     <span
-                      className={`px-3 py-1 text-xs font-medium rounded-full ${
+                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
                         isActive
-                          ? 'bg-hookline-500 text-white'
+                          ? 'bg-[#0071e3] text-white'
                           : isComplete
-                            ? 'bg-hookline-100 text-hookline-700'
-                            : 'bg-gray-100 text-gray-400'
+                            ? isDark
+                              ? 'bg-blue-500/20 text-sky-400'
+                              : 'bg-blue-50 text-[#0071e3]'
+                            : isDark
+                              ? 'bg-zinc-800 text-zinc-500'
+                              : 'bg-gray-100 text-gray-400'
                       }`}
                     >
                       {stepLabels[s]}
@@ -193,6 +201,20 @@ export default function App() {
               })}
             </nav>
           )}
+
+          <div className="flex items-center gap-3 shrink-0">
+            <ThemeToggle />
+
+            {step === 'home' && (
+              <button
+                type="button"
+                onClick={() => setStep('onboarding')}
+                className="hidden sm:inline-flex px-5 py-2.5 bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-semibold rounded-full transition"
+              >
+                Get Started
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

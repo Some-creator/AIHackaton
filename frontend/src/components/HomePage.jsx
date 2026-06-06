@@ -1,4 +1,5 @@
 import { HeroGeometric } from '@/components/ui/shape-landing-hero';
+import { useTheme } from '../context/ThemeContext';
 
 const steps = [
   {
@@ -47,39 +48,54 @@ const features = [
 ];
 
 export default function HomePage({ onGetStarted }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
     <div className="w-full overflow-x-hidden">
       <HeroGeometric
+        theme={theme}
         badge="AI Business Intelligence"
-        title1="Find who your competitors"
-        title2="are ignoring."
-        description="Paste your website. HookLine analyzes your business, benchmarks competitors, uncovers market gaps, and generates qualified leads with personalized outreach."
+        title1="Are businesses ignoring you?"
+        title2="Don't worry."
+        description="Paste your website. HookLine analyzes your business, finds market gaps, and generates qualified leads — fast."
       >
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-lg sm:max-w-none mx-auto">
           <button
             type="button"
             onClick={onGetStarted}
-            className="w-full sm:w-auto px-8 py-4 bg-hookline-500 hover:bg-hookline-600 text-white font-semibold rounded-xl transition shadow-lg shadow-hookline-500/25"
+            className="w-full sm:w-auto px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold rounded-full transition shadow-lg shadow-blue-500/20"
           >
             Get Started — It&apos;s Free
           </button>
           <a
             href="#how-it-works"
-            className="w-full sm:w-auto px-8 py-4 bg-white/15 hover:bg-white/20 text-sky-100 font-semibold rounded-xl border border-sky-400/40 transition text-center backdrop-blur-sm"
+            className={`w-full sm:w-auto px-8 py-3.5 font-bold rounded-full transition text-center ${
+              isDark
+                ? 'bg-white/10 hover:bg-white/15 text-white border border-white/25 backdrop-blur-sm'
+                : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300/80 shadow-sm'
+            }`}
           >
             See How It Works
           </a>
         </div>
-        <p className="mt-6 text-sm text-slate-300">
+        <p className={`mt-6 text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           No credit card required · Works in demo mode instantly
         </p>
       </HeroGeometric>
 
-      <section id="how-it-works" className="scroll-mt-20 bg-white border-t border-gray-100">
+      <section
+        id="how-it-works"
+        className={`scroll-mt-20 border-t transition-colors duration-300 ${
+          isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-gray-200'
+        }`}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-gray-900">How HookLine works</h2>
-            <p className="mt-3 text-gray-600 max-w-xl mx-auto">
+            <h2 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              How HookLine works
+            </h2>
+            <p className={`mt-3 max-w-xl mx-auto font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               From website URL to actionable leads in four simple steps.
             </p>
           </div>
@@ -88,31 +104,47 @@ export default function HomePage({ onGetStarted }) {
             {steps.map((step, index) => (
               <div
                 key={step.title}
-                className="relative bg-gray-50 rounded-2xl border border-gray-100 p-6 hover:border-hookline-100 hover:bg-hookline-50/30 transition"
+                className={`relative rounded-3xl border p-6 transition ${
+                  isDark
+                    ? 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-600'
+                    : 'bg-[#f5f5f7] border-gray-200/80 hover:border-blue-200'
+                }`}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-hookline-500 text-white text-sm font-bold shrink-0">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0071e3] text-white text-sm font-bold shrink-0">
                     {index + 1}
                   </span>
-                  <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-hookline-500 shrink-0">
+                  <div
+                    className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
+                      isDark ? 'bg-zinc-800 border-zinc-700 text-sky-400' : 'bg-white border-gray-200 text-[#0071e3]'
+                    }`}
+                  >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       {step.icon}
                     </svg>
                   </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{step.description}</p>
+                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{step.title}</h3>
+                <p className={`text-sm leading-relaxed font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {step.description}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-gray-50 border-t border-gray-100">
+      <section
+        className={`border-t transition-colors duration-300 ${
+          isDark ? 'bg-black border-zinc-800' : 'bg-[#f5f5f7] border-gray-200'
+        }`}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-gray-900">Everything you need to grow</h2>
-            <p className="mt-3 text-gray-600 max-w-xl mx-auto">
+            <h2 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Everything you need to grow
+            </h2>
+            <p className={`mt-3 max-w-xl mx-auto font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               One tool for analysis, competitive research, and outbound sales.
             </p>
           </div>
@@ -121,34 +153,54 @@ export default function HomePage({ onGetStarted }) {
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm"
+                className={`rounded-3xl border p-8 transition ${
+                  isDark
+                    ? 'bg-zinc-900 border-zinc-800'
+                    : 'bg-white border-gray-200 shadow-sm'
+                }`}
               >
-                <div className="w-10 h-10 rounded-xl bg-hookline-100 flex items-center justify-center mb-5">
-                  <svg className="w-5 h-5 text-hookline-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-5 ${
+                    isDark ? 'bg-blue-500/20 text-sky-400' : 'bg-blue-50 text-[#0071e3]'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">{feature.description}</p>
+                <h3 className={`font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h3>
+                <p className={`text-sm leading-relaxed font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {feature.description}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-white border-t border-gray-100">
+      <section
+        className={`border-t transition-colors duration-300 ${
+          isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-gray-200'
+        }`}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-          <div className="max-w-3xl mx-auto text-center bg-hookline-900 rounded-3xl px-8 py-14 sm:px-16">
-            <h2 className="text-3xl font-bold text-white mb-4">
+          <div
+            className={`max-w-3xl mx-auto text-center rounded-[2rem] px-8 py-14 sm:px-16 ${
+              isDark
+                ? 'bg-gradient-to-br from-zinc-900 to-black border border-zinc-800'
+                : 'bg-[#f5f5f7] border border-gray-200'
+            }`}
+          >
+            <h2 className={`text-3xl font-bold mb-4 tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Ready to find your next customers?
             </h2>
-            <p className="text-hookline-100 mb-8 leading-relaxed">
+            <p className={`mb-8 leading-relaxed font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
               Start with your website URL and let HookLine do the rest.
             </p>
             <button
               type="button"
               onClick={onGetStarted}
-              className="px-8 py-4 bg-white hover:bg-gray-100 text-hookline-700 font-semibold rounded-xl transition"
+              className="px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold rounded-full transition"
             >
               Analyze My Business
             </button>
