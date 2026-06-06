@@ -1,0 +1,64 @@
+{
+  "competitors": [
+    {
+      "name": "Summer Moon Coffee",
+      "website": "https://summermooncoffee.com",
+      "strengths": [
+        "Strong local Google reviews and loyal regulars",
+        "Signature Moon Milk differentiates the menu",
+        "Breakfast and lunch menu drives all-day traffic"
+      ],
+      "weaknesses": [
+        "Fixed café hours limit evening events",
+        "No mobile catering for private events",
+        "Limited South Asian-inspired beverage options"
+      ],
+      "targetMarket": "Local families and coffee enthusiasts",
+      "theyHaveYouDont": [
+        "Proprietary signature milk blend",
+        "High volume of Google reviews",
+        "Online order-ahead system"
+      ]
+    },
+    {
+      "name": "Swig",
+      "website": "https://swigdrinks.com",
+      "strengths": [
+        "Drive-thru format optimized for quick visits",
+        "Very high Google review count",
+        "Active multi-platform social media presence"
+      ],
+      "weaknesses": [
+        "Chain format lacks bespoke event experiences",
+        "No cultural specialty drink positioning",
+        "Cannot deploy to weddings or private venues"
+      ],
+      "targetMarket": "Suburban refreshment and soda shoppers",
+      "theyHaveYouDont": [
+        "Drive-thru convenience model",
+        "Large social following across TikTok and Instagram",
+        "Regional multi-location brand recognition"
+      ]
+    },
+    {
+      "name": "Local Espresso Cart Co",
+      "website": "https://localespressocart.example.com",
+      "strengths": [
+        "Mobile setup for weddings and corporate events",
+        "Barista-trained staff for on-site service",
+        "Flexible menu for outdoor venues"
+      ],
+      "weaknesses": [
+        "Smaller brand awareness than brick-and-mortar cafés",
+        "Limited weekday retail foot traffic",
+        "Seasonal demand fluctuations"
+      ],
+      "targetMarket": "Event planners and wedding clients",
+      "theyHaveYouDont": [
+        "Dedicated wedding catering packages",
+        "Portable espresso bar equipment",
+        "Event-focused portfolio on website"
+      ]
+    }
+  ]
+}

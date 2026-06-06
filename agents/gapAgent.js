@@ -29,26 +29,98 @@ Return ONLY valid JSON:
   "recommendedGap": 0
 }`;
 
-export async function gapAgent(context) {
+const COMPETITION_LEVELS = new Set(['low', 'medium', 'high']);
+const GAP_FIELDS = ['niche', 'demand', 'competitionLevel', 'opportunity', 'recommendedTarget'];
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function validateAndNormalize(parsed) {
+  const gaps = parsed?.gaps;
+  if (!Array.isArray(gaps) || gaps.length < 2) {
+    throw new Error('gaps must be an array with at least 2 items');
+  }
+
+  const normalizedGaps = gaps.slice(0, 4).map((gap, index) => {
+    if (!gap || typeof gap !== 'object') {
+      throw new Error(`gaps[${index}] must be an object`);
+    }
+
+    const normalized = {};
+    for (const field of GAP_FIELDS) {
+      const value = String(gap[field] ?? '').trim();
+      if (!value) {
+        throw new Error(`gaps[${index}].${field} is required`);
+      }
+      normalized[field] = value;
+    }
+
+    const level = normalized.competitionLevel.toLowerCase();
+    if (!COMPETITION_LEVELS.has(level)) {
+      throw new Error(`gaps[${index}].competitionLevel must be low, medium, or high`);
+    }
+    normalized.competitionLevel = level;
+
+    return normalized;
+  });
+
+  let recommendedGap = Number(parsed.recommendedGap);
+  if (!Number.isInteger(recommendedGap) || recommendedGap < 0 || recommendedGap >= normalizedGaps.length) {
+    recommendedGap = 0;
+  }
+
+  return { gaps: normalizedGaps, recommendedGap, mock: false };
+}
+
+export async function* streamGaps(context) {
+  if (!context?.business) {
+    throw new Error('Business profile required');
+  }
+  if (!context?.competitors?.length) {
+    throw new Error('Competitors required — run Agent 3 first');
+  }
   if (!hasAnthropic) {
     throw new Error('AI analysis unavailable — ANTHROPIC_API_KEY not configured');
   }
 
-  const { business, analysis, competitors } = context;
-  if (!business) throw new Error('Business profile required');
-  if (!competitors || competitors.length === 0) throw new Error('Competitor data required for gap analysis');
+  const { business, competitors } = context;
+  const competitorCount = competitors.length;
+
+  yield { type: 'log', message: 'Starting market gap analysis...' };
+  await delay(300);
+
+  yield { type: 'log', message: `Reviewing ${competitorCount} competitor${competitorCount === 1 ? '' : 's'} for ${business.name}...` };
+  await delay(400);
+  yield { type: 'log', message: `Analyzing local market in ${business.location || 'your area'}...` };
+  await delay(300);
+  yield { type: 'log', message: 'AI is identifying untapped niches and underserved segments...' };
 
   const { content } = await callSonnet({
     system: GAP_SYSTEM,
-    messages: [{
-      role: 'user',
-      content: `Find market gaps for this business.\n\n--- BUSINESS ---\n${JSON.stringify(business, null, 2)}\n\n--- SWOT ANALYSIS ---\n${JSON.stringify(analysis, null, 2)}\n\n--- COMPETITORS ---\n${JSON.stringify(competitors, null, 2)}`,
-    }],
+    messages: [
+      {
+        role: 'user',
+        content: `Full context:\n${JSON.stringify(context, null, 2)}`,
+      },
+    ],
   });
 
-  const result = parseClaudeJson(content);
-  if (!Array.isArray(result?.gaps) || result.gaps.length === 0) {
-    throw new Error('Could not identify market gaps from the available data');
+  yield { type: 'log', message: 'Ranking opportunities by demand and competitive fit...' };
+  const parsed = parseClaudeJson(content);
+  const result = validateAndNormalize(parsed);
+
+  const topGap = result.gaps[result.recommendedGap];
+  yield {
+    type: 'log',
+    message: `Gap analysis complete — ${result.gaps.length} opportunities found. Top pick: "${topGap.niche}"`,
+  };
+  yield { type: 'complete', ...result };
+}
+
+export async function gapAgent(context) {
+  let result = null;
+  for await (const event of streamGaps(context)) {
+    if (event.type === 'complete') result = event;
+    if (event.type === 'error') throw new Error(event.error);
   }
-  return result;
+  return { gaps: result.gaps, recommendedGap: result.recommendedGap };
 }
