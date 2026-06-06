@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
-import { callSonnet } from '../backend/anthropic.js';
+import { callSonnet, callHaiku } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import { USE_MOCK, hasGooglePlaces, hasAnthropic, hasFirecrawl } from '../backend/config.js';
 
@@ -21,23 +21,44 @@ const MAX_COMPETITORS = 5;
 const COMPETITOR_FIELDS = ['name', 'website', 'strengths', 'weaknesses', 'targetMarket', 'theyHaveYouDont'];
 const ARRAY_FIELDS = ['strengths', 'weaknesses', 'theyHaveYouDont'];
 
+const SEARCH_PLAN_SYSTEM = `You plan Google Places competitor searches for a local business.
+
+Read the business profile (Agent 1) and consultant analysis (Agent 2). Infer what the business ACTUALLY does — including every distinct concept (e.g. a hookah lounge that also serves coffee is BOTH a hookah lounge and a café, not just "café" because the name contains cafe).
+
+Return ONLY valid JSON:
+{
+  "businessSummary": "one sentence describing what this business really is",
+  "serviceLines": ["string"],
+  "searchQueries": ["string"],
+  "excludeTypes": ["string"],
+  "comparisonNotes": "how to frame competitor comparisons across all service lines"
+}
+
+Rules for searchQueries:
+- 5-8 plain-English queries a customer would type into Google Maps
+- Cover EVERY distinct service line with dedicated queries
+- Use specific terms from services, target market, and analysis — not generic labels alone
+- Short queries only (2-5 words); location is added separately
+- Do not include the business's own name
+
+Rules for excludeTypes:
+- Business types that are clearly NOT competitors for this specific business
+- 3-6 items (e.g. "print shop" for a café, but NOT "hookah lounge" for a dual café+hookah venue)`;
+
 const BENCHMARK_SYSTEM = `You are a competitive analysis consultant. Compare local competitors directly to the user's business.
 
 Rules:
 - Base every point on the provided competitor data (Google listing + scraped website content)
 - Do not invent services, pricing, or features not supported by the data
-- Identify ALL service lines the user operates (e.g. café + hookah lounge, not just one label like "café")
-- Compare each competitor against the user's FULL offering — a hookah lounge competes on ambiance and shisha, a café competes on coffee and food
-- If the user runs a dual-concept venue (e.g. Lush Cafe = hookah lounge AND café), compare on BOTH dimensions where data supports it
+- Use the SEARCH PLAN to understand ALL service lines the user operates — compare across the full offering, not just one label
 - strengths: 2-4 specific things each competitor does well
 - weaknesses: 2-4 honest gaps or shortcomings for each competitor
 - targetMarket: who this competitor appears to serve based on their content and listing
 - theyHaveYouDont: 2-4 specific offerings, features, or positioning the competitor has that the user's business lacks
-- Use the user's business profile AND Agent 2 analysis to frame comparisons
+- Use the user's business profile, Agent 2 analysis, and SEARCH PLAN to frame comparisons
 - Do not include the user's own business as a competitor
 - Return exactly one competitor object per business listed in COMPETITOR DATA — use the exact same name spelling
 - Never add businesses that are not in COMPETITOR DATA
-- Ignore unrelated industries (e.g. print shops for a café)
 
 Return ONLY valid JSON matching this exact schema:
 {
@@ -55,54 +76,85 @@ Return ONLY valid JSON matching this exact schema:
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function getBusinessIndustryProfile(business, analysis) {
-  return [
-    business.name,
-    business.type,
-    business.targetMarket,
-    ...(business.services || []),
-    ...(analysis?.strengths || []),
-    ...(analysis?.weaknesses || []),
-    ...(analysis?.improvements || []),
-    ...(analysis?.missing || []),
-  ].join(' ').toLowerCase();
+function fallbackSearchPlan(business, analysis) {
+  const services = business.services?.filter(Boolean) || [];
+  return {
+    businessSummary: `${business.name} — ${business.type || 'local business'}`,
+    serviceLines: services.length ? services.slice(0, 4) : [business.type || 'local business'],
+    searchQueries: [...new Set([
+      ...services.slice(0, 3),
+      business.type,
+      business.targetMarket?.split(/[,;]/)[0]?.trim(),
+    ].filter(Boolean))].slice(0, 6),
+    excludeTypes: ['print shop', 'shipping store', 'post office'],
+    comparisonNotes: 'Compare based on listed services and target market.',
+  };
 }
 
-function isFoodBeverageBusiness(profile) {
-  return /coffee|cafe|café|espresso|latte|kahfe|kahfé|barista|beverage|tea|boba|bubble|juice|smoothie|drink|refresh|cater|mobile vendor|food|bakery|restaurant|matcha|pastries|brunch|breakfast/i.test(profile);
+function normalizeSearchPlan(raw, business, analysis) {
+  const fallback = fallbackSearchPlan(business, analysis);
+  const plan = raw && typeof raw === 'object' ? raw : {};
+
+  const searchQueries = (Array.isArray(plan.searchQueries) ? plan.searchQueries : [])
+    .map((q) => String(q).trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const serviceLines = (Array.isArray(plan.serviceLines) ? plan.serviceLines : [])
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+
+  const excludeTypes = (Array.isArray(plan.excludeTypes) ? plan.excludeTypes : [])
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+
+  return {
+    businessSummary: String(plan.businessSummary || fallback.businessSummary).trim(),
+    serviceLines: serviceLines.length ? serviceLines : fallback.serviceLines,
+    searchQueries: searchQueries.length ? searchQueries : fallback.searchQueries,
+    excludeTypes: excludeTypes.length ? excludeTypes : fallback.excludeTypes,
+    comparisonNotes: String(plan.comparisonNotes || fallback.comparisonNotes).trim(),
+  };
 }
 
-function isHookahLoungeBusiness(profile) {
-  if (/hookah|shisha|sheesha|nargile|narghile|smoke lounge|tobacco lounge|lounge bar|vape lounge/i.test(profile)) {
-    return true;
+async function planCompetitorSearch(business, analysis) {
+  if (USE_MOCK || !hasAnthropic) {
+    return fallbackSearchPlan(business, analysis);
   }
-  // Dual café + lounge venues (e.g. Lush Cafe) even when "hookah" isn't in the scraped text
-  return /\blounge\b/i.test(profile) && /cafe|café|coffee/i.test(profile);
+
+  try {
+    const { content } = await callHaiku({
+      system: SEARCH_PLAN_SYSTEM,
+      messages: [
+        {
+          role: 'user',
+          content: `Plan competitor searches for this business.
+
+--- BUSINESS PROFILE (Agent 1) ---
+${JSON.stringify(business, null, 2)}
+
+--- ANALYSIS (Agent 2) ---
+${JSON.stringify(analysis, null, 2)}`,
+        },
+      ],
+      maxTokens: 1024,
+    });
+
+    return normalizeSearchPlan(parseClaudeJson(content), business, analysis);
+  } catch (err) {
+    console.warn(`[benchmarkAgent] Search plan failed: ${err.message}`);
+    return fallbackSearchPlan(business, analysis);
+  }
 }
 
-function isPrintBusiness(profile) {
-  return /print|mail|graphic|signage|copy center|promotional product/i.test(profile);
-}
-
-function describeBusinessConcepts(business, analysis) {
-  const profile = getBusinessIndustryProfile(business, analysis);
-  const concepts = [];
-  if (isHookahLoungeBusiness(profile)) concepts.push('hookah/shisha lounge');
-  if (isFoodBeverageBusiness(profile)) concepts.push('café / food & beverage');
-  if (isPrintBusiness(profile)) concepts.push('printing');
-  if (concepts.length === 0) concepts.push(business.type || 'local business');
-  return concepts;
-}
-
-function selectMockData(business, analysis) {
-  const profile = getBusinessIndustryProfile(business, analysis);
-  if (isFoodBeverageBusiness(profile)) return cafeMockData;
-  if (isPrintBusiness(profile)) return printMockData;
+function selectMockData(plan) {
+  const text = [...(plan?.serviceLines || []), plan?.businessSummary || ''].join(' ').toLowerCase();
+  if (/print|mail|graphic|signage/i.test(text)) return printMockData;
   return cafeMockData;
 }
 
-function mockFallback(reason, business, analysis) {
-  const mockData = selectMockData(business, analysis);
+function mockFallback(reason, plan) {
+  const mockData = selectMockData(plan);
   console.warn(`[benchmarkAgent] Falling back to mock data: ${reason}`);
   return { ...mockData, mock: true, mockReason: reason };
 }
@@ -158,134 +210,38 @@ function namesMatch(a, b) {
   return overlap >= threshold;
 }
 
-function inferIndustryQueries(business, analysis) {
-  const profile = getBusinessIndustryProfile(business, analysis);
-  const queries = [];
-  const hookah = isHookahLoungeBusiness(profile);
-  const cafe = isFoodBeverageBusiness(profile);
-
-  // Dual-concept venues (e.g. Lush Cafe): search hookah lounges first, then café
-  if (hookah) {
-    queries.push(
-      'hookah lounge',
-      'shisha lounge',
-      'hookah bar',
-      'hookah cafe',
-      'smoke lounge',
-    );
-  }
-
-  if (cafe) {
-    queries.push(
-      'coffee shop',
-      'cafe',
-      'specialty coffee',
-      'coffee and tea',
-      'bubble tea',
-      'juice bar',
-      'espresso bar',
-    );
-    if (hookah) {
-      queries.push('cafe and lounge', 'coffee lounge');
-    }
-    if (/cater|event|mobile|wedding/i.test(profile)) {
-      queries.push('mobile coffee catering', 'event beverage catering', 'coffee cart');
-    }
-  }
-
-  if (isPrintBusiness(profile)) {
-    queries.push('print shop', 'commercial printing', 'direct mail printing');
-  }
-
-  if (queries.length === 0) {
-    queries.push(business.services?.[0] || business.type || 'local business');
-  }
-
-  return queries;
-}
-
-function buildServiceTermsQuery(business) {
-  const primaryService = business.services?.[0] || '';
-  const secondaryService = business.services?.[1] || '';
-  const type = (business.type || '').toLowerCase();
-  const serviceTerms = [primaryService, secondaryService].filter(Boolean).slice(0, 2).join(' ');
-
-  if (type === 'mobile vendor' && primaryService) return `mobile ${primaryService}`;
-  if (serviceTerms) return serviceTerms;
-  return type === 'fixed location' ? 'local business' : 'local service';
-}
-
-function buildSearchQueries(business, analysis) {
-  const industry = inferIndustryQueries(business, analysis);
-  const services = (business.services || []).slice(0, 3);
-  const serviceTermsQuery = buildServiceTermsQuery(business);
-
-  return [...new Set([
-    serviceTermsQuery,
-    ...industry,
-    ...services,
-    business.type,
-  ].filter(Boolean))];
-}
-
-function isRelevantCompetitor(place, business, analysis) {
-  const profile = getBusinessIndustryProfile(business, analysis);
+function isExcludedPlace(place, excludeTypes) {
   const placeText = `${getPlaceName(place)} ${place.formattedAddress || ''}`.toLowerCase();
-  const hookah = isHookahLoungeBusiness(profile);
-  const cafe = isFoodBeverageBusiness(profile);
-
-  if (isPrintBusiness(profile)) {
-    if (/coffee|cafe|espresso|boba|smoothie|bakery/i.test(placeText) && !/print/i.test(placeText)) {
-      return false;
-    }
-    return true;
-  }
-
-  // Always exclude unrelated retail for hospitality businesses
-  if (/print|graphics|copy center|signage|framing|mail|fedex office|ups store/i.test(placeText)) {
-    return false;
-  }
-
-  // Dual-concept: accept hookah lounges, cafés, or combined venues
-  if (hookah && cafe) {
-    return /hookah|shisha|lounge|cafe|coffee|espresso|tea|smoke|bar|restaurant|bistro|bakery/i.test(placeText);
-  }
-
-  if (hookah) {
-    return /hookah|shisha|lounge|smoke|bar/i.test(placeText);
-  }
-
-  if (cafe) {
-    return /cafe|coffee|espresso|tea|boba|juice|smoothie|bakery|restaurant|bistro|drink/i.test(placeText);
-  }
-
-  return true;
+  return (excludeTypes || []).some((excluded) => {
+    const term = String(excluded).toLowerCase().trim();
+    return term.length > 2 && placeText.includes(term);
+  });
 }
 
-async function findCompetitorPlaces(business, analysis, onLog) {
+async function findCompetitorPlaces(business, searchPlan, onLog) {
   const location = business.location || 'local area';
-  const queries = buildSearchQueries(business, analysis);
+  const queries = searchPlan.searchQueries;
   const seen = new Set();
   const collected = [];
 
-  const concepts = describeBusinessConcepts(business, analysis);
-  onLog?.(`Business concepts: ${concepts.join(' + ')}`);
-  onLog?.(`Search terms: ${queries.slice(0, 5).join(', ')}`);
+  onLog?.(`AI summary: ${searchPlan.businessSummary}`);
+  onLog?.(`Service lines: ${searchPlan.serviceLines.join(', ')}`);
+  onLog?.(`Search queries: ${queries.slice(0, 5).join(', ')}`);
 
   for (let i = 0; i < queries.length; i++) {
     if (collected.length >= MAX_COMPETITORS) break;
 
     const query = queries[i];
     if (i > 0) {
-      onLog?.(`Broadening search: "${query}"...`);
+      onLog?.(`Trying: "${query}"...`);
     }
 
     const { places } = await searchPlaces(query, location);
     for (const place of places || []) {
       if (collected.length >= MAX_COMPETITORS) break;
       if (isOwnBusiness(place, business)) continue;
-      if (!isRelevantCompetitor(place, business, analysis)) {
-        onLog?.(`Skipping irrelevant result: ${getPlaceName(place)}`);
+      if (isExcludedPlace(place, searchPlan.excludeTypes)) {
+        onLog?.(`Skipping excluded type: ${getPlaceName(place)}`);
         continue;
       }
 
@@ -394,7 +350,6 @@ function alignCompetitorsWithSource(parsed, competitorData) {
 
   if (aligned.length > 0) return aligned;
 
-  // Last resort: same count, trust order (Claude analyzed the right businesses but renamed them)
   const llmComps = parsed.competitors || [];
   if (llmComps.length === competitorData.length) {
     return llmComps.map((comp, i) => ({
@@ -420,8 +375,6 @@ function validateAndNormalize(parsed, competitorData) {
         result[field] = normalizeStringArray(comp[field], field);
       } else {
         const value = String(comp[field] || '').trim();
-        // website is optional — many businesses don't have one in Google Places
-        // only targetMarket is required as a non-array string field
         if (!value && field !== 'website') {
           throw new Error(`competitor[${index}].${field} is required`);
         }
@@ -441,23 +394,27 @@ export async function* streamBenchmark(context) {
 
   yield { type: 'log', message: 'Starting competitor benchmark...' };
   await delay(300);
-  const concepts = describeBusinessConcepts(business, analysis);
   yield { type: 'log', message: `Using Agent 2 analysis (${analysis.strengths?.length || 0} strengths, ${analysis.missing?.length || 0} gaps identified)` };
-  yield { type: 'log', message: `Competing as: ${concepts.join(' + ')}` };
 
   const mockBlockReason = getMockBlockReason();
+
+  yield { type: 'log', message: 'AI is determining what competitors to search for...' };
+  const searchPlan = await planCompetitorSearch(business, analysis);
+  yield { type: 'log', message: `Identified: ${searchPlan.businessSummary}` };
+  yield { type: 'log', message: `Service lines: ${searchPlan.serviceLines.join(', ')}` };
+
   if (mockBlockReason) {
     yield { type: 'log', message: `Competitor search unavailable — ${mockBlockReason}` };
     await delay(300);
-    const mockData = selectMockData(business, analysis);
-    yield { type: 'log', message: `Using industry-matched demo competitors (${mockData.competitors.length} businesses)` };
+    const mockData = selectMockData(searchPlan);
+    yield { type: 'log', message: `Using demo competitors (${mockData.competitors.length} businesses)` };
     await delay(400);
     for (const comp of mockData.competitors) {
       yield { type: 'log', message: `Analyzing ${comp.name}...` };
       await delay(350);
     }
     yield { type: 'log', message: 'Benchmark complete (demo data)' };
-    const result = mockFallback(mockBlockReason, business, analysis);
+    const result = mockFallback(mockBlockReason, searchPlan);
     yield { type: 'complete', ...result };
     return;
   }
@@ -466,21 +423,21 @@ export async function* streamBenchmark(context) {
     yield { type: 'log', message: `Searching Google Places near ${business.location}...` };
 
     const pendingSearchLogs = [];
-    const { filtered, query } = await findCompetitorPlaces(business, analysis, (msg) => pendingSearchLogs.push(msg));
+    const { filtered, query } = await findCompetitorPlaces(business, searchPlan, (msg) => pendingSearchLogs.push(msg));
     for (const msg of pendingSearchLogs) {
       yield { type: 'log', message: msg };
     }
 
     if (filtered.length === 0) {
-      yield { type: 'log', message: `No relevant competitors found for "${query}" in ${business.location} — using industry demo data` };
-      const result = mockFallback(`Google Places returned no relevant results for ${business.location}`, business, analysis);
+      yield { type: 'log', message: `No competitors found for "${query}" in ${business.location} — using demo data` };
+      const result = mockFallback(`Google Places returned no results for ${business.location}`, searchPlan);
       yield { type: 'complete', ...result };
       return;
     }
 
     yield {
       type: 'log',
-      message: `Found ${filtered.length} relevant business${filtered.length > 1 ? 'es' : ''} (search: "${query}")`,
+      message: `Found ${filtered.length} business${filtered.length > 1 ? 'es' : ''} (first query: "${query}")`,
     };
 
     const pendingLogs = [];
@@ -489,7 +446,7 @@ export async function* streamBenchmark(context) {
       yield { type: 'log', message: msg };
     }
 
-    yield { type: 'log', message: 'Comparing competitors to your business using Agent 1 profile + Agent 2 analysis...' };
+    yield { type: 'log', message: 'AI is comparing competitors to your full business profile...' };
 
     const { content } = await callSonnet({
       system: BENCHMARK_SYSTEM,
@@ -498,9 +455,8 @@ export async function* streamBenchmark(context) {
           role: 'user',
           content: `Compare these competitors to the user's business.
 
-The user operates: ${concepts.join(' + ')}.
-Search for competitors across ALL of these concepts — not only café if they also run a hookah lounge.
-Only analyze the listed competitors; do not substitute businesses from other industries.
+--- SEARCH PLAN (AI-derived) ---
+${JSON.stringify(searchPlan, null, 2)}
 
 --- USER BUSINESS (Agent 1) ---
 ${JSON.stringify(business, null, 2)}
@@ -520,8 +476,8 @@ ${JSON.stringify(competitorData, null, 2)}`,
     yield { type: 'log', message: `Benchmark complete — ${result.competitors.length} competitors analyzed` };
     yield { type: 'complete', ...result };
   } catch (err) {
-    yield { type: 'log', message: 'Switching to industry-matched backup competitor data...' };
-    const result = mockFallback(err.message, business, analysis);
+    yield { type: 'log', message: 'Switching to backup competitor data...' };
+    const result = mockFallback(err.message, searchPlan);
     yield { type: 'complete', ...result };
   }
 }
