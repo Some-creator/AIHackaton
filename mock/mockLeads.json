@@ -1,0 +1,118 @@
+{
+  "leads": [
+    {
+      "name": "Bella's Italian Kitchen",
+      "address": "1234 Westheimer Rd, Houston, TX 77077",
+      "phone": "(713) 555-0142",
+      "website": "https://bellasitalian.example.com",
+      "lat": 29.7604,
+      "lng": -95.6301,
+      "hook": "Opened 8 months ago with 67 Google reviews and growing — owner actively responds to every review but their menu PDF still shows the original launch design with no seasonal updates.",
+      "fitScore": 9,
+      "budgetScore": 7,
+      "responseScore": 9,
+      "priorityScore": 8.4,
+      "email": "Hi — I noticed Bella's has built a solid following since opening last fall (67 reviews is impressive for 8 months). Your menu on the website still shows the original launch version though. We help West Houston restaurants refresh menus and print promos without the downtown pricing. Worth a quick chat?",
+      "sendStrategy": {
+        "channel": "email",
+        "timing": "Tuesday morning between 9-10am before lunch rush",
+        "followUp": "If no reply in 3 days, call during off-peak hours (2-4pm) and mention the menu refresh observation"
+      }
+    },
+    {
+      "name": "Taco Libre West",
+      "address": "5678 Memorial Dr, Houston, TX 77079",
+      "phone": "(713) 555-0287",
+      "website": "https://tacolibrewest.example.com",
+      "lat": 29.7832,
+      "lng": -95.6124,
+      "hook": "Recent reviews mention 'prices went up' and 'portions smaller' — classic signal they're reinvesting and may need cost-effective print solutions for new promotional materials.",
+      "fitScore": 8,
+      "budgetScore": 8,
+      "responseScore": 8,
+      "priorityScore": 8.0,
+      "email": "Hey — saw a few recent reviews mentioning menu price changes at Taco Libre West. When restaurants adjust pricing, refreshed menus and table tents usually follow. We print locally in West Houston — faster and cheaper than going downtown. Happy to send a quick quote if useful.",
+      "sendStrategy": {
+        "channel": "walk in",
+        "timing": "Wednesday 3pm during afternoon lull",
+        "followUp": "Drop off a sample printed menu with a handwritten note if no response after visit"
+      }
+    },
+    {
+      "name": "Harvest Table Bistro",
+      "address": "9012 Eldridge Pkwy, Houston, TX 77077",
+      "phone": "(713) 555-0391",
+      "website": "https://harvesttablebistro.example.com",
+      "lat": 29.7456,
+      "lng": -95.6445,
+      "hook": "142 Google reviews with owner responding to reviews until 3 months ago — engagement dropped right when review velocity slowed, suggesting operational pressure and openness to vendor conversations.",
+      "fitScore": 9,
+      "budgetScore": 9,
+      "responseScore": 7,
+      "priorityScore": 8.2,
+      "email": "Hi — Harvest Table has great reviews (142!) but I noticed your seasonal menu hasn't been updated online since last spring. A lot of West Houston spots refresh menus this time of year. We handle design and print locally — one stop. Want me to send over what a spring menu refresh would look like?",
+      "sendStrategy": {
+        "channel": "email",
+        "timing": "Thursday morning 8-9am",
+        "followUp": "Follow up via Instagram DM with a photo of a similar restaurant menu we designed"
+      }
+    },
+    {
+      "name": "Pho Saigon Express",
+      "address": "3456 Highway 6, Houston, TX 77082",
+      "phone": "(713) 555-0456",
+      "website": "https://phosaigonexpress.example.com",
+      "lat": 29.7123,
+      "lng": -95.6589,
+      "hook": "Opened 11 months ago, 89 reviews, basic one-page website with no online menu — strong indicator they need professional print materials to match their growing dine-in traffic.",
+      "fitScore": 8,
+      "budgetScore": 6,
+      "responseScore": 9,
+      "priorityScore": 7.7,
+      "email": "Hi — Pho Saigon Express is clearly doing well (89 reviews in under a year!). Your website doesn't have a menu posted yet though — we help new West Houston restaurants get professional menus, flyers, and takeout materials printed fast. First order includes free design. Interested?",
+      "sendStrategy": {
+        "channel": "phone",
+        "timing": "Monday 2pm between lunch and dinner service",
+        "followUp": "Visit in person with printed sample menu mockup if phone call doesn't connect"
+      }
+    },
+    {
+      "name": "Cork & Barrel Wine Bar",
+      "address": "7890 Westheimer Lakes Dr, Houston, TX 77094",
+      "phone": "(713) 555-0512",
+      "website": "https://corkandbarrel.example.com",
+      "lat": 29.7689,
+      "lng": -95.6789,
+      "hook": "Upscale wine bar with 156 reviews and $$$ price level on Google — high print budget potential, and their wine list PDF hasn't been updated since opening 2 years ago despite seasonal wine rotation mentions in reviews.",
+      "fitScore": 7,
+      "budgetScore": 10,
+      "responseScore": 6,
+      "priorityScore": 7.6,
+      "email": "Hello — Cork & Barrel's wine list online still shows your opening selection, but recent reviews mention new seasonal pours. We specialize in premium menu and wine list printing for West Houston restaurants. Would a refreshed wine list design be helpful this season?",
+      "sendStrategy": {
+        "channel": "email",
+        "timing": "Tuesday 10am — formal tone matches upscale positioning",
+        "followUp": "Send physical printed wine list sample via mail after 5 days with no response"
+      }
+    },
+    {
+      "name": "Smash Burger Co",
+      "address": "2345 Briar Forest Dr, Houston, TX 77077",
+      "phone": "(713) 555-0634",
+      "website": "https://smashburgerco.example.com",
+      "lat": 29.7534,
+      "lng": -95.6234,
+      "hook": "Fast-casual spot with 203 reviews and slowing review velocity over the last 60 days — likely feeling competitive pressure in the crowded West Houston burger market and open to promotional print to drive traffic.",
+      "fitScore": 7,
+      "budgetScore": 8,
+      "responseScore": 7,
+      "priorityScore": 7.3,
+      "email": "Hey — Smash Burger Co has a loyal crowd (200+ reviews is no joke). With burger competition heating up on Westheimer, a targeted flyer or mailer campaign to nearby neighborhoods could bring in new faces. We print and mail locally — want to see what a campaign would cost?",
+      "sendStrategy": {
+        "channel": "instagram DM",
+        "timing": "Friday afternoon — casual tone fits brand",
+        "followUp": "Email with flyer mockup if DM goes unread after 48 hours"
+      }
+    }
+  ]
+}

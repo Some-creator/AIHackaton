@@ -1,0 +1,26 @@
+{
+  "gaps": [
+    {
+      "niche": "Independent restaurants in West Houston not being targeted by print vendors",
+      "demand": "West Houston has 200+ independent restaurants with menus, flyers, and promotional needs. Most print shops focus on central Houston or large chains, leaving West Houston independents underserved.",
+      "competitionLevel": "low",
+      "opportunity": "Cosmic Printing already serves West Houston and has full print + mail capabilities. Competitors lack restaurant-specific packages for this geography. A targeted outreach to West Houston restaurants could capture an untapped local market.",
+      "recommendedTarget": "Independent sit-down restaurants and cafes in West Houston (77077, 77079, 77094) opened within the last 3 years, with 50+ Google reviews indicating active operations but no recent menu refresh visible online."
+    },
+    {
+      "niche": "New restaurant grand opening marketing bundles",
+      "demand": "Houston sees 30-40 new independent restaurant openings per quarter. Each needs menus, signage, flyers, and direct mail for launch promotions.",
+      "competitionLevel": "medium",
+      "opportunity": "A bundled grand opening package (menu + signage + 500 flyers + EDDM mailer) would differentiate from competitors offering piecemeal services.",
+      "recommendedTarget": "Restaurants opened in the last 12 months in the greater Houston area with growing review counts but basic or outdated menu presentation."
+    },
+    {
+      "niche": "Seasonal menu update campaigns for established restaurants",
+      "demand": "Restaurants update menus 2-4 times per year. Each update requires reprinting menus, table tents, and promotional materials.",
+      "competitionLevel": "medium",
+      "opportunity": "Proactive outreach before known seasonal menu changes (spring, fall) positions Cosmic as the go-to vendor before competitors even bid.",
+      "recommendedTarget": "Established restaurants (3+ years) with 100+ reviews showing seasonal menu changes in review mentions but no visible print vendor relationship."
+    }
+  ],
+  "recommendedGap": 0
+}

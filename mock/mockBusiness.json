@@ -1,0 +1,17 @@
+{
+  "business": {
+    "name": "Cosmic Printing & Mail",
+    "location": "Houston, TX",
+    "services": [
+      "Commercial printing",
+      "Direct mail campaigns",
+      "Graphic design",
+      "Large format printing",
+      "Promotional products"
+    ],
+    "type": "fixed location",
+    "targetMarket": "Local restaurants, retail shops, and service businesses in West Houston",
+    "website": "https://cosmicprintingandmail.com",
+    "socialProfiles": []
+  }
+}

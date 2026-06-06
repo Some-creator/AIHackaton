@@ -1,0 +1,84 @@
+{
+  "competitors": [
+    {
+      "name": "Houston Print Pros",
+      "website": "https://houstonprintpros.example.com",
+      "strengths": [
+        "Strong online portfolio with restaurant case studies",
+        "Same-day rush printing available",
+        "Active Google reviews with owner responses"
+      ],
+      "weaknesses": [
+        "Higher pricing visible on website",
+        "Limited direct mail services",
+        "No design consultation included"
+      ],
+      "targetMarket": "Restaurants and retail in central Houston",
+      "theyHaveYouDont": [
+        "Restaurant-specific portfolio page",
+        "Online instant quote calculator",
+        "Video testimonials from local clients"
+      ]
+    },
+    {
+      "name": "Westside Graphics Co",
+      "website": "https://westsidegraphics.example.com",
+      "strengths": [
+        "Modern website with online ordering",
+        "Strong Instagram presence showcasing work",
+        "Offers packaging design for food businesses"
+      ],
+      "weaknesses": [
+        "No direct mail fulfillment",
+        "Smaller team means longer turnaround on large jobs",
+        "Limited large format capabilities"
+      ],
+      "targetMarket": "Food trucks and boutique eateries in West Houston",
+      "theyHaveYouDont": [
+        "Active social media showcasing recent restaurant work",
+        "Packaging design services for takeout menus",
+        "Monthly email newsletter with design tips"
+      ]
+    },
+    {
+      "name": "PrintMax Houston",
+      "website": "https://printmaxhouston.example.com",
+      "strengths": [
+        "Lowest advertised prices in the area",
+        "24-hour turnaround guarantee",
+        "Franchise-level brand recognition"
+      ],
+      "weaknesses": [
+        "Generic templates with no custom design",
+        "No local relationship building",
+        "Impersonal customer service"
+      ],
+      "targetMarket": "High-volume commercial clients across Houston metro",
+      "theyHaveYouDont": [
+        "National brand recognition",
+        "Automated online ordering portal",
+        "Volume discount pricing tiers"
+      ]
+    },
+    {
+      "name": "Bayou Mail & Print",
+      "website": "https://bayoumailprint.example.com",
+      "strengths": [
+        "Specializes in direct mail campaigns",
+        "EDDM (Every Door Direct Mail) expertise",
+        "Long-standing relationships with local chambers"
+      ],
+      "weaknesses": [
+        "Outdated website design",
+        "No graphic design in-house",
+        "Slow response to online inquiries"
+      ],
+      "targetMarket": "Local service businesses and nonprofits in Houston",
+      "theyHaveYouDont": [
+        "EDDM direct mail specialization page",
+        "Chamber of commerce partnership badges",
+        "Mailing list management services"
+      ]
+    }
+  ]
+}
