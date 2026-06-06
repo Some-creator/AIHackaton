@@ -481,3 +481,6 @@ if (existsSync(frontendDist)) {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`HookLine running on port ${PORT}`);
 });
+
+// Trigger reload for dotenv
+

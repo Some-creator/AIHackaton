@@ -167,11 +167,24 @@ function inferIndustryQueries(business, analysis) {
   return queries;
 }
 
+function buildServiceTermsQuery(business) {
+  const primaryService = business.services?.[0] || '';
+  const secondaryService = business.services?.[1] || '';
+  const type = (business.type || '').toLowerCase();
+  const serviceTerms = [primaryService, secondaryService].filter(Boolean).slice(0, 2).join(' ');
+
+  if (type === 'mobile vendor' && primaryService) return `mobile ${primaryService}`;
+  if (serviceTerms) return serviceTerms;
+  return type === 'fixed location' ? 'local business' : 'local service';
+}
+
 function buildSearchQueries(business, analysis) {
   const industry = inferIndustryQueries(business, analysis);
   const services = (business.services || []).slice(0, 3);
+  const serviceTermsQuery = buildServiceTermsQuery(business);
 
   return [...new Set([
+    serviceTermsQuery,
     ...industry,
     ...services,
     business.type,
@@ -353,7 +366,11 @@ function validateAndNormalize(parsed, competitorData) {
         result[field] = normalizeStringArray(comp[field], field);
       } else {
         const value = String(comp[field] || '').trim();
-        if (!value) throw new Error(`competitor[${index}].${field} is required`);
+        // website is optional — many businesses don't have one in Google Places
+        // only targetMarket is required as a non-array string field
+        if (!value && field !== 'website') {
+          throw new Error(`competitor[${index}].${field} is required`);
+        }
         result[field] = value;
       }
     }
