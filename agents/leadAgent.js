@@ -62,10 +62,24 @@ export async function leadAgent(context) {
     throw new Error('AI analysis unavailable — ANTHROPIC_API_KEY not configured');
   }
 
-  const { business, gaps } = context;
-  if (!gaps?.gaps || gaps.gaps.length === 0) throw new Error('Market gap data required');
+  const { business, gaps, recommendedGap } = context;
 
-  const selectedGap = gaps.gaps[gaps.recommendedGap ?? 0];
+  let gapsArray = [];
+  let gapIndex = 0;
+
+  if (Array.isArray(gaps)) {
+    gapsArray = gaps;
+    gapIndex = recommendedGap !== undefined ? recommendedGap : 0;
+  } else if (gaps && Array.isArray(gaps.gaps)) {
+    gapsArray = gaps.gaps;
+    gapIndex = gaps.recommendedGap !== undefined ? gaps.recommendedGap : (recommendedGap !== undefined ? recommendedGap : 0);
+  }
+
+  if (gapsArray.length === 0) {
+    throw new Error('Market gap data required');
+  }
+
+  const selectedGap = gapsArray[gapIndex] || gapsArray[0];
 
   // Build a targeted search for POTENTIAL CLIENTS based on who to sell to
   const buildLeadQuery = () => {

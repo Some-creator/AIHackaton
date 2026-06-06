@@ -1,12 +1,8 @@
-import { useMockFor } from './config.js';
+
 
 const PLACES_FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.location,places.nationalPhoneNumber';
 
 export async function searchPlaces(query, location) {
-  if (useMockFor('googlePlaces')) {
-    return { places: [], query, location, mock: true };
-  }
-
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_PLACES_API_KEY not configured');
 
@@ -30,8 +26,6 @@ export async function searchPlaces(query, location) {
 }
 
 export async function getPlaceDetails(placeId) {
-  if (useMockFor('googlePlaces')) return { placeId, details: {}, mock: true };
-
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_PLACES_API_KEY not configured');
 

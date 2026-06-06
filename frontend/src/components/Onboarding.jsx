@@ -5,7 +5,7 @@ import ActivityLog from './ActivityLog';
 export default function Onboarding({ onSubmit, loading, logs = [] }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [url, setUrl] = useState('https://kahfe.square.site/');
+  const [url, setUrl] = useState('');
 
   const [socialLinks, setSocialLinks] = useState('');
 

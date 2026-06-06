@@ -1,10 +1,4 @@
-const USE_MOCK = true;
-
 export async function getBusinessReviews(businessName, location) {
-  if (USE_MOCK) {
-    return { businessName, reviews: [], location };
-  }
-
   const apiKey = process.env.YELP_API_KEY;
   if (!apiKey) throw new Error('YELP_API_KEY not configured');
 
