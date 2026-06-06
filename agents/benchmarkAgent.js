@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
-import { callClaude } from '../backend/anthropic.js';
+import { callSonnet } from '../backend/anthropic.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const USE_MOCK = true;
@@ -29,7 +29,7 @@ export async function benchmarkAgent(context) {
       })
     );
 
-    const { content } = await callClaude({
+    const { content } = await callSonnet({
       system: 'You are a competitive analysis agent. Compare competitors to the user business. Return valid JSON with competitors array.',
       messages: [
         {

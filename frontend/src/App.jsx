@@ -26,18 +26,33 @@ export default function App() {
   const [streamComplete, setStreamComplete] = useState(false);
   const [sentLeads, setSentLeads] = useState(new Set());
   const [skippedLeads, setSkippedLeads] = useState(new Set());
+  const [ingestLogs, setIngestLogs] = useState([]);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
     setError(null);
+    setIngestLogs([]);
     try {
-      const ingestResult = await api.ingest(url, socialProfiles);
-      setContext({ business: ingestResult.business });
+      const { sessionId } = await api.createIngestSession(url, socialProfiles);
+
+      const ingestResult = await new Promise((resolve, reject) => {
+        api.streamIngest(sessionId, {
+          onLog: (message) => setIngestLogs((prev) => [...prev, message]),
+          onComplete: resolve,
+          onError: reject,
+        });
+      });
+
+      setContext({
+        business: ingestResult.business,
+        companyId: ingestResult.companyId,
+      });
       setStep('analysis');
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setIngestLogs([]);
     }
   };
 
@@ -45,7 +60,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const updatedContext = { business: updatedBusiness };
+      const updatedContext = { ...context, business: updatedBusiness };
       setContext(updatedContext);
       const analysisResult = await api.analyze(updatedContext);
       setContext((prev) => ({
@@ -199,13 +214,14 @@ export default function App() {
         )}
 
         {step === 'onboarding' && (
-          <Onboarding onSubmit={handleIngest} loading={loading} />
+          <Onboarding onSubmit={handleIngest} loading={loading} logs={ingestLogs} />
         )}
 
         {step === 'analysis' && context.business && (
           <BusinessAnalysis
             business={context.business}
             analysis={context.analysis}
+            companyId={context.companyId}
             onAnalyze={handleAnalyzeProfile}
             onContinue={handleContinueToBenchmark}
             loading={loading}

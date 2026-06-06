@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import ServiceTags from './ServiceTags';
+
+const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
 function AnalysisSection({ title, items, color }) {
   const colors = {
@@ -23,15 +26,11 @@ function AnalysisSection({ title, items, color }) {
   );
 }
 
-export default function BusinessAnalysis({ business, analysis, onAnalyze, onContinue, loading }) {
+export default function BusinessAnalysis({ business, analysis, onAnalyze, onContinue, loading, companyId }) {
   const [profile, setProfile] = useState({ ...business });
 
   const updateField = (field, value) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const updateServices = (value) => {
-    updateField('services', value.split(',').map((s) => s.trim()).filter(Boolean));
   };
 
   const hasAnalysis = Boolean(analysis);
@@ -45,9 +44,12 @@ export default function BusinessAnalysis({ business, analysis, onAnalyze, onCont
             ? 'Review your profile and analysis below.'
             : 'Review and edit your business details, then run the analysis.'}
         </p>
+        {companyId && (
+          <p className="text-xs text-gray-400 mt-2">Saved to database · ID: {companyId}</p>
+        )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-700">Business Name</label>
@@ -69,32 +71,52 @@ export default function BusinessAnalysis({ business, analysis, onAnalyze, onCont
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Business Type</label>
-            <input
+            <select
               value={profile.type}
               onChange={(e) => updateField('type', e.target.value)}
               disabled={loading}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none disabled:bg-gray-50"
-            />
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none bg-white disabled:bg-gray-50"
+            >
+              {BUSINESS_TYPES.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Target Market</label>
+            <label className="text-sm font-medium text-gray-700">Website</label>
             <input
-              value={profile.targetMarket}
-              onChange={(e) => updateField('targetMarket', e.target.value)}
-              disabled={loading}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none disabled:bg-gray-50"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-gray-700">Services (comma-separated)</label>
-            <input
-              value={profile.services.join(', ')}
-              onChange={(e) => updateServices(e.target.value)}
+              value={profile.website}
+              onChange={(e) => updateField('website', e.target.value)}
               disabled={loading}
               className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none disabled:bg-gray-50"
             />
           </div>
         </div>
+
+        <div>
+          <label className="text-sm font-medium text-gray-700">Target Market</label>
+          <textarea
+            value={profile.targetMarket}
+            onChange={(e) => updateField('targetMarket', e.target.value)}
+            rows={2}
+            disabled={loading}
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none resize-none disabled:bg-gray-50"
+          />
+        </div>
+
+        <ServiceTags
+          label="Services"
+          items={profile.services}
+          onChange={(services) => updateField('services', services)}
+          placeholder="e.g. Mobile beverage catering"
+        />
+
+        <ServiceTags
+          label="Social Profiles"
+          items={profile.socialProfiles || []}
+          onChange={(socialProfiles) => updateField('socialProfiles', socialProfiles)}
+          placeholder="e.g. instagram.com/yourbusiness"
+        />
       </div>
 
       {!hasAnalysis ? (

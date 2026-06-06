@@ -1,14 +1,20 @@
-import { useMockFor, ANTHROPIC_MODEL, ANTHROPIC_HAIKU_MODEL } from './config.js';
+import { useMockFor, SONNET_MODEL, HAIKU_MODEL } from './config.js';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
-export async function callClaude({ system, messages, model = ANTHROPIC_MODEL, maxTokens = 4096 }) {
-  if (useMockFor('anthropic')) {
-    return { content: '', model, mock: true };
+function validateModel(model) {
+  const lower = model.toLowerCase();
+  if (!lower.includes('sonnet') && !lower.includes('haiku')) {
+    throw new Error(
+      `Model "${model}" is not allowed. This project only uses Haiku and Sonnet models.`
+    );
   }
+}
+
+async function requestAnthropic({ model, system, messages, maxTokens }) {
+  validateModel(model);
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
 
   const response = await fetch(ANTHROPIC_URL, {
     method: 'POST',
@@ -31,7 +37,7 @@ export async function callClaude({ system, messages, model = ANTHROPIC_MODEL, ma
   }
 
   const data = await response.json();
-  const content = data.content?.[0]?.text || '';
+  const content = data.content?.find((block) => block.type === 'text')?.text || '';
 
   if (!content) {
     throw new Error('Anthropic returned empty response');
@@ -40,6 +46,24 @@ export async function callClaude({ system, messages, model = ANTHROPIC_MODEL, ma
   return { content, model, mock: false };
 }
 
-export async function callHaiku({ system, messages }) {
-  return callClaude({ system, messages, model: ANTHROPIC_HAIKU_MODEL });
+export async function callSonnet({ system, messages, maxTokens = 4096 }) {
+  if (useMockFor('anthropic')) {
+    return { content: '', model: SONNET_MODEL, mock: true };
+  }
+
+  console.log(`[anthropic] Sonnet: ${SONNET_MODEL}`);
+  return requestAnthropic({ model: SONNET_MODEL, system, messages, maxTokens });
 }
+
+export async function callHaiku({ system, messages, maxTokens = 1024 }) {
+  if (useMockFor('anthropic')) {
+    return { content: '', model: HAIKU_MODEL, mock: true };
+  }
+
+  console.log(`[anthropic] Haiku: ${HAIKU_MODEL}`);
+  return requestAnthropic({ model: HAIKU_MODEL, system, messages, maxTokens });
+}
+
+// Backward-compatible aliases
+export const callClaude = callSonnet;
+export const callReasoning = callSonnet;

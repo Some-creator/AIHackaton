@@ -17,6 +17,33 @@ export async function ingest(url, socialProfiles = []) {
   return post('/ingest', { url, socialProfiles });
 }
 
+export async function createIngestSession(url, socialProfiles = []) {
+  return post('/ingest/session', { url, socialProfiles });
+}
+
+export function streamIngest(sessionId, { onLog, onComplete, onError }) {
+  const eventSource = new EventSource(`${API_BASE}/ingest/stream/${sessionId}`);
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'log') onLog?.(data.message);
+    else if (data.type === 'complete') {
+      onComplete?.(data);
+      eventSource.close();
+    } else if (data.type === 'error') {
+      onError?.(new Error(data.error));
+      eventSource.close();
+    }
+  };
+
+  eventSource.onerror = () => {
+    onError?.(new Error('Connection to ingestion stream lost'));
+    eventSource.close();
+  };
+
+  return eventSource;
+}
+
 export async function analyze(context) {
   return post('/analyze', context);
 }

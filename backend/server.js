@@ -4,12 +4,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { ingestionAgent } from '../agents/ingestionAgent.js';
+import { ingestionAgent, streamIngestion } from '../agents/ingestionAgent.js';
 import { analysisAgent } from '../agents/analysisAgent.js';
 import { benchmarkAgent } from '../agents/benchmarkAgent.js';
 import { gapAgent } from '../agents/gapAgent.js';
 import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
+import { createCompany, updateCompany, getCompany } from './firebase.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
@@ -23,6 +24,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 const leadSessions = new Map();
+const ingestSessions = new Map();
 
 app.use(cors());
 app.use(express.json());
@@ -37,9 +39,73 @@ app.post('/api/ingest', async (req, res) => {
     if (!url) return res.status(400).json({ error: 'Website URL is required' });
 
     const result = await ingestionAgent(url, socialProfiles);
-    res.json(result);
+    const { id: companyId } = await createCompany({
+      business: result.business,
+      step: 'ingested',
+      mock: result.mock ?? false,
+    });
+
+    res.json({ ...result, companyId });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ingest/session', (req, res) => {
+  try {
+    const { url, socialProfiles = [] } = req.body;
+    if (!url) return res.status(400).json({ error: 'Website URL is required' });
+
+    const sessionId = `ingest-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    ingestSessions.set(sessionId, { url, socialProfiles });
+
+    setTimeout(() => ingestSessions.delete(sessionId), 10 * 60 * 1000);
+
+    res.json({ sessionId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/ingest/stream/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const session = ingestSessions.get(sessionId);
+
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found or expired' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  try {
+    for await (const event of streamIngestion(session.url, session.socialProfiles)) {
+      if (event.type === 'log') {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'complete') {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
+        const { id: companyId } = await createCompany({
+          business: event.business,
+          step: 'ingested',
+          mock: event.mock ?? false,
+        });
+        res.write(`data: ${JSON.stringify({
+          type: 'complete',
+          business: event.business,
+          mock: event.mock ?? false,
+          companyId,
+        })}\n\n`);
+      }
+    }
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+  } finally {
+    ingestSessions.delete(sessionId);
+    res.end();
   }
 });
 
@@ -49,6 +115,13 @@ app.post('/api/analyze', async (req, res) => {
     if (!context.business) return res.status(400).json({ error: 'Business profile required' });
 
     const result = await analysisAgent(context);
+    if (context.companyId) {
+      await updateCompany(context.companyId, {
+        business: context.business,
+        analysis: result.analysis,
+        step: 'analyzed',
+      });
+    }
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -63,6 +136,14 @@ app.post('/api/benchmark', async (req, res) => {
     }
 
     const result = await benchmarkAgent(context);
+    if (context.companyId) {
+      await updateCompany(context.companyId, {
+        business: context.business,
+        analysis: context.analysis,
+        competitors: result.competitors,
+        step: 'benchmarked',
+      });
+    }
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -77,13 +158,33 @@ app.post('/api/gap', async (req, res) => {
     }
 
     const result = await gapAgent(context);
+    if (context.companyId) {
+      await updateCompany(context.companyId, {
+        business: context.business,
+        analysis: context.analysis,
+        competitors: context.competitors,
+        gaps: result.gaps,
+        recommendedGap: result.recommendedGap,
+        step: 'gap_analyzed',
+      });
+    }
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/leads/session', (req, res) => {
+app.get('/api/companies/:companyId', async (req, res) => {
+  try {
+    const company = await getCompany(req.params.companyId);
+    if (!company) return res.status(404).json({ error: 'Company not found' });
+    res.json(company);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/leads/session', async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.gaps) {
@@ -92,6 +193,17 @@ app.post('/api/leads/session', (req, res) => {
 
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     leadSessions.set(sessionId, context);
+
+    if (context.companyId) {
+      await updateCompany(context.companyId, {
+        business: context.business,
+        analysis: context.analysis,
+        competitors: context.competitors,
+        gaps: context.gaps,
+        recommendedGap: context.recommendedGap,
+        step: 'generating_leads',
+      });
+    }
 
     setTimeout(() => leadSessions.delete(sessionId), 30 * 60 * 1000);
 
@@ -119,10 +231,19 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
   res.write(`data: ${JSON.stringify({ type: 'start', message: 'Lead generation started' })}\n\n`);
 
   try {
+    const leads = [];
     for await (const lead of streamLeads(context)) {
+      leads.push(lead);
       res.write(`data: ${JSON.stringify({ type: 'lead', lead })}\n\n`);
     }
     res.write(`data: ${JSON.stringify({ type: 'complete', message: 'All leads processed' })}\n\n`);
+
+    if (context.companyId) {
+      await updateCompany(context.companyId, {
+        leads,
+        step: 'leads_generated',
+      });
+    }
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
   } finally {

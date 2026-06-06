@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { callClaude } from '../backend/anthropic.js';
+import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import { USE_MOCK, hasAnthropic } from '../backend/config.js';
 
@@ -86,7 +86,7 @@ export async function analysisAgent(context) {
 
   try {
     console.log(`[analysisAgent] Analyzing business: ${context.business.name}`);
-    const { content } = await callClaude({
+    const { content } = await callSonnet({
       system: ANALYSIS_SYSTEM,
       messages: [
         {

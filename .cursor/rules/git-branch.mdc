@@ -1,0 +1,18 @@
+---
+description: Git branch policy — auto-commit all changes to Haider
+alwaysApply: true
+---
+
+# Git Branch Policy
+
+- Always work on the `Haider` branch for this project.
+- Before making changes, verify the current branch is `Haider` (`git checkout Haider` if not).
+- Never commit or push directly to `main`, `Hussain`, or `Jawad` unless the user explicitly requests it.
+
+# Auto-Commit Policy
+
+- After every change you make, automatically commit and push to `Haider`.
+- Do not wait for the user to ask — commit immediately once a logical unit of work is done.
+- Use clear commit messages describing what changed and why.
+- Stage all relevant changed files with `git add`, then `git commit`, then `git push origin Haider`.
+- A Cursor hook also auto-commits any remaining uncommitted changes when an agent session ends.
