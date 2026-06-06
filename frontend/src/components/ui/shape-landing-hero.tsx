@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { renderHighlightedText } from '@/components/ui/animated-gradient-text';
 
 type Theme = 'dark' | 'light';
 
@@ -68,6 +69,7 @@ function FallingShape({
 function HeroGeometric({
   badge = 'AI Business Intelligence',
   title1 = 'Are businesses ignoring you?',
+  title1Highlight = 'businesses',
   title2 = "Don't worry.",
   description = 'Paste your website. HookLine finds your market gaps and generates qualified leads in minutes.',
   theme = 'dark',
@@ -75,6 +77,7 @@ function HeroGeometric({
 }: {
   badge?: string;
   title1?: string;
+  title1Highlight?: string;
   title2?: string;
   description?: string;
   theme?: Theme;
@@ -141,18 +144,18 @@ function HeroGeometric({
             )}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span className="text-sm tracking-wide font-semibold">{badge}</span>
+            <span className="text-sm tracking-wide font-ui">{badge}</span>
           </motion.div>
 
           <motion.div custom={1} variants={fadeUpVariants} initial="hidden" animate="visible">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-4 md:mb-6 tracking-tight leading-[1.1]">
+            <h1 className="font-hero text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-6">
               <span
                 className={cn(
                   'block',
                   isDark ? 'text-white' : 'text-gray-900',
                 )}
               >
-                {title1}
+                {renderHighlightedText(title1, title1Highlight)}
               </span>
               <span
                 className={cn(
@@ -168,7 +171,7 @@ function HeroGeometric({
           <motion.div custom={2} variants={fadeUpVariants} initial="hidden" animate="visible">
             <p
               className={cn(
-                'text-base sm:text-lg md:text-xl mb-10 leading-relaxed font-semibold max-w-xl mx-auto',
+                'font-body text-base sm:text-lg md:text-xl mb-10 max-w-xl mx-auto',
                 isDark ? 'text-gray-200' : 'text-gray-600',
               )}
             >

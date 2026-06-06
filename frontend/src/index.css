@@ -2,22 +2,177 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scroll-behavior: smooth;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 211 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 211 100% 45%;
+    --radius: 0.75rem;
+    --font-heading: 'General Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 211 100% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 211 100% 55%;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.6;
+    @apply antialiased overflow-x-hidden transition-colors duration-300 bg-background text-foreground;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  p,
+  li,
+  label,
+  input,
+  textarea,
+  select {
+    font-family: var(--font-body);
+  }
+
+  p {
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  button,
+  [role='button'],
+  [type='button'],
+  [type='submit'],
+  [type='reset'] {
+    font-family: var(--font-heading);
+    font-weight: 600;
+  }
+
+  nav a {
+    font-family: var(--font-body);
+    font-weight: 500;
+  }
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  @apply antialiased overflow-x-hidden transition-colors duration-300;
+@layer components {
+  .font-hero {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .font-section-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .font-body-medium {
+    font-family: var(--font-body);
+    font-weight: 500;
+    line-height: 1.6;
+  }
+
+  .font-ui {
+    font-family: var(--font-body);
+    font-weight: 500;
+  }
+
+  .font-button {
+    font-family: var(--font-heading);
+    font-weight: 600;
+  }
+
+  .text-gradient-animate {
+    background: linear-gradient(
+      115deg,
+      #c084fc 0%,
+      #818cf8 12%,
+      #38bdf8 25%,
+      #2dd4bf 38%,
+      #f472b6 52%,
+      #fb923c 65%,
+      #facc15 78%,
+      #c084fc 90%,
+      #818cf8 100%
+    );
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: text-gradient-flow 10s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .text-gradient-animate {
+      animation: none;
+      background-position: 0% center;
+    }
+  }
 }
 
-body,
-.light body {
-  @apply bg-[#f5f5f7] text-gray-900;
-}
-
-.dark body {
-  @apply bg-black text-white;
+@keyframes text-gradient-flow {
+  to {
+    background-position: 300% center;
+  }
 }
 
 #root {
@@ -81,4 +236,48 @@ body,
 }
 .font-mono::-webkit-scrollbar-thumb:hover {
   background: rgba(79, 110, 247, 0.5);
+}
+
+/* ─── Global Scrollbar Styling ─── */
+/* For Webkit Browsers (Chrome, Safari, Edge, Opera) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Dark theme overrides */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }

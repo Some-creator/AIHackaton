@@ -12,7 +12,6 @@ import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
 import { createCompany, updateCompany, getCompany, initFirebase, getFirebaseStatus } from './firebase.js';
 import {
-  USE_MOCK,
   hasAnthropic,
   hasGooglePlaces,
   hasFirecrawl,
@@ -47,12 +46,12 @@ app.get('/api/health', (_req, res) => {
     service: 'hookline-backend',
     firebase: getFirebaseStatus(),
     services: {
-      useMock: USE_MOCK,
+      useMock: false,
       anthropic: hasAnthropic,
       googlePlaces: hasGooglePlaces,
       firecrawl: hasFirecrawl,
       apify: hasApify,
-      agent3Live: !USE_MOCK && hasAnthropic && hasGooglePlaces,
+      agent3Live: hasAnthropic && hasGooglePlaces,
     },
   });
 });
@@ -129,6 +128,9 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
     for await (const event of streamIngestion(session.url, session.socialProfiles)) {
       if (event.type === 'log') {
         res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'error') {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
+        return;
       } else if (event.type === 'complete') {
         res.write(`data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
 
@@ -334,13 +336,14 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
             step: 'benchmarked',
           });
         }
-
         res.write(`data: ${JSON.stringify({
           type: 'complete',
           competitors: event.competitors,
           mock: event.mock ?? false,
           mockReason: event.mockReason || null,
         })}\n\n`);
+      } else if (event.type === 'error') {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
       }
     }
   } catch (err) {
@@ -550,4 +553,5 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 // Trigger reload for dotenv
+
 
