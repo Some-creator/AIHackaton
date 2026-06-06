@@ -63,6 +63,33 @@ export async function benchmark(context) {
   return post('/benchmark', context);
 }
 
+export async function createBenchmarkSession(context) {
+  return post('/benchmark/session', context);
+}
+
+export function streamBenchmark(sessionId, { onLog, onComplete, onError }) {
+  const eventSource = new EventSource(`${API_BASE}/benchmark/stream/${sessionId}`);
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'log') onLog?.(data.message);
+    else if (data.type === 'complete') {
+      onComplete?.(data);
+      eventSource.close();
+    } else if (data.type === 'error') {
+      onError?.(new Error(data.error));
+      eventSource.close();
+    }
+  };
+
+  eventSource.onerror = () => {
+    onError?.(new Error('Connection to benchmark stream lost'));
+    eventSource.close();
+  };
+
+  return eventSource;
+}
+
 export async function findGaps(context) {
   return post('/gap', context);
 }

@@ -35,6 +35,7 @@ export default function App() {
   const [sentLeads, setSentLeads] = useState(new Set());
   const [skippedLeads, setSkippedLeads] = useState(new Set());
   const [ingestLogs, setIngestLogs] = useState([]);
+  const [benchmarkLogs, setBenchmarkLogs] = useState([]);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
@@ -51,17 +52,12 @@ export default function App() {
         });
       });
 
-      const updatedContext = {
+      setContext({
         business: ingestResult.business,
         companyId: ingestResult.companyId,
         saved: ingestResult.saved,
         socialScrapes: ingestResult.socialScrapes || [],
-      };
-      setContext(updatedContext);
-
-      setIngestLogs((prev) => [...prev, 'Running business analysis...']);
-      const analysisResult = await api.analyze(updatedContext);
-      setContext((prev) => ({ ...prev, analysis: analysisResult.analysis }));
+      });
       setStep('analysis');
     } catch (err) {
       setError(err.message);
@@ -71,19 +67,50 @@ export default function App() {
     }
   };
 
-  const handleContinueToBenchmark = async (updatedBusiness) => {
+  const handleAnalyze = async (updatedBusiness) => {
     setLoading(true);
     setError(null);
     try {
       const updatedContext = { ...context, business: updatedBusiness };
       setContext(updatedContext);
-      const competitorResult = await api.benchmark(updatedContext);
-      setContext((prev) => ({ ...prev, competitors: competitorResult.competitors }));
+      const analysisResult = await api.analyze(updatedContext);
+      setContext((prev) => ({
+        ...prev,
+        business: updatedBusiness,
+        analysis: analysisResult.analysis,
+      }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContinueToBenchmark = async (updatedBusiness) => {
+    setLoading(true);
+    setError(null);
+    setBenchmarkLogs([]);
+    try {
+      const updatedContext = { ...context, business: updatedBusiness };
+      setContext(updatedContext);
+
+      const { sessionId } = await api.createBenchmarkSession(updatedContext);
+
+      const benchmarkResult = await new Promise((resolve, reject) => {
+        api.streamBenchmark(sessionId, {
+          onLog: (message) => setBenchmarkLogs((prev) => [...prev, message]),
+          onComplete: resolve,
+          onError: reject,
+        });
+      });
+
+      setContext((prev) => ({ ...prev, competitors: benchmarkResult.competitors }));
       setStep('competitors');
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setBenchmarkLogs([]);
     }
   };
 
@@ -338,14 +365,16 @@ export default function App() {
           <Onboarding onSubmit={handleIngest} loading={loading} logs={ingestLogs} />
         )}
 
-        {step === 'analysis' && context.business && context.analysis && (
+        {step === 'analysis' && context.business && (
           <BusinessAnalysis
             business={context.business}
             analysis={context.analysis}
             socialScrapes={context.socialScrapes}
             companyId={context.companyId}
+            onAnalyze={handleAnalyze}
             onContinue={handleContinueToBenchmark}
             loading={loading}
+            benchmarkLogs={benchmarkLogs}
           />
         )}
 
