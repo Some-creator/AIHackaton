@@ -1,55 +1,54 @@
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { callSonnet } from '../backend/anthropic.js';
-import { USE_MOCK } from '../backend/config.js';
+import { hasAnthropic } from '../backend/config.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const GAP_SYSTEM = `You are a market analyst. Identify untapped niches the user's business can realistically capture based on their profile and what competitors are NOT doing.
 
-const mockData = JSON.parse(
-  readFileSync(join(__dirname, '../mock/mockGap.json'), 'utf-8')
-);
+Rules:
+- Be specific and concise — one sentence per field
+- Identify 2-3 distinct gaps only, ranked by opportunity
+- Base gaps on the competitor weaknesses and the user's unique strengths
+- niche: short title (5 words max)
+- demand: why customers want this (one sentence)
+- competitionLevel: "low", "medium", or "high"
+- opportunity: why the user is positioned to capture this (one sentence)
+- recommendedTarget: who exactly to reach out to (one sentence)
+- recommendedGap: index of the best gap (0-based)
 
-const GAP_SYSTEM = `You are a market gap analysis agent. Analyze the user's business profile, their strengths/weaknesses analysis, and their competitors to identify untapped niches or services in the local market.
-Rank the identified gaps by opportunity size and select the best one.
-
-You must return ONLY a valid JSON object matching this schema:
+Return ONLY valid JSON:
 {
   "gaps": [
     {
-      "niche": "Short title describing the untapped niche or market gap",
-      "demand": "A detailed explanation of why customer demand exists for this niche",
-      "competitionLevel": "low" | "medium" | "high",
-      "opportunity": "Why the user's business is uniquely suited to capture this niche and how it compares to competitors",
-      "recommendedTarget": "Specific description of the ideal customer profile to target"
+      "niche": "string",
+      "demand": "string",
+      "competitionLevel": "low | medium | high",
+      "opportunity": "string",
+      "recommendedTarget": "string"
     }
   ],
   "recommendedGap": 0
-}
-
-Identify 2 to 4 distinct gaps. RecommendedGap should be the index (0-based) of the top gap.
-No markdown or text outside the JSON block.`;
+}`;
 
 export async function gapAgent(context) {
-  if (USE_MOCK) {
-    return mockData;
+  if (!hasAnthropic) {
+    throw new Error('AI analysis unavailable — ANTHROPIC_API_KEY not configured');
   }
 
-  try {
-    const { content } = await callSonnet({
-      system: GAP_SYSTEM,
-      messages: [
-        {
-          role: 'user',
-          content: `Full context:\n${JSON.stringify(context, null, 2)}`,
-        },
-      ],
-    });
+  const { business, analysis, competitors } = context;
+  if (!business) throw new Error('Business profile required');
+  if (!competitors || competitors.length === 0) throw new Error('Competitor data required for gap analysis');
 
-    return parseClaudeJson(content);
-  } catch (err) {
-    console.error('[gapAgent] Error running agent:', err);
-    return mockData;
+  const { content } = await callSonnet({
+    system: GAP_SYSTEM,
+    messages: [{
+      role: 'user',
+      content: `Find market gaps for this business.\n\n--- BUSINESS ---\n${JSON.stringify(business, null, 2)}\n\n--- SWOT ANALYSIS ---\n${JSON.stringify(analysis, null, 2)}\n\n--- COMPETITORS ---\n${JSON.stringify(competitors, null, 2)}`,
+    }],
+  });
+
+  const result = parseClaudeJson(content);
+  if (!Array.isArray(result?.gaps) || result.gaps.length === 0) {
+    throw new Error('Could not identify market gaps from the available data');
   }
+  return result;
 }

@@ -343,15 +343,32 @@ export default function App() {
         )}
 
         {error && (
-          <div
-            className={`mb-6 p-4 rounded-xl text-sm font-semibold border ${
-              isDark
-                ? 'bg-red-500/10 border-red-500/30 text-red-400'
-                : 'bg-red-50 border-red-200 text-red-700'
-            }`}
-          >
-            {error}
-            <button onClick={() => setError(null)} className="ml-4 underline">Dismiss</button>
+          <div className={`mb-8 rounded-2xl border overflow-hidden ${
+            isDark ? 'border-red-500/30 bg-red-950/20' : 'border-red-200 bg-red-50'
+          }`}>
+            <div className={`flex items-center gap-3 px-5 py-3 border-b ${
+              isDark ? 'border-red-500/20 bg-red-500/10' : 'border-red-200 bg-red-100'
+            }`}>
+              <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <span className={`text-sm font-bold ${
+                isDark ? 'text-red-400' : 'text-red-700'
+              }`}>Agent failed — no data loaded</span>
+              <button
+                onClick={() => setError(null)}
+                className={`ml-auto text-xs px-3 py-1 rounded-full border font-semibold transition ${
+                  isDark ? 'border-red-500/40 text-red-400 hover:bg-red-500/10' : 'border-red-300 text-red-600 hover:bg-red-100'
+                }`}
+              >
+                Dismiss
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <p className={`text-xs font-mono leading-relaxed ${
+                isDark ? 'text-red-300' : 'text-red-700'
+              }`}>{error}</p>
+            </div>
           </div>
         )}
 

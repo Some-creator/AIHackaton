@@ -108,6 +108,9 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
     for await (const event of streamIngestion(session.url, session.socialProfiles)) {
       if (event.type === 'log') {
         res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'error') {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
+        return;
       } else if (event.type === 'complete') {
         res.write(`data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
 
@@ -252,12 +255,13 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
             step: 'benchmarked',
           });
         }
-
         res.write(`data: ${JSON.stringify({
           type: 'complete',
           competitors: event.competitors,
           mock: event.mock ?? false,
         })}\n\n`);
+      } else if (event.type === 'error') {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
       }
     }
   } catch (err) {
