@@ -190,6 +190,21 @@
     @apply -translate-y-1;
   }
 
+  /* Decorative grid overlay (fades out toward edges) */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(79, 110, 247, 0.10) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(79, 110, 247, 0.10) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 38%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 38%, #000 30%, transparent 75%);
+  }
+  .dark .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(125, 144, 250, 0.12) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(125, 144, 250, 0.12) 1px, transparent 1px);
+  }
+
   .text-gradient-animate {
     background: linear-gradient(
       115deg,
@@ -223,6 +238,23 @@
   to {
     background-position: 300% center;
   }
+}
+
+/* ─── Floating aurora blobs ─── */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(22px, -18px) scale(1.08); }
+}
+@keyframes drift-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-26px, 18px) scale(1.12); }
+}
+.animate-drift { animation: drift 16s ease-in-out infinite; }
+.animate-drift-slow { animation: drift-slow 22s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-drift,
+  .animate-drift-slow { animation: none; }
 }
 
 #root {
