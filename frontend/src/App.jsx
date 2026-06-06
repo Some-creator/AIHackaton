@@ -173,12 +173,16 @@ export default function App() {
 
   const handleSend = useCallback(async (lead) => {
     const to = lead.email?.includes('@') ? lead.email : `contact@${lead.website?.replace(/https?:\/\//, '') || 'business.com'}`;
-    await api.sendEmail({
-      to,
-      subject: `Quick question about ${lead.name}`,
-      body: lead.email,
-    });
-    setSentLeads((prev) => new Set([...prev, lead.name]));
+    try {
+      await api.sendEmail({
+        to,
+        subject: `Quick question about ${lead.name}`,
+        body: lead.email,
+      });
+      setSentLeads((prev) => new Set([...prev, lead.name]));
+    } catch (err) {
+      setError(`Failed to send email: ${err.message}`);
+    }
   }, []);
 
   const handleSkip = useCallback((lead) => {
