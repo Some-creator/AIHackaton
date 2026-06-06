@@ -11,6 +11,13 @@ import { gapAgent } from '../agents/gapAgent.js';
 import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
 import { createCompany, updateCompany, getCompany, initFirebase, getFirebaseStatus } from './firebase.js';
+import {
+  USE_MOCK,
+  hasAnthropic,
+  hasGooglePlaces,
+  hasFirecrawl,
+  hasApify,
+} from './config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
@@ -33,7 +40,19 @@ app.use(express.json());
 initFirebase();
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'hookline-backend', firebase: getFirebaseStatus() });
+  res.json({
+    status: 'ok',
+    service: 'hookline-backend',
+    firebase: getFirebaseStatus(),
+    services: {
+      useMock: USE_MOCK,
+      anthropic: hasAnthropic,
+      googlePlaces: hasGooglePlaces,
+      firecrawl: hasFirecrawl,
+      apify: hasApify,
+      agent3Live: !USE_MOCK && hasAnthropic && hasGooglePlaces,
+    },
+  });
 });
 
 app.post('/api/ingest', async (req, res) => {
