@@ -1,4 +1,3 @@
-import { useMockFor } from './config.js';
 
 const DIRECTORY_DOMAINS = [
   'yelp.com',
@@ -82,9 +81,6 @@ export async function searchWeb(query, options = {}) {
     return { results: [], query: cleanQuery, location, mock: false };
   }
 
-  if (useMockFor('firecrawl')) {
-    return { results: [], query: cleanQuery, location, mock: true };
-  }
 
   const apiKey = process.env.FIRECRAWL_API_KEY;
   if (!apiKey) throw new Error('FIRECRAWL_API_KEY not configured');
