@@ -1,12 +1,11 @@
-const USE_MOCK = true;
+import { useMockFor } from './config.js';
 
 export async function callClaude({ system, messages, model = 'claude-sonnet-4-6' }) {
-  if (USE_MOCK) {
+  if (useMockFor('anthropic')) {
     return { content: '', model, mock: true };
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -23,13 +22,19 @@ export async function callClaude({ system, messages, model = 'claude-sonnet-4-6'
     }),
   });
 
-  if (!response.ok) throw new Error(`Anthropic API failed: ${response.status}`);
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    throw new Error(`Anthropic API failed (${response.status}): ${errBody.slice(0, 200)}`);
+  }
+
   const data = await response.json();
-  return {
-    content: data.content?.[0]?.text || '',
-    model,
-    mock: false,
-  };
+  const content = data.content?.find((block) => block.type === 'text')?.text || '';
+
+  if (!content) {
+    throw new Error('Anthropic returned empty response');
+  }
+
+  return { content, model, mock: false };
 }
 
 export async function callHaiku({ system, messages }) {
