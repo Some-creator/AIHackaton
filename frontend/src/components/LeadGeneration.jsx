@@ -127,8 +127,8 @@ export default function LeadGeneration({
         <div className={`h-[500px] rounded-2xl overflow-hidden border shadow-sm transition-all duration-300 ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
           <MapContainer center={HOUSTON_CENTER} zoom={11} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
             <TileLayer
-              attribution={isDark ? '&copy; <a href="https://carto.com/attributions">CARTO</a>' : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}
-              url={isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
+              attribution={isDark ? '&copy; <a href="https://carto.com/attributions">CARTO</a>' : 'Map data &copy; Google'}
+              url={isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'}
             />
             <MapBoundsUpdater leads={mapLeads} />
             {mapLeads.map((lead, i) => (
