@@ -169,11 +169,13 @@ export default function App() {
 
   const currentStepIndex = STEPS.indexOf(step);
 
+  const isHomeOrAuth = step === 'home' || step === 'auth';
+
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-[#f5f5f7]'}`}>
       <header
         className={`sticky top-0 z-50 shrink-0 border-b transition-all duration-300 ${
-          step === 'home'
+          isHomeOrAuth
             ? isDark
               ? 'bg-black/70 backdrop-blur-xl border-white/10'
               : 'bg-[#f5f5f7]/80 backdrop-blur-xl border-black/5'
@@ -273,7 +275,7 @@ export default function App() {
               </button>
             )}
 
-            {step === 'home' && (
+            {(step === 'home' || step === 'auth') && (
               <button
                 type="button"
                 onClick={requireAuth}
@@ -286,8 +288,8 @@ export default function App() {
         </div>
       </header>
 
-      <main className={step === 'home' ? 'flex-1 w-full' : 'flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full'}>
-        {authLoading && step !== 'home' && (
+      <main className={isHomeOrAuth ? 'flex-1 w-full' : 'flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full'}>
+        {authLoading && !isHomeOrAuth && (
           <div className={`mb-6 text-center text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Checking authentication…
           </div>
@@ -306,12 +308,12 @@ export default function App() {
           </div>
         )}
 
-        {step === 'home' && (
+        {(step === 'home' || step === 'auth') && (
           <HomePage onGetStarted={requireAuth} />
         )}
 
         {step === 'auth' && (
-          <AuthPage onSuccess={handleAuthSuccess} />
+          <AuthPage onSuccess={handleAuthSuccess} onClose={() => setStep('home')} />
         )}
 
         {step === 'onboarding' && user && (

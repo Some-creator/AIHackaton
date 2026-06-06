@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Mail, Lock, Loader2, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
-export default function AuthPage({ onSuccess }) {
+export default function AuthPage({ onSuccess, onClose }) {
   const { theme } = useTheme();
   const { configured, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
   const isDark = theme === 'dark';
@@ -14,15 +14,23 @@ export default function AuthPage({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && !loading) onClose?.();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [loading, onClose]);
+
   const inputClass = `w-full pl-11 pr-4 py-3.5 rounded-2xl border font-medium outline-none transition focus:ring-2 focus:ring-[#0071e3]/40 ${
     isDark
-      ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500'
+      ? 'bg-zinc-900 border-zinc-600 text-white placeholder:text-zinc-400'
       : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'
   }`;
 
-  const cardClass = `max-w-md w-full mx-auto rounded-[2rem] border p-8 sm:p-10 shadow-xl transition-colors ${
+  const cardClass = `relative w-full max-w-md rounded-[2rem] border p-8 sm:p-10 shadow-2xl transition-colors ${
     isDark
-      ? 'bg-zinc-950/90 border-zinc-800 backdrop-blur-xl'
+      ? 'bg-zinc-900 border-zinc-700'
       : 'bg-white border-gray-200'
   }`;
 
@@ -57,32 +65,28 @@ export default function AuthPage({ onSuccess }) {
     }
   };
 
-  if (!configured) {
-    return (
-      <div className={cardClass}>
-        <h1 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          Firebase setup required
-        </h1>
-        <p className={`text-sm font-medium leading-relaxed mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-          Add your Firebase web app credentials to <code className="text-[#0071e3]">frontend/.env</code> using the
-          variables in <code className="text-[#0071e3]">frontend/.env.example</code>, then restart the dev server.
-        </p>
-        <ol className={`text-sm space-y-2 list-decimal list-inside font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-          <li>Create a project at console.firebase.google.com</li>
-          <li>Enable Email/Password and Google in Authentication</li>
-          <li>Add a Web app and copy the config values</li>
-        </ol>
-      </div>
-    );
-  }
-
-  return (
-    <div className={cardClass}>
-      <div className="text-center mb-8">
+  const cardContent = !configured ? (
+    <>
+      <h1 className={`text-2xl font-bold mb-3 pr-8 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        Firebase setup required
+      </h1>
+      <p className={`text-sm font-medium leading-relaxed mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+        Add your Firebase web app credentials to <code className="text-[#2997ff]">frontend/.env</code> using the
+        variables in <code className="text-[#2997ff]">frontend/.env.example</code>, then restart the dev server.
+      </p>
+      <ol className={`text-sm space-y-2 list-decimal list-inside font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+        <li>Create a project at console.firebase.google.com</li>
+        <li>Enable Email/Password and Google in Authentication</li>
+        <li>Add a Web app and copy the config values</li>
+      </ol>
+    </>
+  ) : (
+    <>
+      <div className="text-center mb-8 pr-6">
         <h1 className={`text-3xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {mode === 'signin' ? 'Welcome back' : 'Create your account'}
         </h1>
-        <p className={`mt-2 font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+        <p className={`mt-2 font-semibold ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
           {mode === 'signin'
             ? 'Sign in to start analyzing your business.'
             : 'Sign up to unlock HookLine insights.'}
@@ -90,7 +94,7 @@ export default function AuthPage({ onSuccess }) {
       </div>
 
       {error && (
-        <div className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-sm font-semibold">
+        <div className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold">
           {error}
         </div>
       )}
@@ -101,7 +105,7 @@ export default function AuthPage({ onSuccess }) {
         disabled={loading}
         className={`w-full flex items-center justify-center gap-3 py-3.5 rounded-full border font-bold transition mb-6 disabled:opacity-50 ${
           isDark
-            ? 'bg-white text-gray-900 border-white hover:bg-gray-100'
+            ? 'bg-zinc-800 text-white border-zinc-600 hover:bg-zinc-700'
             : 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50 shadow-sm'
         }`}
       >
@@ -121,11 +125,11 @@ export default function AuthPage({ onSuccess }) {
       </button>
 
       <div className="relative mb-6">
-        <div className={`absolute inset-0 flex items-center ${isDark ? 'text-zinc-700' : 'text-gray-300'}`}>
-          <div className={`w-full border-t ${isDark ? 'border-zinc-700' : 'border-gray-200'}`} />
+        <div className={`absolute inset-0 flex items-center`}>
+          <div className={`w-full border-t ${isDark ? 'border-zinc-600' : 'border-gray-200'}`} />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className={`px-3 font-bold ${isDark ? 'bg-zinc-950 text-zinc-500' : 'bg-white text-gray-400'}`}>
+          <span className={`px-3 font-bold ${isDark ? 'bg-zinc-900 text-zinc-400' : 'bg-white text-gray-400'}`}>
             or
           </span>
         </div>
@@ -133,7 +137,7 @@ export default function AuthPage({ onSuccess }) {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="relative">
-          <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`} />
+          <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-zinc-400' : 'text-gray-400'}`} />
           <input
             type="email"
             value={email}
@@ -146,7 +150,7 @@ export default function AuthPage({ onSuccess }) {
         </div>
 
         <div className="relative">
-          <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`} />
+          <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-zinc-400' : 'text-gray-400'}`} />
           <input
             type="password"
             value={password}
@@ -169,7 +173,7 @@ export default function AuthPage({ onSuccess }) {
         </button>
       </form>
 
-      <p className={`mt-6 text-center text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+      <p className={`mt-6 text-center text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
         {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}{' '}
         <button
           type="button"
@@ -177,11 +181,47 @@ export default function AuthPage({ onSuccess }) {
             setMode(mode === 'signin' ? 'signup' : 'signin');
             setError(null);
           }}
-          className="text-[#0071e3] hover:underline font-bold"
+          className={`font-bold hover:underline ${isDark ? 'text-[#2997ff]' : 'text-[#0071e3]'}`}
         >
           {mode === 'signin' ? 'Sign up' : 'Sign in'}
         </button>
       </p>
+    </>
+  );
+
+  return (
+    <div
+      className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-colors ${
+        isDark ? 'bg-black/85 backdrop-blur-md' : 'bg-gray-900/50 backdrop-blur-sm'
+      }`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-dialog-title"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        aria-label="Close sign in dialog"
+        onClick={() => !loading && onClose?.()}
+      />
+
+      <div className={cardClass}>
+        <button
+          type="button"
+          onClick={() => !loading && onClose?.()}
+          disabled={loading}
+          aria-label="Close"
+          className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center transition disabled:opacity-40 ${
+            isDark
+              ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-600'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+          }`}
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div id="auth-dialog-title">{cardContent}</div>
+      </div>
     </div>
   );
 }
