@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { callClaude } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
-import { USE_MOCK, hasFirecrawl, hasOpenRouter } from '../backend/config.js';
+import { USE_MOCK, hasFirecrawl, hasAnthropic } from '../backend/config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -87,7 +87,7 @@ function validateAndNormalize(profile, url, socialProfiles) {
 
 function shouldUseMock() {
   if (USE_MOCK) return true;
-  if (!hasFirecrawl || !hasOpenRouter) return true;
+  if (!hasFirecrawl || !hasAnthropic) return true;
   return false;
 }
 
@@ -112,7 +112,7 @@ export async function ingestionAgent(url, socialProfiles = []) {
 
     const truncatedContent = scraped.content.slice(0, 30000);
 
-    console.log(`[ingestionAgent] Extracting business profile via OpenRouter`);
+    console.log(`[ingestionAgent] Extracting business profile via Claude`);
     const { content } = await callClaude({
       system: EXTRACTION_SYSTEM,
       messages: [
