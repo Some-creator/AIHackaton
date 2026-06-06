@@ -74,24 +74,20 @@ export default function LeadCard({ lead, onSkip, skipped }) {
 
       <div className={`rounded-lg p-4 mb-4 border ${isDark ? 'bg-zinc-950/40 border-zinc-800' : 'bg-gray-50 border-gray-200'}`}>
         <h4 className={`text-xs font-bold uppercase tracking-wide mb-2 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>Contact information</h4>
-        <ContactRow label="Phone" isDark={isDark}>
-          {lead.phone ? (
+        {lead.phone && (
+          <ContactRow label="Phone" isDark={isDark}>
             <a href={`tel:${lead.phone.replace(/[^\d+]/g, '')}`} className="text-hookline-500 hover:text-hookline-600 font-medium">
               {lead.phone}
             </a>
-          ) : (
-            <span className={isDark ? 'text-zinc-500' : 'text-gray-400'}>Not listed</span>
-          )}
-        </ContactRow>
-        <ContactRow label="Email" isDark={isDark}>
-          {lead.email ? (
+          </ContactRow>
+        )}
+        {lead.email && (
+          <ContactRow label="Email" isDark={isDark}>
             <a href={`mailto:${lead.email}`} className="text-hookline-500 hover:text-hookline-600 font-medium break-all">
               {lead.email}
             </a>
-          ) : (
-            <span className={isDark ? 'text-zinc-500' : 'text-gray-400'}>Not listed</span>
-          )}
-        </ContactRow>
+          </ContactRow>
+        )}
         <ContactRow label="Website" isDark={isDark}>
           {websiteUrl ? (
             <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="text-hookline-500 hover:text-hookline-600 font-medium break-all">
