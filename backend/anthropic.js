@@ -3,9 +3,9 @@ import { useMockFor, OPENROUTER_MODEL, OPENROUTER_HAIKU_MODEL } from './config.j
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const FALLBACK_MODELS = [
-  'anthropic/claude-3.5-sonnet',
-  'anthropic/claude-3-haiku',
-  'google/gemini-2.0-flash-001',
+  'deepseek/deepseek-v4-flash',
+  'deepseek/deepseek-v4-pro',
+  'deepseek/deepseek-v4-flash-20260423',
 ];
 
 const LEGACY_MODEL_MAP = {
@@ -64,7 +64,7 @@ async function requestOpenRouter({ model, system, messages, maxTokens }) {
   }
 
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || '';
+  const content = data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning || '';
 
   if (!content) {
     throw new Error('OpenRouter returned empty response');
