@@ -65,6 +65,32 @@ export default function App() {
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
   const [gapLogs, setGapLogs] = useState([]);
 
+  const reportError = useCallback(async (err) => {
+    const raw = err?.message || 'Something went wrong.';
+    const looksLikeConnection = /stream lost|Failed to fetch|NetworkError|load failed|Health check failed/i.test(raw);
+    if (!looksLikeConnection) {
+      setError(raw);
+      return;
+    }
+    try {
+      const health = await api.getHealth();
+      const s = health?.services || {};
+      const missing = [];
+      if (!s.anthropic) missing.push('Anthropic');
+      if (!s.firecrawl) missing.push('Firecrawl');
+      if (missing.length) {
+        setError(
+          `The server is missing API keys (${missing.join(', ')}), so the AI agents can't run. ` +
+          `Add them to your hosting environment variables (e.g. Railway → Variables) and redeploy.`
+        );
+      } else {
+        setError('Lost connection to the server. It may be redeploying or the request timed out — wait a few seconds and try again.');
+      }
+    } catch {
+      setError("Can't reach the server. It may be starting up or down — wait a moment and try again.");
+    }
+  }, []);
+
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
     setError(null);
@@ -91,7 +117,7 @@ export default function App() {
       });
       setStep('analysis');
     } catch (err) {
-      setError(err.message);
+      reportError(err);
     } finally {
       setIngestFinishing(false);
       setLoading(false);
@@ -124,7 +150,7 @@ export default function App() {
         analysisMock: analysisResult.mock ?? false,
       }));
     } catch (err) {
-      setError(err.message);
+      reportError(err);
     } finally {
       setLoading(false);
       setAnalysisLogs([]);
@@ -157,7 +183,7 @@ export default function App() {
       }));
       setStep('competitors');
     } catch (err) {
-      setError(err.message);
+      reportError(err);
     } finally {
       setLoading(false);
       setBenchmarkLogs([]);
@@ -188,7 +214,7 @@ export default function App() {
       }));
       setStep('gap');
     } catch (err) {
-      setError(err.message);
+      reportError(err);
     } finally {
       setLoading(false);
       setGapLogs([]);
@@ -222,12 +248,12 @@ export default function App() {
           setStreamComplete(true);
         },
         onError: (err) => {
-          setError(err.message);
+          reportError(err);
           setStreaming(false);
         },
       });
     } catch (err) {
-      setError(err.message);
+      reportError(err);
       setStreaming(false);
     } finally {
       setLoading(false);

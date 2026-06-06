@@ -24,6 +24,12 @@ async function post(endpoint, body) {
   return res.json();
 }
 
+export async function getHealth() {
+  const res = await fetch(`${API_BASE}/health`);
+  if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
+  return res.json();
+}
+
 export async function ingest(url, socialProfiles = []) {
   return post('/ingest', { url, socialProfiles });
 }
