@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 import { ingestionAgent } from '../agents/ingestionAgent.js';
 import { analysisAgent } from '../agents/analysisAgent.js';
 import { benchmarkAgent } from '../agents/benchmarkAgent.js';
@@ -8,7 +11,13 @@ import { gapAgent } from '../agents/gapAgent.js';
 import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
 
-dotenv.config({ path: '../.env' });
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.join(__dirname, '..');
+const envPath = path.join(rootDir, '.env');
+
+if (existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -139,6 +148,15 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`HookLine backend running on http://localhost:${PORT}`);
+const frontendDist = path.join(rootDir, 'frontend', 'dist');
+if (existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`HookLine running on port ${PORT}`);
 });
