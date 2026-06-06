@@ -1,6 +1,6 @@
 import { useTheme } from '../context/ThemeContext';
 
-export default function CompetitorBenchmark({ competitors, onContinue, loading }) {
+export default function CompetitorBenchmark({ competitors, mock = false, mockReason, onContinue, loading }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -11,6 +11,20 @@ export default function CompetitorBenchmark({ competitors, onContinue, loading }
         <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           How you stack up against similar businesses in your market.
         </p>
+        {mock && (
+          <div className={`mt-3 rounded-xl border px-4 py-3 text-sm ${
+            isDark ? 'bg-amber-950/30 border-amber-800/50 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'
+          }`}>
+            <span className="font-semibold">Demo competitors</span>
+            {' — '}
+            {mockReason || 'live search unavailable'}
+            {mockReason?.includes('GOOGLE_PLACES') && (
+              <span className="block mt-1 text-xs opacity-80">
+                Add <code className="font-mono">GOOGLE_PLACES_API_KEY</code> in Railway variables and enable Places API (New) in Google Cloud.
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">

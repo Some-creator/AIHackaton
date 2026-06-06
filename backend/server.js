@@ -276,6 +276,7 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
           type: 'complete',
           competitors: event.competitors,
           mock: event.mock ?? false,
+          mockReason: event.mockReason || null,
         })}\n\n`);
       }
     }

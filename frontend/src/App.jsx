@@ -104,7 +104,12 @@ export default function App() {
         });
       });
 
-      setContext((prev) => ({ ...prev, competitors: benchmarkResult.competitors }));
+      setContext((prev) => ({
+        ...prev,
+        competitors: benchmarkResult.competitors,
+        competitorsMock: benchmarkResult.mock ?? false,
+        competitorsMockReason: benchmarkResult.mockReason || null,
+      }));
       setStep('competitors');
     } catch (err) {
       setError(err.message);
@@ -381,6 +386,8 @@ export default function App() {
         {step === 'competitors' && context.competitors && (
           <CompetitorBenchmark
             competitors={context.competitors}
+            mock={context.competitorsMock}
+            mockReason={context.competitorsMockReason}
             onContinue={handleFindGaps}
             loading={loading}
           />

@@ -49,13 +49,18 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function mockFallback(reason) {
   console.warn(`[benchmarkAgent] Falling back to mock data: ${reason}`);
-  return { ...mockData, mock: true };
+  return { ...mockData, mock: true, mockReason: reason };
+}
+
+function getMockBlockReason() {
+  if (USE_MOCK) return 'USE_MOCK is enabled';
+  if (!hasAnthropic) return 'ANTHROPIC_API_KEY is missing';
+  if (!hasGooglePlaces) return 'GOOGLE_PLACES_API_KEY is missing';
+  return null;
 }
 
 function shouldUseMock() {
-  if (USE_MOCK) return true;
-  if (!hasGooglePlaces || !hasAnthropic) return true;
-  return false;
+  return Boolean(getMockBlockReason());
 }
 
 function extractDomain(url) {
@@ -72,11 +77,34 @@ function normalizeName(name) {
   return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function buildSearchQuery(business) {
+function buildSearchQueries(business) {
   const primaryService = business.services?.[0] || 'local business';
   const type = business.type || 'service provider';
+  return [...new Set([
+    primaryService,
+    `${type} ${primaryService}`,
+    business.name,
+  ].filter(Boolean))];
+}
+
+async function findCompetitorPlaces(business, onLog) {
   const location = business.location || 'local area';
-  return `${type} ${primaryService}`;
+  const queries = buildSearchQueries(business);
+
+  for (let i = 0; i < queries.length; i++) {
+    const query = queries[i];
+    if (i > 0) {
+      onLog?.(`Trying broader search: "${query}"...`);
+    }
+
+    const { places } = await searchPlaces(query, location);
+    const filtered = filterCompetitors(places, business);
+    if (filtered.length > 0) {
+      return { filtered, query };
+    }
+  }
+
+  return { filtered: [], query: queries[0] };
 }
 
 function getPlaceName(place) {
@@ -213,38 +241,39 @@ export async function* streamBenchmark(context) {
   yield { type: 'log', message: 'Starting competitor benchmark...' };
   await delay(300);
 
-  if (shouldUseMock()) {
-    yield { type: 'log', message: `Searching for competitors near ${business.location}...` };
-    await delay(500);
-    yield { type: 'log', message: `Found ${mockData.competitors.length} similar businesses` };
+  const mockBlockReason = getMockBlockReason();
+  if (mockBlockReason) {
+    yield { type: 'log', message: `Competitor search unavailable — ${mockBlockReason}` };
+    await delay(300);
+    yield { type: 'log', message: `Using demo competitors (${mockData.competitors.length} businesses)` };
     await delay(400);
     for (const comp of mockData.competitors) {
       yield { type: 'log', message: `Analyzing ${comp.name}...` };
       await delay(350);
     }
-    yield { type: 'log', message: 'Comparing competitors to your business...' };
-    await delay(400);
-    const result = mockFallback('USE_MOCK enabled or API keys missing');
-    yield { type: 'log', message: 'Benchmark complete' };
+    yield { type: 'log', message: 'Benchmark complete (demo data)' };
+    const result = mockFallback(mockBlockReason);
     yield { type: 'complete', ...result };
     return;
   }
 
   try {
-    const query = buildSearchQuery(business);
-    yield { type: 'log', message: `Searching for competitors near ${business.location}...` };
+    yield { type: 'log', message: `Searching Google Places near ${business.location}...` };
 
-    const { places } = await searchPlaces(query, business.location);
-    const filtered = filterCompetitors(places, business);
+    const pendingSearchLogs = [];
+    const { filtered, query } = await findCompetitorPlaces(business, (msg) => pendingSearchLogs.push(msg));
+    for (const msg of pendingSearchLogs) {
+      yield { type: 'log', message: msg };
+    }
 
     if (filtered.length === 0) {
-      yield { type: 'log', message: 'No competitors found — using demo data' };
-      const result = mockFallback('Google Places returned no results');
+      yield { type: 'log', message: `No competitors found for "${query}" in ${business.location} — using demo data` };
+      const result = mockFallback(`Google Places returned no results for ${business.location}`);
       yield { type: 'complete', ...result };
       return;
     }
 
-    yield { type: 'log', message: `Found ${filtered.length} similar business${filtered.length > 1 ? 'es' : ''}` };
+    yield { type: 'log', message: `Found ${filtered.length} similar business${filtered.length > 1 ? 'es' : ''} via "${query}"` };
 
     const pendingLogs = [];
     const competitorData = await scrapeCompetitorsInParallel(filtered, (msg) => pendingLogs.push(msg));
@@ -290,5 +319,5 @@ export async function benchmarkAgent(context) {
   for await (const event of streamBenchmark(context)) {
     if (event.type === 'complete') result = event;
   }
-  return { competitors: result.competitors, mock: result.mock };
+  return { competitors: result.competitors, mock: result.mock, mockReason: result.mockReason };
 }
