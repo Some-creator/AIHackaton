@@ -1,9 +1,20 @@
+import { auth } from './lib/firebase';
+
 const API_BASE = '/api';
+
+async function authHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth?.currentUser) {
+    const token = await auth.currentUser.getIdToken();
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 async function post(endpoint, body) {
   const res = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders(),
     body: JSON.stringify(body),
   });
   if (!res.ok) {
