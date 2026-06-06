@@ -103,8 +103,38 @@ function extractDomain(url) {
   }
 }
 
+function stripLocationSuffix(name) {
+  return String(name || '')
+    .replace(/\s*[-|–—]\s+[^-|–—]+$/, '')
+    .replace(/\s*\([^)]+\)\s*$/, '')
+    .trim();
+}
+
 function normalizeName(name) {
-  return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return stripLocationSuffix(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function significantWords(name) {
+  return stripLocationSuffix(name)
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !/^(the|and|llc|inc|co)$/i.test(w));
+}
+
+function namesMatch(a, b) {
+  const na = normalizeName(a);
+  const nb = normalizeName(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  if (na.includes(nb) || nb.includes(na)) return true;
+
+  const wordsA = significantWords(a);
+  const wordsB = significantWords(b);
+  if (!wordsA.length || !wordsB.length) return false;
+
+  const overlap = wordsA.filter((w) => wordsB.includes(w)).length;
+  const threshold = Math.min(2, wordsA.length, wordsB.length);
+  return overlap >= threshold;
 }
 
 function inferIndustryQueries(business, analysis) {
@@ -269,29 +299,45 @@ function normalizeStringArray(value, fieldName, min = 2, max = 4) {
   return items.slice(0, max);
 }
 
+function findSourceForLlmName(llmName, competitorData, usedIndices) {
+  for (let i = 0; i < competitorData.length; i++) {
+    if (usedIndices.has(i)) continue;
+    if (namesMatch(llmName, competitorData[i].name)) {
+      return { source: competitorData[i], index: i };
+    }
+  }
+  return null;
+}
+
 function alignCompetitorsWithSource(parsed, competitorData) {
-  const sourceByName = new Map(
-    competitorData.map((c) => [normalizeName(c.name), c])
-  );
-
+  const usedIndices = new Set();
   const aligned = [];
-  for (const comp of parsed.competitors || []) {
-    const key = normalizeName(comp.name);
-    const source = sourceByName.get(key);
-    if (!source) continue;
 
+  for (const comp of parsed.competitors || []) {
+    const match = findSourceForLlmName(comp.name, competitorData, usedIndices);
+    if (!match) continue;
+
+    usedIndices.add(match.index);
     aligned.push({
       ...comp,
-      name: source.name,
-      website: comp.website?.trim() || source.website || '',
+      name: match.source.name,
+      website: comp.website?.trim() || match.source.website || '',
     });
   }
 
-  if (aligned.length === 0) {
-    throw new Error('LLM returned competitors that do not match Google Places results');
+  if (aligned.length > 0) return aligned;
+
+  // Last resort: same count, trust order (Claude analyzed the right businesses but renamed them)
+  const llmComps = parsed.competitors || [];
+  if (llmComps.length === competitorData.length) {
+    return llmComps.map((comp, i) => ({
+      ...comp,
+      name: competitorData[i].name,
+      website: comp.website?.trim() || competitorData[i].website || '',
+    }));
   }
 
-  return aligned;
+  throw new Error('LLM returned competitors that do not match Google Places results');
 }
 
 function validateAndNormalize(parsed, competitorData) {
