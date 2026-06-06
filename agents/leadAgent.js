@@ -80,7 +80,41 @@ export async function leadAgent(context) {
   try {
     const { business, gaps } = context;
     const selectedGap = gaps.gaps[gaps.recommendedGap ?? 0];
-    const { places } = await searchPlaces(selectedGap.niche, business.location);
+    
+    // Build a targeted search query for POTENTIAL CLIENTS (businesses that would buy from the user)
+    // Use the recommendedTarget description to search for the right type of customer business
+    // e.g., if gap is "Corporate Coffee Catering" and target is "local restaurants & cafes",
+    // search for "restaurants" or "cafes" rather than "B2B Corporate Coffee Catering"
+    const buildLeadQuery = () => {
+      const target = selectedGap.recommendedTarget || '';
+      const niche = selectedGap.niche || '';
+      const primaryService = business.services?.[0] || '';
+      
+      // Extract the most searchable term: prefer recommendedTarget (who to sell to)
+      // Strip B2B/corporate/specialty prefix words to get the actual business type
+      const cleanTarget = target
+        .replace(/\b(b2b|corporate|specialty|boutique|artisan|high-end|premium|local|small|independent)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // Use the first meaningful phrase from recommendedTarget
+      const firstPhrase = cleanTarget.split(/[,;]/)[0].trim();
+      
+      // Fall back to niche if target is too long or vague
+      if (firstPhrase && firstPhrase.split(' ').length <= 4) {
+        return firstPhrase;
+      }
+      // If niche is short and descriptive, use it
+      if (niche.split(' ').length <= 4) {
+        return niche;
+      }
+      // Last resort: use business primary service
+      return primaryService || 'local business';
+    };
+    
+    const searchQuery = buildLeadQuery();
+    console.log(`[leadAgent] Searching for leads with query: "${searchQuery}" in ${business.location}`);
+    const { places } = await searchPlaces(searchQuery, business.location);
 
     const leadResults = await Promise.all(
       (places || []).slice(0, 10).map(async (place) => {

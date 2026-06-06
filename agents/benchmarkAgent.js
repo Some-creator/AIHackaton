@@ -73,10 +73,25 @@ function normalizeName(name) {
 }
 
 function buildSearchQuery(business) {
+  // Use business name + primary service to build a natural competitor search
+  // e.g., for a café serving specialty coffee, search for "cafe coffee shop"
   const primaryService = business.services?.[0] || 'local business';
-  const type = business.type || 'service provider';
-  const location = business.location || 'local area';
-  return `${type} ${primaryService}`;
+  const secondaryService = business.services?.[1] || '';
+  
+  // Determine the best search term based on business type and services
+  const type = (business.type || '').toLowerCase();
+  
+  // Build a plain-English search query similar to what a customer would type
+  // This makes Google Places return actually relevant similar businesses
+  const serviceTerms = [primaryService, secondaryService].filter(Boolean).slice(0, 2).join(' ');
+  
+  if (type === 'fixed location') {
+    return serviceTerms || 'local business';
+  } else if (type === 'mobile vendor') {
+    return `mobile ${primaryService}`;
+  } else {
+    return serviceTerms || 'local service';
+  }
 }
 
 function getPlaceName(place) {
