@@ -6,7 +6,7 @@ import BusinessAnalysis from './components/BusinessAnalysis';
 import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
-import ThemeToggle from './components/ThemeToggle';
+import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import * as api from './api';
@@ -216,122 +216,53 @@ export default function App() {
 
   const isHomeOrAuth = step === 'home' || step === 'auth';
 
-  return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-[#f5f5f7]'}`}>
-      <header
-        className={`sticky top-0 z-50 shrink-0 border-b transition-all duration-300 ${
-          isHomeOrAuth
-            ? isDark
-              ? 'bg-black/70 backdrop-blur-xl border-white/10'
-              : 'bg-[#f5f5f7]/80 backdrop-blur-xl border-black/5'
-            : isDark
-              ? 'bg-zinc-900 border-zinc-800'
-              : 'bg-white border-gray-200'
-        }`}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => setStep('home')}
-            className="flex items-center gap-3 hover:opacity-80 transition shrink-0"
-          >
-            <div className="w-9 h-9 rounded-xl bg-[#0071e3] flex items-center justify-center shadow-sm">
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className={`font-bold text-lg tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              HookLine
-            </span>
-          </button>
-
-          {step !== 'home' && step !== 'auth' && step !== 'onboarding' && (
-            <nav className="hidden md:flex items-center gap-1 flex-1 justify-center">
-              {STEPS.slice(3).map((s, i) => {
-                const stepIndex = i + 3;
-                const isActive = currentStepIndex === stepIndex;
-                const isComplete = currentStepIndex > stepIndex;
-                return (
-                  <div key={s} className="flex items-center">
-                    {i > 0 && (
-                      <div
-                        className={`w-8 h-0.5 ${isComplete ? 'bg-[#0071e3]' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
-                      />
-                    )}
-                    <span
-                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        isActive
-                          ? 'bg-[#0071e3] text-white'
-                          : isComplete
-                            ? isDark
-                              ? 'bg-blue-500/20 text-sky-400'
-                              : 'bg-blue-50 text-[#0071e3]'
-                            : isDark
-                              ? 'bg-zinc-800 text-zinc-500'
-                              : 'bg-gray-100 text-gray-400'
-                      }`}
-                    >
-                      {stepLabels[s]}
-                    </span>
-                  </div>
-                );
-              })}
-            </nav>
-          )}
-
-          <div className="flex items-center gap-3 shrink-0">
-            <ThemeToggle />
-
-            {user && (
-              <div className="hidden sm:flex items-center gap-2">
-                <span
-                  className={`text-xs font-semibold max-w-[120px] truncate ${
-                    isDark ? 'text-gray-400' : 'text-gray-600'
-                  }`}
-                  title={user.email || user.displayName}
-                >
-                  {user.displayName || user.email}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-full border transition ${
-                    isDark
-                      ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Sign out
-                </button>
-              </div>
-            )}
-
-            {step === 'home' && !user && (
-              <button
-                type="button"
-                onClick={() => setStep('auth')}
-                className={`hidden sm:inline-flex px-4 py-2 text-sm font-bold rounded-full border transition ${
-                  isDark
-                    ? 'border-zinc-600 text-white hover:bg-zinc-800'
-                    : 'border-gray-300 text-gray-900 hover:bg-gray-100'
+  const stepNav =
+    step !== 'home' && step !== 'auth' && step !== 'onboarding' ? (
+      <nav className="flex items-center gap-1">
+        {STEPS.slice(3).map((s, i) => {
+          const stepIndex = i + 3;
+          const isActive = currentStepIndex === stepIndex;
+          const isComplete = currentStepIndex > stepIndex;
+          return (
+            <div key={s} className="flex items-center">
+              {i > 0 && (
+                <div
+                  className={`w-6 h-0.5 ${isComplete ? 'bg-primary' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
+                />
+              )}
+              <span
+                className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : isComplete
+                      ? isDark
+                        ? 'bg-blue-500/20 text-sky-400'
+                        : 'bg-blue-50 text-[#0071e3]'
+                      : isDark
+                        ? 'bg-zinc-800 text-zinc-500'
+                        : 'bg-gray-100 text-gray-400'
                 }`}
               >
-                Sign In
-              </button>
-            )}
+                {stepLabels[s]}
+              </span>
+            </div>
+          );
+        })}
+      </nav>
+    ) : null;
 
-            {(step === 'home' || step === 'auth') && (
-              <button
-                type="button"
-                onClick={requireAuth}
-                className="hidden sm:inline-flex px-5 py-2.5 bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-semibold rounded-full transition"
-              >
-                Get Started
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+  return (
+    <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-[#f5f5f7]'}`}>
+      <Header
+        onLogoClick={() => setStep('home')}
+        onSignIn={() => setStep('auth')}
+        onGetStarted={requireAuth}
+        onSignOut={handleLogout}
+        user={user}
+        showAuthButtons={step === 'home' && !user}
+        showGetStarted={step === 'home' || step === 'auth'}
+        centerContent={stepNav}
+      />
 
       <main className={isHomeOrAuth ? 'flex-1 w-full' : 'flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full'}>
         {authLoading && !isHomeOrAuth && (

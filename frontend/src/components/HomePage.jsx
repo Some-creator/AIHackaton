@@ -164,6 +164,7 @@ export default function HomePage({ onGetStarted }) {
       </section>
 
       <section
+        id="features"
         className={`border-t transition-colors duration-300 ${
           isDark ? 'bg-black border-zinc-800' : 'bg-[#f5f5f7] border-gray-200'
         }`}
