@@ -13,7 +13,6 @@ const mockData = JSON.parse(
   readFileSync(join(__dirname, '../mock/mockCompetitors.json'), 'utf-8')
 );
 
-const MIN_COMPETITORS = 3;
 const MAX_COMPETITORS = 5;
 
 const COMPETITOR_FIELDS = ['name', 'website', 'strengths', 'weaknesses', 'targetMarket', 'theyHaveYouDont'];
@@ -30,6 +29,7 @@ Rules:
 - theyHaveYouDont: 2-4 specific offerings, features, or positioning the competitor has that the user's business lacks
 - Compare implicitly using the user's business profile and prior analysis
 - Do not include the user's own business as a competitor
+- Return exactly one competitor object per business listed in COMPETITOR DATA — never add extra businesses
 
 Return ONLY valid JSON matching this exact schema:
 {
@@ -77,34 +77,70 @@ function normalizeName(name) {
   return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+function inferIndustryQueries(business) {
+  const text = [
+    business.name,
+    business.type,
+    business.targetMarket,
+    ...(business.services || []),
+  ].join(' ').toLowerCase();
+
+  const queries = [];
+  if (/coffee|cafe|espresso|latte|kahfe|kahfé|barista/i.test(text)) {
+    queries.push('coffee shop', 'cafe', 'specialty coffee', 'coffee and tea');
+  }
+  if (/tea|boba|bubble/i.test(text)) {
+    queries.push('bubble tea', 'boba tea');
+  }
+  if (/juice|smoothie|beverage|drink|refresh/i.test(text)) {
+    queries.push('juice bar', 'smoothie shop', 'drink shop');
+  }
+  if (/cater|event|mobile|wedding/i.test(text)) {
+    queries.push('mobile coffee catering', 'event beverage catering');
+  }
+  return queries;
+}
+
 function buildSearchQueries(business) {
   const primaryService = business.services?.[0] || 'local business';
   const type = business.type || 'service provider';
+  const industry = inferIndustryQueries(business);
+
   return [...new Set([
     primaryService,
-    `${type} ${primaryService}`,
-    business.name,
+    ...industry,
+    ...(business.services || []).slice(0, 3),
+    `${type} ${primaryService}`.trim(),
   ].filter(Boolean))];
 }
 
 async function findCompetitorPlaces(business, onLog) {
   const location = business.location || 'local area';
   const queries = buildSearchQueries(business);
+  const seen = new Set();
+  const collected = [];
 
   for (let i = 0; i < queries.length; i++) {
+    if (collected.length >= MAX_COMPETITORS) break;
+
     const query = queries[i];
     if (i > 0) {
-      onLog?.(`Trying broader search: "${query}"...`);
+      onLog?.(`Broadening search: "${query}"...`);
     }
 
     const { places } = await searchPlaces(query, location);
-    const filtered = filterCompetitors(places, business);
-    if (filtered.length > 0) {
-      return { filtered, query };
+    for (const place of places || []) {
+      if (collected.length >= MAX_COMPETITORS) break;
+      if (isOwnBusiness(place, business)) continue;
+
+      const id = place.id || getPlaceName(place);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      collected.push(place);
     }
   }
 
-  return { filtered: [], query: queries[0] };
+  return { filtered: collected, query: queries[0] || 'local business' };
 }
 
 function getPlaceName(place) {
@@ -126,37 +162,8 @@ function isOwnBusiness(place, business) {
   return false;
 }
 
-function filterCompetitors(places, business) {
-  const seen = new Set();
-  const filtered = [];
-
-  for (const place of places) {
-    if (isOwnBusiness(place, business)) continue;
-
-    const id = place.id || getPlaceName(place);
-    if (seen.has(id)) continue;
-    seen.add(id);
-
-    filtered.push(place);
-    if (filtered.length >= MAX_COMPETITORS) break;
-  }
-
-  return filtered;
-}
-
-function padCompetitors(competitors) {
-  if (competitors.length >= MIN_COMPETITORS) return competitors.slice(0, MAX_COMPETITORS);
-
-  const padded = [...competitors];
-  const mockPool = mockData.competitors || [];
-
-  for (const mock of mockPool) {
-    if (padded.length >= MIN_COMPETITORS) break;
-    const exists = padded.some((c) => normalizeName(c.name) === normalizeName(mock.name));
-    if (!exists) padded.push(mock);
-  }
-
-  return padded.slice(0, MAX_COMPETITORS);
+function trimLiveCompetitors(competitors) {
+  return competitors.slice(0, MAX_COMPETITORS);
 }
 
 async function scrapeCompetitorsInParallel(places, onLog) {
@@ -230,7 +237,7 @@ function validateAndNormalize(parsed) {
     return result;
   });
 
-  return { competitors: padCompetitors(normalized), mock: false };
+  return { competitors: trimLiveCompetitors(normalized), mock: false };
 }
 
 export async function* streamBenchmark(context) {
@@ -273,7 +280,10 @@ export async function* streamBenchmark(context) {
       return;
     }
 
-    yield { type: 'log', message: `Found ${filtered.length} similar business${filtered.length > 1 ? 'es' : ''} via "${query}"` };
+    yield {
+      type: 'log',
+      message: `Found ${filtered.length} similar business${filtered.length > 1 ? 'es' : ''} (search: "${query}")`,
+    };
 
     const pendingLogs = [];
     const competitorData = await scrapeCompetitorsInParallel(filtered, (msg) => pendingLogs.push(msg));
