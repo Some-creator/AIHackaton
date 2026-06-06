@@ -1,6 +1,3 @@
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { geocodeLocation, parseLocationHints, searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
 import {
@@ -10,18 +7,10 @@ import {
 } from '../backend/webSearch.js';
 import { callSonnet, callHaiku } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
-import { USE_MOCK, hasGooglePlaces, hasAnthropic, hasFirecrawl } from '../backend/config.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const printMockData = JSON.parse(
-  readFileSync(join(__dirname, '../mock/mockCompetitors.json'), 'utf-8')
-);
-const cafeMockData = JSON.parse(
-  readFileSync(join(__dirname, '../mock/cafeCompetitors.json'), 'utf-8')
-);
+import { hasGooglePlaces, hasAnthropic, hasFirecrawl } from '../backend/config.js';
 
 const MAX_COMPETITORS = 5;
+const MIN_COMPETITORS = 2;
 
 const COMPETITOR_FIELDS = ['name', 'website', 'strengths', 'weaknesses', 'targetMarket', 'theyHaveYouDont'];
 const ARRAY_FIELDS = ['strengths', 'weaknesses', 'theyHaveYouDont'];
@@ -64,8 +53,7 @@ Rules:
 - Do not include the user's own business as a competitor
 - Return exactly one competitor object per business listed in COMPETITOR DATA — use the exact same name spelling
 - Never add businesses that are not in COMPETITOR DATA
-
-Return ONLY valid JSON matching this exact schema:
+- Return ONLY valid JSON:
 {
   "competitors": [
     {
@@ -80,98 +68,6 @@ Return ONLY valid JSON matching this exact schema:
 }`;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function fallbackSearchPlan(business, analysis) {
-  const services = business.services?.filter(Boolean) || [];
-  return {
-    businessSummary: `${business.name} — ${business.type || 'local business'}`,
-    serviceLines: services.length ? services.slice(0, 4) : [business.type || 'local business'],
-    searchQueries: [...new Set([
-      ...services.slice(0, 3),
-      business.type,
-      business.targetMarket?.split(/[,;]/)[0]?.trim(),
-    ].filter(Boolean))].slice(0, 6),
-    excludeTypes: ['print shop', 'shipping store', 'post office'],
-    comparisonNotes: 'Compare based on listed services and target market.',
-  };
-}
-
-function normalizeSearchPlan(raw, business, analysis) {
-  const fallback = fallbackSearchPlan(business, analysis);
-  const plan = raw && typeof raw === 'object' ? raw : {};
-
-  const searchQueries = (Array.isArray(plan.searchQueries) ? plan.searchQueries : [])
-    .map((q) => String(q).trim())
-    .filter(Boolean)
-    .slice(0, 8);
-
-  const serviceLines = (Array.isArray(plan.serviceLines) ? plan.serviceLines : [])
-    .map((s) => String(s).trim())
-    .filter(Boolean);
-
-  const excludeTypes = (Array.isArray(plan.excludeTypes) ? plan.excludeTypes : [])
-    .map((s) => String(s).trim())
-    .filter(Boolean);
-
-  return {
-    businessSummary: String(plan.businessSummary || fallback.businessSummary).trim(),
-    serviceLines: serviceLines.length ? serviceLines : fallback.serviceLines,
-    searchQueries: searchQueries.length ? searchQueries : fallback.searchQueries,
-    excludeTypes: excludeTypes.length ? excludeTypes : fallback.excludeTypes,
-    comparisonNotes: String(plan.comparisonNotes || fallback.comparisonNotes).trim(),
-  };
-}
-
-async function planCompetitorSearch(business, analysis) {
-  if (USE_MOCK || !hasAnthropic) {
-    return fallbackSearchPlan(business, analysis);
-  }
-
-  try {
-    const { content } = await callHaiku({
-      system: SEARCH_PLAN_SYSTEM,
-      messages: [
-        {
-          role: 'user',
-          content: `Plan competitor searches for this business.
-
---- BUSINESS PROFILE (Agent 1) ---
-${JSON.stringify(business, null, 2)}
-
---- ANALYSIS (Agent 2) ---
-${JSON.stringify(analysis, null, 2)}`,
-        },
-      ],
-      maxTokens: 1024,
-    });
-
-    return normalizeSearchPlan(parseClaudeJson(content), business, analysis);
-  } catch (err) {
-    console.warn(`[benchmarkAgent] Search plan failed: ${err.message}`);
-    return fallbackSearchPlan(business, analysis);
-  }
-}
-
-function selectMockData(plan) {
-  const text = [...(plan?.serviceLines || []), plan?.businessSummary || ''].join(' ').toLowerCase();
-  if (/print|mail|graphic|signage/i.test(text)) return printMockData;
-  return cafeMockData;
-}
-
-function mockFallback(reason, plan) {
-  const mockData = selectMockData(plan);
-  console.warn(`[benchmarkAgent] Falling back to mock data: ${reason}`);
-  return { ...mockData, mock: true, mockReason: reason };
-}
-
-function getMockBlockReason() {
-  if (USE_MOCK) return 'USE_MOCK is enabled';
-  if (!hasAnthropic) return 'ANTHROPIC_API_KEY is missing';
-  if (!hasGooglePlaces && !hasFirecrawl) {
-    return 'GOOGLE_PLACES_API_KEY or FIRECRAWL_API_KEY is required for competitor search';
-  }
-  return null;
-}
 
 function webResultMatchesRegion(result, hints) {
   if (!hints?.stateAbbrev) return true;
@@ -206,9 +102,7 @@ function extractDomain(url) {
   try {
     const host = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
     return host.replace(/^www\./, '').toLowerCase();
-  } catch {
-    return '';
-  }
+  } catch { return ''; }
 }
 
 function stripLocationSuffix(name) {
@@ -255,10 +149,95 @@ function isExcludedPlace(place, excludeTypes) {
   });
 }
 
+function getPlaceName(place) {
+  return place.displayName?.text || place.displayName || 'Unknown';
+}
+
+function isOwnBusiness(place, business) {
+  const placeName = normalizeName(getPlaceName(place));
+  const businessName = normalizeName(business.name);
+  const placeDomain = extractDomain(place.websiteUri);
+  const businessDomain = extractDomain(business.website);
+  if (businessName && placeName && (placeName.includes(businessName) || businessName.includes(placeName))) return true;
+  if (businessDomain && placeDomain && placeDomain === businessDomain) return true;
+  return false;
+}
+
 function candidateKey(place) {
   const domain = extractDomain(place.websiteUri);
   if (domain) return `domain:${domain}`;
   return `name:${normalizeName(getPlaceName(place))}`;
+}
+
+function fallbackSearchPlan(business, analysis) {
+  const services = business.services?.filter(Boolean) || [];
+  return {
+    businessSummary: `${business.name} — ${business.type || 'local business'}`,
+    serviceLines: services.length ? services.slice(0, 4) : [business.type || 'local business'],
+    searchQueries: [...new Set([
+      ...services.slice(0, 3),
+      business.type,
+      business.targetMarket?.split(/[,;]/)[0]?.trim(),
+    ].filter(Boolean))].slice(0, 6),
+    excludeTypes: ['print shop', 'shipping store', 'post office'],
+    comparisonNotes: 'Compare based on listed services and target market.',
+  };
+}
+
+function normalizeSearchPlan(raw, business, analysis) {
+  const fallback = fallbackSearchPlan(business, analysis);
+  const plan = raw && typeof raw === 'object' ? raw : {};
+
+  const searchQueries = (Array.isArray(plan.searchQueries) ? plan.searchQueries : [])
+    .map((q) => String(q).trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const serviceLines = (Array.isArray(plan.serviceLines) ? plan.serviceLines : [])
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+
+  const excludeTypes = (Array.isArray(plan.excludeTypes) ? plan.excludeTypes : [])
+    .map((s) => String(s).trim())
+    .filter(Boolean);
+
+  return {
+    businessSummary: String(plan.businessSummary || fallback.businessSummary).trim(),
+    serviceLines: serviceLines.length ? serviceLines : fallback.serviceLines,
+    searchQueries: searchQueries.length ? searchQueries : fallback.searchQueries,
+    excludeTypes: excludeTypes.length ? excludeTypes : fallback.excludeTypes,
+    comparisonNotes: String(plan.comparisonNotes || fallback.comparisonNotes).trim(),
+  };
+}
+
+async function planCompetitorSearch(business, analysis) {
+  if (!hasAnthropic) {
+    return fallbackSearchPlan(business, analysis);
+  }
+
+  try {
+    const { content } = await callHaiku({
+      system: SEARCH_PLAN_SYSTEM,
+      messages: [
+        {
+          role: 'user',
+          content: `Plan competitor searches for this business.
+
+--- BUSINESS PROFILE (Agent 1) ---
+${JSON.stringify(business, null, 2)}
+
+--- ANALYSIS (Agent 2) ---
+${JSON.stringify(analysis, null, 2)}`,
+        },
+      ],
+      maxTokens: 1024,
+    });
+
+    return normalizeSearchPlan(parseClaudeJson(content), business, analysis);
+  } catch (err) {
+    console.warn(`[benchmarkAgent] Search plan failed: ${err.message}`);
+    return fallbackSearchPlan(business, analysis);
+  }
 }
 
 function addCompetitorCandidate(collected, seen, place, business, searchPlan, onLog) {
@@ -287,7 +266,7 @@ async function searchGooglePlacesForCandidates({
   onLog,
   relaxed = false,
 }) {
-  if (!hasGooglePlaces || USE_MOCK) return 0;
+  if (!hasGooglePlaces) return 0;
 
   let added = 0;
   const label = relaxed ? 'Google Places (broadened)' : 'Google Places';
@@ -385,7 +364,7 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
     });
   }
 
-  if (hasFirecrawl && !USE_MOCK) {
+  if (hasFirecrawl) {
     onLog?.('Searching the web for local competitors...');
     for (let i = 0; i < queries.length; i++) {
       if (collected.length >= MAX_COMPETITORS) break;
@@ -424,50 +403,22 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
   return { filtered: collected, query: queries[0] || 'local business' };
 }
 
-function getPlaceName(place) {
-  return place.displayName?.text || place.displayName || 'Unknown';
-}
-
-function isOwnBusiness(place, business) {
-  const placeName = normalizeName(getPlaceName(place));
-  const businessName = normalizeName(business.name);
-  const placeDomain = extractDomain(place.websiteUri);
-  const businessDomain = extractDomain(business.website);
-
-  if (
-    businessName.length >= 4
-    && placeName.length >= 4
-    && (placeName.includes(businessName) || businessName.includes(placeName))
-  ) {
-    return true;
-  }
-  if (businessDomain && placeDomain && placeDomain === businessDomain) {
-    return true;
-  }
-  return false;
-}
-
 async function scrapeCompetitorsInParallel(places, onLog) {
-  const canScrape = hasFirecrawl && !USE_MOCK;
-
-  if (!canScrape) {
-    onLog?.('Website scrape unavailable — using Google listing data only');
-  }
+  const canScrape = hasFirecrawl;
+  if (!canScrape) onLog?.('Website scraping unavailable — using Google listing data only');
 
   return Promise.all(
     places.map(async (place) => {
       const name = getPlaceName(place);
       const website = place.websiteUri || '';
 
-      let scrapedContent = place.preScrapedContent?.slice(0, 12000) || '';
-      let scrapeMock = false;
+      let scrapedContent = place.preScrapedContent?.slice(0, 10000) || '';
 
       if (!scrapedContent && website && canScrape) {
         onLog?.(`Scraping ${name} website...`);
         try {
           const scraped = await scrapeWebsite(website);
-          scrapedContent = scraped.content?.slice(0, 12000) || '';
-          scrapeMock = scraped.mock ?? false;
+          scrapedContent = scraped.content?.slice(0, 10000) || '';
         } catch (err) {
           console.warn(`[benchmarkAgent] Scrape failed for ${website}: ${err.message}`);
           onLog?.(`Could not scrape ${name} — using listing data`);
@@ -484,21 +435,15 @@ async function scrapeCompetitorsInParallel(places, onLog) {
         reviewCount: place.userRatingCount ?? null,
         discoverySource: place.discoverySource || 'unknown',
         scrapedContent,
-        scrapeMock,
       };
     })
   );
 }
 
-function normalizeStringArray(value, fieldName, min = 2, max = 4) {
-  if (!Array.isArray(value)) {
-    throw new Error(`competitor.${fieldName} must be an array`);
-  }
-
+function normalizeStringArray(value, fieldName, min = 1, max = 3) {
+  if (!Array.isArray(value)) throw new Error(`competitor.${fieldName} must be an array`);
   const items = value.map((item) => String(item).trim()).filter(Boolean);
-  if (items.length < min) {
-    throw new Error(`competitor.${fieldName} must have at least ${min} items`);
-  }
+  if (items.length < min) throw new Error(`competitor.${fieldName} must have at least ${min} item`);
   return items.slice(0, max);
 }
 
@@ -518,14 +463,14 @@ function alignCompetitorsWithSource(parsed, competitorData) {
 
   for (const comp of parsed.competitors || []) {
     const match = findSourceForLlmName(comp.name, competitorData, usedIndices);
-    if (!match) continue;
-
-    usedIndices.add(match.index);
-    aligned.push({
-      ...comp,
-      name: match.source.name,
-      website: comp.website?.trim() || match.source.website || '',
-    });
+    if (match) {
+      usedIndices.add(match.index);
+      aligned.push({
+        ...comp,
+        name: match.source.name,
+        website: comp.website?.trim() || match.source.website || '',
+      });
+    }
   }
 
   if (aligned.length > 0) return aligned;
@@ -550,7 +495,6 @@ function validateAndNormalize(parsed, competitorData) {
 
   const normalized = aligned.map((comp, index) => {
     if (!comp?.name?.trim()) throw new Error(`competitor[${index}].name is required`);
-
     const result = { name: comp.name.trim() };
     for (const field of COMPETITOR_FIELDS) {
       if (field === 'name') continue;
@@ -575,37 +519,31 @@ export async function* streamBenchmark(context) {
   if (!business) throw new Error('Business profile required');
   if (!analysis) throw new Error('Analysis required — run Agent 2 first');
 
+  if (!hasGooglePlaces) {
+    yield { type: 'error', error: 'Competitor search unavailable — GOOGLE_PLACES_API_KEY not configured' };
+    return;
+  }
+  if (!hasAnthropic) {
+    yield { type: 'error', error: 'AI analysis unavailable — ANTHROPIC_API_KEY not configured' };
+    return;
+  }
+
   yield { type: 'log', message: 'Starting competitor benchmark...' };
   await delay(300);
   yield { type: 'log', message: `Using Agent 2 analysis (${analysis.strengths?.length || 0} strengths, ${analysis.missing?.length || 0} gaps identified)` };
-
-  const mockBlockReason = getMockBlockReason();
 
   yield { type: 'log', message: 'AI is determining what competitors to search for...' };
   const searchPlan = await planCompetitorSearch(business, analysis);
   yield { type: 'log', message: `Identified: ${searchPlan.businessSummary}` };
   yield { type: 'log', message: `Service lines: ${searchPlan.serviceLines.join(', ')}` };
 
-  if (mockBlockReason) {
-    yield { type: 'log', message: `Competitor search unavailable — ${mockBlockReason}` };
-    await delay(300);
-    const mockData = selectMockData(searchPlan);
-    yield { type: 'log', message: `Using demo competitors (${mockData.competitors.length} businesses)` };
-    await delay(400);
-    for (const comp of mockData.competitors) {
-      yield { type: 'log', message: `Analyzing ${comp.name}...` };
-      await delay(350);
-    }
-    yield { type: 'log', message: 'Benchmark complete (demo data)' };
-    const result = mockFallback(mockBlockReason, searchPlan);
-    yield { type: 'complete', ...result };
-    return;
-  }
+  yield { type: 'log', message: 'Starting competitor search...' };
+  await delay(300);
 
   try {
     const sources = [
-      hasGooglePlaces && !USE_MOCK ? 'Google Places' : null,
-      hasFirecrawl && !USE_MOCK ? 'web search' : null,
+      hasGooglePlaces ? 'Google Places' : null,
+      hasFirecrawl ? 'web search' : null,
     ].filter(Boolean).join(' + ') || 'local directories';
 
     yield { type: 'log', message: `Searching competitors near ${business.location} via ${sources}...` };
@@ -617,9 +555,7 @@ export async function* streamBenchmark(context) {
     }
 
     if (filtered.length === 0) {
-      yield { type: 'log', message: `No competitors found for "${query}" in ${business.location} — using demo data` };
-      const result = mockFallback(`No competitors found near ${business.location}`, searchPlan);
-      yield { type: 'complete', ...result };
+      yield { type: 'error', error: `No competitors found for "${query}" near ${business.location}. Try updating the location or services in your profile.` };
       return;
     }
 
@@ -630,11 +566,9 @@ export async function* streamBenchmark(context) {
 
     const pendingLogs = [];
     const competitorData = await scrapeCompetitorsInParallel(filtered, (msg) => pendingLogs.push(msg));
-    for (const msg of pendingLogs) {
-      yield { type: 'log', message: msg };
-    }
+    for (const msg of pendingLogs) yield { type: 'log', message: msg };
 
-    yield { type: 'log', message: 'AI is comparing competitors to your full business profile...' };
+    yield { type: 'log', message: 'AI is comparing competitors to your business profile...' };
 
     const competitorNameList = competitorData
       .map((comp, i) => `${i + 1}. ${comp.name}`)
@@ -668,12 +602,15 @@ ${JSON.stringify(competitorData, null, 2)}`,
     const parsed = parseClaudeJson(content);
     const result = validateAndNormalize(parsed, competitorData);
 
-    yield { type: 'log', message: `Benchmark complete — ${result.competitors.length} competitors analyzed` };
+    if (result.competitors.length < MIN_COMPETITORS) {
+      yield { type: 'error', error: `Only found ${result.competitors.length} valid competitor(s). Need at least ${MIN_COMPETITORS} for a meaningful benchmark.` };
+      return;
+    }
+
+    yield { type: 'log', message: `${result.competitors.length} competitors analyzed` };
     yield { type: 'complete', ...result };
   } catch (err) {
-    yield { type: 'log', message: 'Switching to backup competitor data...' };
-    const result = mockFallback(err.message, searchPlan);
-    yield { type: 'complete', ...result };
+    yield { type: 'error', error: err.message };
   }
 }
 
@@ -681,6 +618,7 @@ export async function benchmarkAgent(context) {
   let result = null;
   for await (const event of streamBenchmark(context)) {
     if (event.type === 'complete') result = event;
+    if (event.type === 'error') throw new Error(event.error);
   }
-  return { competitors: result.competitors, mock: result.mock, mockReason: result.mockReason };
+  return { competitors: result.competitors, mock: result.mock };
 }

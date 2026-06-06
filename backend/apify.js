@@ -1,4 +1,4 @@
-import { useMockFor } from './config.js';
+
 
 const APIFY_BASE = 'https://api.apify.com/v2';
 
@@ -132,28 +132,18 @@ function formatTikTokData(items) {
   return lines.join('\n');
 }
 
-function mockSocialContent(url) {
-  const platform = getPlatform(url) || 'social';
-  return `Mock ${platform} profile from ${url}. Bio: mobile beverage catering for events, weddings, and corporate functions. Specialty coffee drinks and espresso bar services.`;
-}
-
 export async function scrapeSocialProfile(url) {
   const cleanUrl = cleanSocialUrl(url);
   const platform = getPlatform(cleanUrl);
 
-  if (useMockFor('apify')) {
-    return {
-      url: cleanUrl,
-      platform,
-      content: mockSocialContent(cleanUrl),
-      mock: true,
-      source: 'apify-mock',
-    };
-  }
-
   const actor = platform && ACTORS[platform];
   if (!actor) {
     return null;
+  }
+
+  const token = process.env.APIFY_API_KEY;
+  if (!token) {
+    throw new Error(`Social profile scraper unavailable — APIFY_API_KEY not configured for ${platform}`);
   }
 
   const items = await runActor(actor.id, actor.buildInput(cleanUrl));
@@ -175,6 +165,6 @@ export async function scrapeSocialProfile(url) {
 export function canScrapeSocial(url) {
   const platform = getPlatform(cleanSocialUrl(url));
   if (!platform) return false;
-  if (ACTORS[platform]) return useMockFor('apify') || Boolean(process.env.APIFY_API_KEY);
+  if (ACTORS[platform]) return Boolean(process.env.APIFY_API_KEY);
   return !needsApify(url);
 }

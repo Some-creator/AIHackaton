@@ -1,16 +1,43 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function ActivityLog({ logs, title = 'Agent activity' }) {
+export default function ActivityLog({ logs, title = 'Agent activity', loading = true }) {
   const endRef = useRef(null);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  const [elapsed, setElapsed] = useState(0);
+
+  // Determine estimated total seconds based on title
+  const getEstimate = () => {
+    const t = title.toLowerCase();
+    if (t.includes('benchmark')) return 60;
+    if (t.includes('reading') || t.includes('ingest')) return 20;
+    if (t.includes('lead')) return 45;
+    return 30;
+  };
+
+  const estimate = getEstimate();
+
+  useEffect(() => {
+    if (!loading) return;
+    
+    setElapsed(0);
+    const interval = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [loading, logs[0]]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs.length]);
 
   if (!logs.length) return null;
+
+  const remaining = estimate - elapsed;
+  const timeText = remaining > 0 ? `~${remaining}s remaining` : 'almost done...';
 
   return (
     <div className={`mt-6 rounded-xl border overflow-hidden transition-all duration-300 ${
@@ -31,9 +58,23 @@ export default function ActivityLog({ logs, title = 'Agent activity' }) {
           {title}
         </span>
         {/* live pulse dot on the right */}
-        <div className="ml-auto flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-hookline-500 animate-pulse" />
-          <span className="text-xs font-mono text-hookline-400">live</span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            {loading && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            )}
+            <span className={`relative inline-flex rounded-full h-2 w-2 bg-emerald-500`}></span>
+          </span>
+          <span className={`text-xs font-mono ${loading ? 'text-emerald-400' : 'text-emerald-500/60'}`}>
+            {loading ? 'live' : 'done'}
+          </span>
+          {loading && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+              isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-slate-800 text-slate-400'
+            }`}>
+              {timeText}
+            </span>
+          )}
         </div>
       </div>
 
@@ -43,11 +84,11 @@ export default function ActivityLog({ logs, title = 'Agent activity' }) {
           const isLast = i === logs.length - 1;
           return (
             <li key={i} className={`flex items-start gap-2.5 py-1 px-1 rounded transition-colors ${
-              isLast ? 'bg-hookline-500/10' : ''
+              isLast && loading ? 'bg-hookline-500/10' : ''
             }`}>
               {/* Icon */}
               <span className="mt-0.5 flex-shrink-0 w-3.5 flex justify-center">
-                {isLast ? (
+                {isLast && loading ? (
                   <svg className="animate-spin h-3 w-3 text-hookline-400" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -63,12 +104,12 @@ export default function ActivityLog({ logs, title = 'Agent activity' }) {
               <span className="text-hookline-500/60 select-none flex-shrink-0">›</span>
 
               {/* Log text */}
-              <span className={isLast ? 'text-hookline-300' : 'text-slate-400'}>
+              <span className={isLast && loading ? 'text-hookline-300' : 'text-slate-400'}>
                 {log}
               </span>
 
               {/* Blinking cursor on last line */}
-              {isLast && (
+              {isLast && loading && (
                 <span className="inline-block w-1.5 h-3.5 bg-hookline-400 ml-0.5 animate-pulse flex-shrink-0 self-center rounded-sm" />
               )}
             </li>

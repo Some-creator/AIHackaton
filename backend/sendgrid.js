@@ -1,16 +1,4 @@
-const USE_MOCK = true;
-
 export async function sendEmail({ to, subject, body, from }) {
-  if (USE_MOCK) {
-    return {
-      success: true,
-      messageId: `mock-${Date.now()}`,
-      to,
-      subject,
-      sentAt: new Date().toISOString(),
-    };
-  }
-
   const apiKey = process.env.SENDGRID_API_KEY;
   if (!apiKey) throw new Error('SENDGRID_API_KEY not configured');
 

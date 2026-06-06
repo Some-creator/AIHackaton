@@ -1,5 +1,3 @@
-import { useMockFor } from './config.js';
-
 const PLACES_FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.location,places.nationalPhoneNumber';
 
 const DEFAULT_SEARCH_RADIUS_KM = 50;
@@ -165,6 +163,7 @@ async function placesTextSearch(body, apiKey) {
       'X-Goog-FieldMask': PLACES_FIELD_MASK,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!response.ok) {
@@ -176,8 +175,6 @@ async function placesTextSearch(body, apiKey) {
 }
 
 export async function geocodeLocation(locationString) {
-  if (useMockFor('googlePlaces')) return null;
-
   const location = String(locationString || '').trim();
   if (!location || location === 'Unknown' || location === 'local area') return null;
 
@@ -267,10 +264,6 @@ function buildSearchBody(cleanQuery, locationString, anchor, radiusKm, relaxed) 
 }
 
 export async function searchPlaces(query, location, options = {}) {
-  if (useMockFor('googlePlaces')) {
-    return { places: [], query, location, mock: true };
-  }
-
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_PLACES_API_KEY not configured');
 
@@ -306,8 +299,6 @@ export async function searchPlaces(query, location, options = {}) {
 }
 
 export async function getPlaceDetails(placeId) {
-  if (useMockFor('googlePlaces')) return { placeId, details: {}, mock: true };
-
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_PLACES_API_KEY not configured');
 
@@ -316,6 +307,7 @@ export async function getPlaceDetails(placeId) {
       'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'displayName,formattedAddress,websiteUri,rating,userRatingCount,reviews',
     },
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!response.ok) throw new Error(`Google Places details failed: ${response.status}`);

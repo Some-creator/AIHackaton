@@ -1,18 +1,9 @@
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { geocodeLocation, searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { getBusinessReviews } from '../backend/yelp.js';
 import { callSonnet, callHaiku } from '../backend/anthropic.js';
-import { USE_MOCK, hasAnthropic, hasGooglePlaces } from '../backend/config.js';
+import { hasAnthropic, hasGooglePlaces } from '../backend/config.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-const mockData = JSON.parse(
-  readFileSync(join(__dirname, '../mock/mockLeads.json'), 'utf-8')
-);
 
 const MAX_LEADS = 8;
 const MAX_CANDIDATES = 24;
@@ -164,7 +155,7 @@ function normalizeSearchPlan(raw, business, selectedGap) {
 }
 
 async function planLeadSearch(business, selectedGap, analysis) {
-  if (USE_MOCK || !hasAnthropic) {
+  if (!hasAnthropic) {
     return fallbackLeadSearchPlan(business, selectedGap);
   }
 
@@ -333,8 +324,16 @@ async function buildLeadFromPlace(place, business, selectedGap, searchPlan) {
   const website = place.websiteUri || '';
 
   const [scraped, yelpData] = await Promise.all([
-    website ? scrapeWebsite(website) : Promise.resolve({ content: '' }),
-    getBusinessReviews(name, business.location),
+    website
+      ? scrapeWebsite(website).catch((err) => {
+          console.warn(`[leadAgent] Scrape failed for ${website}: ${err.message}`);
+          return { content: '' };
+        })
+      : Promise.resolve({ content: '' }),
+    getBusinessReviews(name, business.location).catch((err) => {
+      console.warn(`[leadAgent] Yelp reviews failed for ${name}: ${err.message}`);
+      return null;
+    }),
   ]);
 
   const franchiseCheck = await isFranchise(name, scraped.content, place);
@@ -376,13 +375,11 @@ Lead data: ${JSON.stringify({ place, scraped, yelpData })}`,
 }
 
 export async function* streamLeads(context) {
-  if (USE_MOCK || !hasGooglePlaces || !hasAnthropic) {
-    const leads = [...mockData.leads].sort((a, b) => b.priorityScore - a.priorityScore);
-    for (const lead of leads) {
-      await new Promise((resolve) => setTimeout(resolve, 800 + Math.random() * 700));
-      yield lead;
-    }
-    return;
+  if (!hasGooglePlaces) {
+    throw new Error('Google Places API key is missing. Cannot search for leads without it.');
+  }
+  if (!hasAnthropic) {
+    throw new Error('Anthropic API key is missing. Cannot analyze leads without it.');
   }
 
   const { business, analysis, competitors = [] } = context;
@@ -391,52 +388,35 @@ export async function* streamLeads(context) {
   if (!business) throw new Error('Business profile required');
   if (!selectedGap) throw new Error('Market gap required — run Agent 4 first');
 
-  try {
-    const searchPlan = await planLeadSearch(business, selectedGap, analysis);
-    console.log(`[leadAgent] Gap: "${selectedGap.niche}"`);
-    console.log(`[leadAgent] Target: ${searchPlan.targetSummary}`);
-    console.log(`[leadAgent] Queries: ${searchPlan.searchQueries.join(', ')}`);
+  const searchPlan = await planLeadSearch(business, selectedGap, analysis);
+  console.log(`[leadAgent] Gap: "${selectedGap.niche}"`);
+  console.log(`[leadAgent] Target: ${searchPlan.targetSummary}`);
+  console.log(`[leadAgent] Queries: ${searchPlan.searchQueries.join(', ')}`);
 
-    const candidates = await findLeadPlaces(business, searchPlan, competitors);
-    console.log(`[leadAgent] Found ${candidates.length} local candidates near ${business.location}`);
+  const candidates = await findLeadPlaces(business, searchPlan, competitors);
+  console.log(`[leadAgent] Found ${candidates.length} local candidates near ${business.location}`);
 
-    if (candidates.length === 0) {
-      console.warn('[leadAgent] No candidates found — using mock leads');
-      for (const lead of mockData.leads) {
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        yield lead;
-      }
-      return;
-    }
+  if (candidates.length === 0) {
+    throw new Error(`No local candidates found near ${business.location} matching queries: ${searchPlan.searchQueries.slice(0, 3).join(', ')}`);
+  }
 
-    let leadCount = 0;
-    for (const place of candidates) {
-      if (leadCount >= MAX_LEADS) break;
+  let leadCount = 0;
+  for (const place of candidates) {
+    if (leadCount >= MAX_LEADS) break;
 
-      try {
-        const lead = await buildLeadFromPlace(place, business, selectedGap, searchPlan);
-        if (!lead) continue;
+    try {
+      const lead = await buildLeadFromPlace(place, business, selectedGap, searchPlan);
+      if (!lead) continue;
 
-        leadCount += 1;
-        yield lead;
-      } catch (err) {
-        console.warn(`[leadAgent] Failed to process ${getPlaceName(place)}: ${err.message}`);
-      }
-    }
-
-    if (leadCount === 0) {
-      console.warn('[leadAgent] All candidates filtered out — using mock leads');
-      for (const lead of mockData.leads) {
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        yield lead;
-      }
-    }
-  } catch (err) {
-    console.error('[leadAgent] Error running agent:', err);
-    for (const lead of mockData.leads) {
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      leadCount += 1;
       yield lead;
+    } catch (err) {
+      console.warn(`[leadAgent] Failed to process ${getPlaceName(place)}: ${err.message}`);
     }
+  }
+
+  if (leadCount === 0) {
+    throw new Error('All discovered candidates were filtered out (franchises/chains) or failed qualification analysis.');
   }
 }
 

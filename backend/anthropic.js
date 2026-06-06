@@ -1,4 +1,4 @@
-import { useMockFor, SONNET_MODEL, HAIKU_MODEL } from './config.js';
+import { SONNET_MODEL, HAIKU_MODEL } from './config.js';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
@@ -47,19 +47,11 @@ async function requestAnthropic({ model, system, messages, maxTokens }) {
 }
 
 export async function callSonnet({ system, messages, maxTokens = 4096 }) {
-  if (useMockFor('anthropic')) {
-    return { content: '', model: SONNET_MODEL, mock: true };
-  }
-
   console.log(`[anthropic] Sonnet: ${SONNET_MODEL}`);
   return requestAnthropic({ model: SONNET_MODEL, system, messages, maxTokens });
 }
 
 export async function callHaiku({ system, messages, maxTokens = 1024 }) {
-  if (useMockFor('anthropic')) {
-    return { content: '', model: HAIKU_MODEL, mock: true };
-  }
-
   console.log(`[anthropic] Haiku: ${HAIKU_MODEL}`);
   return requestAnthropic({ model: HAIKU_MODEL, system, messages, maxTokens });
 }
