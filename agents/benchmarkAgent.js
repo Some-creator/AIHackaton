@@ -26,6 +26,9 @@ const BENCHMARK_SYSTEM = `You are a competitive analysis consultant. Compare loc
 Rules:
 - Base every point on the provided competitor data (Google listing + scraped website content)
 - Do not invent services, pricing, or features not supported by the data
+- Identify ALL service lines the user operates (e.g. café + hookah lounge, not just one label like "café")
+- Compare each competitor against the user's FULL offering — a hookah lounge competes on ambiance and shisha, a café competes on coffee and food
+- If the user runs a dual-concept venue (e.g. Lush Cafe = hookah lounge AND café), compare on BOTH dimensions where data supports it
 - strengths: 2-4 specific things each competitor does well
 - weaknesses: 2-4 honest gaps or shortcomings for each competitor
 - targetMarket: who this competitor appears to serve based on their content and listing
@@ -34,7 +37,7 @@ Rules:
 - Do not include the user's own business as a competitor
 - Return exactly one competitor object per business listed in COMPETITOR DATA — use the exact same name spelling
 - Never add businesses that are not in COMPETITOR DATA
-- Ignore any unrelated industries (e.g. print shops for a café)
+- Ignore unrelated industries (e.g. print shops for a café)
 
 Return ONLY valid JSON matching this exact schema:
 {
@@ -66,11 +69,29 @@ function getBusinessIndustryProfile(business, analysis) {
 }
 
 function isFoodBeverageBusiness(profile) {
-  return /coffee|cafe|café|espresso|latte|kahfe|kahfé|barista|beverage|tea|boba|bubble|juice|smoothie|drink|refresh|cater|mobile vendor|food|bakery|restaurant|matcha/i.test(profile);
+  return /coffee|cafe|café|espresso|latte|kahfe|kahfé|barista|beverage|tea|boba|bubble|juice|smoothie|drink|refresh|cater|mobile vendor|food|bakery|restaurant|matcha|pastries|brunch|breakfast/i.test(profile);
+}
+
+function isHookahLoungeBusiness(profile) {
+  if (/hookah|shisha|sheesha|nargile|narghile|smoke lounge|tobacco lounge|lounge bar|vape lounge/i.test(profile)) {
+    return true;
+  }
+  // Dual café + lounge venues (e.g. Lush Cafe) even when "hookah" isn't in the scraped text
+  return /\blounge\b/i.test(profile) && /cafe|café|coffee/i.test(profile);
 }
 
 function isPrintBusiness(profile) {
   return /print|mail|graphic|signage|copy center|promotional product/i.test(profile);
+}
+
+function describeBusinessConcepts(business, analysis) {
+  const profile = getBusinessIndustryProfile(business, analysis);
+  const concepts = [];
+  if (isHookahLoungeBusiness(profile)) concepts.push('hookah/shisha lounge');
+  if (isFoodBeverageBusiness(profile)) concepts.push('café / food & beverage');
+  if (isPrintBusiness(profile)) concepts.push('printing');
+  if (concepts.length === 0) concepts.push(business.type || 'local business');
+  return concepts;
 }
 
 function selectMockData(business, analysis) {
@@ -140,8 +161,21 @@ function namesMatch(a, b) {
 function inferIndustryQueries(business, analysis) {
   const profile = getBusinessIndustryProfile(business, analysis);
   const queries = [];
+  const hookah = isHookahLoungeBusiness(profile);
+  const cafe = isFoodBeverageBusiness(profile);
 
-  if (isFoodBeverageBusiness(profile)) {
+  // Dual-concept venues (e.g. Lush Cafe): search hookah lounges first, then café
+  if (hookah) {
+    queries.push(
+      'hookah lounge',
+      'shisha lounge',
+      'hookah bar',
+      'hookah cafe',
+      'smoke lounge',
+    );
+  }
+
+  if (cafe) {
     queries.push(
       'coffee shop',
       'cafe',
@@ -151,6 +185,9 @@ function inferIndustryQueries(business, analysis) {
       'juice bar',
       'espresso bar',
     );
+    if (hookah) {
+      queries.push('cafe and lounge', 'coffee lounge');
+    }
     if (/cater|event|mobile|wedding/i.test(profile)) {
       queries.push('mobile coffee catering', 'event beverage catering', 'coffee cart');
     }
@@ -194,17 +231,32 @@ function buildSearchQueries(business, analysis) {
 function isRelevantCompetitor(place, business, analysis) {
   const profile = getBusinessIndustryProfile(business, analysis);
   const placeText = `${getPlaceName(place)} ${place.formattedAddress || ''}`.toLowerCase();
-
-  if (isFoodBeverageBusiness(profile)) {
-    if (/print|graphics|copy center|signage|framing|mail|fedex office|ups store/i.test(placeText)) {
-      return false;
-    }
-  }
+  const hookah = isHookahLoungeBusiness(profile);
+  const cafe = isFoodBeverageBusiness(profile);
 
   if (isPrintBusiness(profile)) {
     if (/coffee|cafe|espresso|boba|smoothie|bakery/i.test(placeText) && !/print/i.test(placeText)) {
       return false;
     }
+    return true;
+  }
+
+  // Always exclude unrelated retail for hospitality businesses
+  if (/print|graphics|copy center|signage|framing|mail|fedex office|ups store/i.test(placeText)) {
+    return false;
+  }
+
+  // Dual-concept: accept hookah lounges, cafés, or combined venues
+  if (hookah && cafe) {
+    return /hookah|shisha|lounge|cafe|coffee|espresso|tea|smoke|bar|restaurant|bistro|bakery/i.test(placeText);
+  }
+
+  if (hookah) {
+    return /hookah|shisha|lounge|smoke|bar/i.test(placeText);
+  }
+
+  if (cafe) {
+    return /cafe|coffee|espresso|tea|boba|juice|smoothie|bakery|restaurant|bistro|drink/i.test(placeText);
   }
 
   return true;
@@ -216,7 +268,9 @@ async function findCompetitorPlaces(business, analysis, onLog) {
   const seen = new Set();
   const collected = [];
 
-  onLog?.(`Industry search terms: ${queries.slice(0, 4).join(', ')}`);
+  const concepts = describeBusinessConcepts(business, analysis);
+  onLog?.(`Business concepts: ${concepts.join(' + ')}`);
+  onLog?.(`Search terms: ${queries.slice(0, 5).join(', ')}`);
 
   for (let i = 0; i < queries.length; i++) {
     if (collected.length >= MAX_COMPETITORS) break;
@@ -387,7 +441,9 @@ export async function* streamBenchmark(context) {
 
   yield { type: 'log', message: 'Starting competitor benchmark...' };
   await delay(300);
+  const concepts = describeBusinessConcepts(business, analysis);
   yield { type: 'log', message: `Using Agent 2 analysis (${analysis.strengths?.length || 0} strengths, ${analysis.missing?.length || 0} gaps identified)` };
+  yield { type: 'log', message: `Competing as: ${concepts.join(' + ')}` };
 
   const mockBlockReason = getMockBlockReason();
   if (mockBlockReason) {
@@ -440,7 +496,11 @@ export async function* streamBenchmark(context) {
       messages: [
         {
           role: 'user',
-          content: `Compare these competitors to the user's business. The user runs a ${isFoodBeverageBusiness(getBusinessIndustryProfile(business, analysis)) ? 'food/beverage' : 'local'} business — only analyze the listed competitors, do not substitute businesses from other industries.
+          content: `Compare these competitors to the user's business.
+
+The user operates: ${concepts.join(' + ')}.
+Search for competitors across ALL of these concepts — not only café if they also run a hookah lounge.
+Only analyze the listed competitors; do not substitute businesses from other industries.
 
 --- USER BUSINESS (Agent 1) ---
 ${JSON.stringify(business, null, 2)}
