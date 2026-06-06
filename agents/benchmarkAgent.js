@@ -249,7 +249,9 @@ function isExcludedPlace(place, excludeTypes) {
   const placeText = `${getPlaceName(place)} ${place.formattedAddress || ''}`.toLowerCase();
   return (excludeTypes || []).some((excluded) => {
     const term = String(excluded).toLowerCase().trim();
-    return term.length > 2 && placeText.includes(term);
+    if (term.length <= 2) return false;
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(placeText);
   });
 }
 
@@ -274,6 +276,66 @@ function addCompetitorCandidate(collected, seen, place, business, searchPlan, on
   return true;
 }
 
+async function searchGooglePlacesForCandidates({
+  business,
+  searchPlan,
+  queries,
+  location,
+  anchor,
+  collected,
+  seen,
+  onLog,
+  relaxed = false,
+}) {
+  if (!hasGooglePlaces || USE_MOCK) return 0;
+
+  let added = 0;
+  const label = relaxed ? 'Google Places (broadened)' : 'Google Places';
+
+  if (!relaxed) {
+    onLog?.('Searching Google Places...');
+  } else {
+    onLog?.('Broadening Google Places search...');
+  }
+
+  for (let i = 0; i < queries.length; i++) {
+    if (collected.length >= MAX_COMPETITORS) break;
+
+    const query = queries[i];
+    if (i > 0 || relaxed) {
+      onLog?.(`${label}: "${query}"...`);
+    }
+
+    const { places, rawCount } = await searchPlaces(query, location, {
+      anchor,
+      relaxed,
+      onSkip: ({ name, address, reason }) => {
+        onLog?.(`Skipping distant result: ${name}${address ? ` (${address})` : ''} — ${reason}`);
+      },
+    });
+
+    if (rawCount > 0 && places.length === 0) {
+      onLog?.(`Google returned ${rawCount} result${rawCount === 1 ? '' : 's'} for "${query}" but all were filtered out`);
+    }
+
+    for (const place of places || []) {
+      if (addCompetitorCandidate(
+        collected,
+        seen,
+        { ...place, discoverySource: relaxed ? 'google-places-broad' : 'google-places' },
+        business,
+        searchPlan,
+        onLog
+      )) {
+        added += 1;
+        onLog?.(`Found: ${getPlaceName(place)}`);
+      }
+    }
+  }
+
+  return added;
+}
+
 async function findCompetitorCandidates(business, searchPlan, onLog) {
   const location = business.location || 'local area';
   const queries = searchPlan.searchQueries;
@@ -285,41 +347,41 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
   onLog?.(`Service lines: ${searchPlan.serviceLines.join(', ')}`);
   onLog?.(`Search queries: ${queries.slice(0, 5).join(', ')}`);
 
-  const anchor = await geocodeLocation(location);
-  if (anchor) {
-    onLog?.(`Anchoring search to ${location} (within ~40 miles)`);
-  } else {
-    onLog?.(`Could not geocode ${location} — filtering by regional address/text match`);
+  if (location === 'Unknown' || location === 'local area') {
+    onLog?.('Warning: business location is vague — competitor search works best with a city/state');
   }
 
-  if (hasGooglePlaces && !USE_MOCK) {
-    onLog?.('Searching Google Places...');
-    for (let i = 0; i < queries.length; i++) {
-      if (collected.length >= MAX_COMPETITORS) break;
+  const anchor = await geocodeLocation(location);
+  if (anchor) {
+    onLog?.(`Anchoring search to ${location} (within ~50 miles)`);
+  } else {
+    onLog?.(`Could not geocode ${location} — using text-based local search`);
+  }
 
-      const query = queries[i];
-      if (i > 0) {
-        onLog?.(`Google Places: "${query}"...`);
-      }
+  await searchGooglePlacesForCandidates({
+    business,
+    searchPlan,
+    queries,
+    location,
+    anchor,
+    collected,
+    seen,
+    onLog,
+    relaxed: false,
+  });
 
-      const { places } = await searchPlaces(query, location, {
-        anchor,
-        onSkip: ({ name, address, reason }) => {
-          onLog?.(`Skipping distant result: ${name}${address ? ` (${address})` : ''} — ${reason}`);
-        },
-      });
-
-      for (const place of places || []) {
-        addCompetitorCandidate(
-          collected,
-          seen,
-          { ...place, discoverySource: 'google-places' },
-          business,
-          searchPlan,
-          onLog
-        );
-      }
-    }
+  if (collected.length === 0) {
+    await searchGooglePlacesForCandidates({
+      business,
+      searchPlan,
+      queries,
+      location,
+      anchor,
+      collected,
+      seen,
+      onLog,
+      relaxed: true,
+    });
   }
 
   if (hasFirecrawl && !USE_MOCK) {
@@ -329,7 +391,11 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
 
       const query = queries[i];
       try {
-        const { results } = await searchWeb(query, { location, limit: 6, scrape: true });
+        const { results } = await searchWeb(query, { location, limit: 8, scrape: false });
+        if (!results.length) {
+          onLog?.(`Web search returned no business sites for "${query}"`);
+        }
+
         for (const result of results) {
           if (collected.length >= MAX_COMPETITORS) break;
           if (isDirectoryOrAggregatorUrl(result.url)) continue;
@@ -350,6 +416,10 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
     }
   }
 
+  if (collected.length === 0) {
+    onLog?.('No competitors passed filters — check location, API keys, or search queries');
+  }
+
   return { filtered: collected, query: queries[0] || 'local business' };
 }
 
@@ -363,7 +433,11 @@ function isOwnBusiness(place, business) {
   const placeDomain = extractDomain(place.websiteUri);
   const businessDomain = extractDomain(business.website);
 
-  if (businessName && placeName && (placeName.includes(businessName) || businessName.includes(placeName))) {
+  if (
+    businessName.length >= 4
+    && placeName.length >= 4
+    && (placeName.includes(businessName) || businessName.includes(placeName))
+  ) {
     return true;
   }
   if (businessDomain && placeDomain && placeDomain === businessDomain) {
@@ -456,11 +530,14 @@ function alignCompetitorsWithSource(parsed, competitorData) {
   if (aligned.length > 0) return aligned;
 
   const llmComps = parsed.competitors || [];
-  if (llmComps.length === competitorData.length) {
-    return llmComps.map((comp, i) => ({
-      ...comp,
+  const pairCount = Math.min(llmComps.length, competitorData.length);
+
+  if (pairCount > 0) {
+    console.warn('[benchmarkAgent] Fuzzy name match failed — pairing analysis to discovered businesses by order');
+    return Array.from({ length: pairCount }, (_, i) => ({
+      ...llmComps[i],
       name: competitorData[i].name,
-      website: comp.website?.trim() || competitorData[i].website || '',
+      website: llmComps[i].website?.trim() || competitorData[i].website || '',
     }));
   }
 
@@ -558,12 +635,19 @@ export async function* streamBenchmark(context) {
 
     yield { type: 'log', message: 'AI is comparing competitors to your full business profile...' };
 
+    const competitorNameList = competitorData
+      .map((comp, i) => `${i + 1}. ${comp.name}`)
+      .join('\n');
+
     const { content } = await callSonnet({
       system: BENCHMARK_SYSTEM,
       messages: [
         {
           role: 'user',
           content: `Compare these competitors to the user's business.
+
+You MUST return exactly ${competitorData.length} competitors using these EXACT names (one per line):
+${competitorNameList}
 
 --- SEARCH PLAN (AI-derived) ---
 ${JSON.stringify(searchPlan, null, 2)}

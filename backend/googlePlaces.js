@@ -2,8 +2,8 @@ import { useMockFor } from './config.js';
 
 const PLACES_FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.location,places.nationalPhoneNumber';
 
-const DEFAULT_SEARCH_RADIUS_KM = 40;
-const DEFAULT_MAX_DISTANCE_KM = 50;
+const DEFAULT_SEARCH_RADIUS_KM = 50;
+const DEFAULT_MAX_DISTANCE_KM = 80;
 
 const US_STATE_BY_ABBREV = {
   AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado',
@@ -76,8 +76,8 @@ export function parseLocationHints(location) {
 }
 
 function getAddressStateAbbrev(address) {
-  const match = String(address || '').match(/,\s*([A-Z]{2})(?:\s+\d{5}(?:-\d{4})?)?/);
-  return match ? match[1] : null;
+  const match = String(address || '').match(/,\s*([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?/);
+  return match ? match[1].toUpperCase() : null;
 }
 
 function placeMatchesRegionText(address, hints) {
@@ -119,6 +119,9 @@ export function isPlaceNearLocation(place, anchor, hints, maxDistanceKm = DEFAUL
     );
     return distanceKm <= maxDistanceKm;
   }
+
+  // Missing address/coordinates — keep result; search was already localized
+  if (!address) return true;
 
   if (hints?.stateAbbrev || hints?.stateName || hints?.city) {
     return placeMatchesRegionText(address, hints);
@@ -217,6 +220,34 @@ function filterPlacesByProximity(places, anchor, hints, maxDistanceKm, onSkip) {
   return kept;
 }
 
+function buildSearchBody(cleanQuery, locationString, anchor, radiusKm, relaxed) {
+  const body = { pageSize: 20 };
+
+  if (relaxed) {
+    body.textQuery = `${cleanQuery} in ${locationString}`;
+    if (anchor) {
+      body.locationBias = {
+        circle: {
+          center: { latitude: anchor.latitude, longitude: anchor.longitude },
+          radius: radiusKm * 1000,
+        },
+      };
+    }
+    return body;
+  }
+
+  if (anchor) {
+    body.textQuery = cleanQuery;
+    body.locationRestriction = {
+      rectangle: viewportFromCenter(anchor.latitude, anchor.longitude, radiusKm),
+    };
+    return body;
+  }
+
+  body.textQuery = `${cleanQuery} in ${locationString}`;
+  return body;
+}
+
 export async function searchPlaces(query, location, options = {}) {
   if (useMockFor('googlePlaces')) {
     return { places: [], query, location, mock: true };
@@ -229,23 +260,13 @@ export async function searchPlaces(query, location, options = {}) {
   const locationString = String(location || '').trim() || 'local area';
   const radiusKm = options.radiusKm ?? DEFAULT_SEARCH_RADIUS_KM;
   const maxDistanceKm = options.maxDistanceKm ?? DEFAULT_MAX_DISTANCE_KM;
+  const relaxed = options.relaxed ?? false;
   const anchor = options.anchor ?? await geocodeLocation(locationString);
   const hints = anchor?.hints ?? parseLocationHints(locationString);
 
-  const body = {
-    pageSize: options.pageSize ?? 20,
-  };
-
-  if (anchor) {
-    body.textQuery = cleanQuery;
-    body.locationRestriction = {
-      rectangle: viewportFromCenter(anchor.latitude, anchor.longitude, radiusKm),
-    };
-  } else {
-    body.textQuery = `${cleanQuery} in ${locationString}`;
-  }
-
+  const body = buildSearchBody(cleanQuery, locationString, anchor, radiusKm, relaxed);
   const data = await placesTextSearch(body, apiKey);
+  const rawCount = data.places?.length || 0;
   const places = filterPlacesByProximity(
     data.places || [],
     anchor,
@@ -256,10 +277,12 @@ export async function searchPlaces(query, location, options = {}) {
 
   return {
     places,
+    rawCount,
     query: cleanQuery,
     location: locationString,
     anchor,
     hints,
+    relaxed,
     mock: false,
   };
 }

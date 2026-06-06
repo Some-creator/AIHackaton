@@ -58,25 +58,43 @@ export function extractBusinessNameFromTitle(title, url = '') {
   return cleaned || raw;
 }
 
-function normalizeResults(data) {
-  const items = data?.data || data?.results || [];
-  if (!Array.isArray(items)) return [];
+function mapSearchItem(item) {
+  return {
+    title: item.title || item.metadata?.title || '',
+    url: item.url || item.link || '',
+    description: item.description || item.metadata?.description || item.snippet || '',
+    markdown: item.markdown || item.content || '',
+  };
+}
 
-  return items
-    .map((item) => ({
-      title: item.title || item.metadata?.title || '',
-      url: item.url || item.link || '',
-      description: item.description || item.metadata?.description || '',
-      markdown: item.markdown || item.content || '',
-    }))
-    .filter((item) => item.url && !isDirectoryOrAggregatorUrl(item.url));
+function normalizeResults(data) {
+  if (Array.isArray(data)) {
+    return data.map(mapSearchItem).filter((item) => item.url && !isDirectoryOrAggregatorUrl(item.url));
+  }
+
+  const candidates = [
+    data?.data,
+    data?.results,
+    data?.web,
+    data?.data?.web,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length) {
+      return candidate
+        .map(mapSearchItem)
+        .filter((item) => item.url && !isDirectoryOrAggregatorUrl(item.url));
+    }
+  }
+
+  return [];
 }
 
 export async function searchWeb(query, options = {}) {
   const cleanQuery = String(query || '').trim();
   const location = String(options.location || '').trim();
   const limit = options.limit ?? 6;
-  const withScrape = options.scrape ?? true;
+  const withScrape = options.scrape ?? false;
 
   if (!cleanQuery) {
     return { results: [], query: cleanQuery, location, mock: false };
