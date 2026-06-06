@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
+import { useTheme } from '../context/ThemeContext';
 import LeadCard from './LeadCard';
 
 const markerIcon = new L.Icon({
@@ -24,6 +25,8 @@ export default function LeadGeneration({
   sentLeads,
   skippedLeads,
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -38,8 +41,8 @@ export default function LeadGeneration({
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Your Leads</h2>
-        <p className="text-gray-600 mt-1">
+        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Leads</h2>
+        <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           {streaming
             ? `Finding leads... ${leads.length} discovered so far`
             : streamComplete
@@ -49,18 +52,20 @@ export default function LeadGeneration({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="h-[500px] rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+        <div className={`h-[500px] rounded-2xl overflow-hidden border shadow-sm transition-all duration-300 ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
           <MapContainer center={HOUSTON_CENTER} zoom={11} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution={isDark ? '&copy; <a href="https://carto.com/attributions">CARTO</a>' : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}
+              url={isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
             />
             {mapLeads.map((lead, i) => (
               <Marker key={i} position={[lead.lat, lead.lng]} icon={markerIcon}>
                 <Popup>
-                  <strong>{lead.name}</strong>
-                  <br />
-                  Priority: {lead.priorityScore}
+                  <div className="text-gray-900">
+                    <strong>{lead.name}</strong>
+                    <br />
+                    Priority: {lead.priorityScore}
+                  </div>
                 </Popup>
               </Marker>
             ))}
@@ -69,13 +74,13 @@ export default function LeadGeneration({
 
         <div ref={listRef} className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
           {sortedLeads.length === 0 && streaming && (
-            <div className="flex items-center justify-center h-40 bg-white rounded-2xl border border-gray-200">
+            <div className={`flex items-center justify-center h-40 rounded-2xl border transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'}`}>
               <div className="text-center">
                 <svg className="animate-spin h-8 w-8 text-hookline-500 mx-auto mb-3" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <p className="text-gray-500 text-sm">Scanning West Houston for leads...</p>
+                <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Scanning West Houston for leads...</p>
               </div>
             </div>
           )}
@@ -97,7 +102,7 @@ export default function LeadGeneration({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className="text-sm text-gray-500">Loading more leads...</span>
+              <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Loading more leads...</span>
             </div>
           )}
         </div>

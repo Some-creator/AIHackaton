@@ -1,8 +1,12 @@
 import { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import ActivityLog from './ActivityLog';
 
 export default function Onboarding({ onSubmit, loading, logs = [] }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [url, setUrl] = useState('https://kahfe.square.site/');
+
   const [socialLinks, setSocialLinks] = useState('');
 
   const handleSubmit = (e) => {
@@ -18,14 +22,14 @@ export default function Onboarding({ onSubmit, loading, logs = [] }) {
   return (
     <div className="max-w-xl mx-auto">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">Let&apos;s analyze your business</h1>
-        <p className="text-gray-600">
+        <h1 className={`text-3xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Let&apos;s analyze your business</h1>
+        <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>
           Enter your website and we&apos;ll build your profile automatically.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+      <form onSubmit={handleSubmit} className={`rounded-2xl shadow-lg border p-8 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
+        <label className={`block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
           Your website URL
         </label>
         <input
@@ -33,20 +37,20 @@ export default function Onboarding({ onSubmit, loading, logs = [] }) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="yourbusiness.com"
-          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-hookline-500 focus:border-hookline-500 outline-none transition"
+          className={`w-full px-4 py-3 rounded-xl border outline-none transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'}`}
           required
           disabled={loading}
         />
 
-        <label className="block text-sm font-medium text-gray-700 mt-5 mb-2">
-          Social media links <span className="text-gray-400 font-normal">(optional, comma-separated)</span>
+        <label className={`block text-sm font-semibold mt-5 mb-2 ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
+          Social media links <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>(optional, comma-separated)</span>
         </label>
         <input
           type="text"
           value={socialLinks}
           onChange={(e) => setSocialLinks(e.target.value)}
           placeholder="instagram.com/yourbiz, facebook.com/yourbiz"
-          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-hookline-500 focus:border-hookline-500 outline-none transition"
+          className={`w-full px-4 py-3 rounded-xl border outline-none transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'}`}
           disabled={loading}
         />
 

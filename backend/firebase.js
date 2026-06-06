@@ -1,4 +1,9 @@
 import admin from 'firebase-admin';
+import { readFileSync, existsSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let db = null;
 let initError = null;
@@ -9,7 +14,15 @@ function getServiceAccount() {
       return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     } catch {
       console.warn('[firebase] FIREBASE_SERVICE_ACCOUNT is not valid JSON');
-      return null;
+    }
+  }
+
+  const localJsonPath = join(__dirname, '..', 'service-account.json');
+  if (existsSync(localJsonPath)) {
+    try {
+      return JSON.parse(readFileSync(localJsonPath, 'utf-8'));
+    } catch (err) {
+      console.warn(`[firebase] Failed to parse local service-account.json: ${err.message}`);
     }
   }
 

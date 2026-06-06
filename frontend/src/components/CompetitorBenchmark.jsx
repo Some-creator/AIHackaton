@@ -1,27 +1,32 @@
+import { useTheme } from '../context/ThemeContext';
+
 export default function CompetitorBenchmark({ competitors, onContinue, loading }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Competitor Benchmark</h2>
-        <p className="text-gray-600 mt-1">
+        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Competitor Benchmark</h2>
+        <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           How you stack up against similar businesses in your market.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {competitors.map((comp, i) => (
-          <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div key={i} className={`rounded-2xl shadow-lg border p-6 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="font-bold text-lg text-gray-900">{comp.name}</h3>
-                <p className="text-sm text-gray-500">{comp.targetMarket}</p>
+                <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>{comp.name}</h3>
+                <p className={`text-sm ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>{comp.targetMarket}</p>
               </div>
               {comp.website && (
                 <a
                   href={comp.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-hookline-500 hover:text-hookline-600 text-sm"
+                  className="text-hookline-500 hover:text-hookline-600 text-sm font-semibold"
                 >
                   Visit
                 </a>
@@ -30,34 +35,36 @@ export default function CompetitorBenchmark({ competitors, onContinue, loading }
 
             <div className="space-y-4">
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-green-700 mb-2">Their Strengths</h4>
-                <ul className="text-sm text-gray-700 space-y-1">
+                <h4 className={`text-xs font-bold uppercase tracking-wide mb-2 ${isDark ? 'text-green-400' : 'text-green-700'}`}>Their Strengths</h4>
+                <ul className={`text-sm space-y-1 ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
                   {comp.strengths.map((s, j) => (
                     <li key={j} className="flex gap-2">
-                      <span className="text-green-500">+</span> {s}
+                      <span className="text-green-500 font-bold">+</span> {s}
                     </li>
                   ))}
                 </ul>
               </div>
 
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-red-700 mb-2">Their Weaknesses</h4>
-                <ul className="text-sm text-gray-700 space-y-1">
+                <h4 className={`text-xs font-bold uppercase tracking-wide mb-2 ${isDark ? 'text-red-400' : 'text-red-700'}`}>Their Weaknesses</h4>
+                <ul className={`text-sm space-y-1 ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
                   {comp.weaknesses.map((w, j) => (
                     <li key={j} className="flex gap-2">
-                      <span className="text-red-400">-</span> {w}
+                      <span className="text-red-400 font-bold">-</span> {w}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-amber-800 mb-2">
+              <div className={`rounded-lg p-3 border ${isDark ? 'bg-amber-950/20 border-amber-900/40 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+                <h4 className={`text-xs font-bold uppercase tracking-wide mb-2 ${isDark ? 'text-amber-400' : 'text-amber-800'}`}>
                   They Have, You Don&apos;t
                 </h4>
-                <ul className="text-sm text-amber-900 space-y-1">
+                <ul className="text-sm space-y-1">
                   {comp.theyHaveYouDont.map((item, j) => (
-                    <li key={j}>{item}</li>
+                    <li key={j} className="flex gap-2">
+                      <span className="opacity-60">·</span> {item}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -69,7 +76,7 @@ export default function CompetitorBenchmark({ competitors, onContinue, loading }
       <button
         onClick={onContinue}
         disabled={loading}
-        className="w-full md:w-auto px-8 py-3.5 bg-hookline-500 hover:bg-hookline-600 disabled:bg-gray-300 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2"
+        className="w-full md:w-auto px-8 py-3.5 bg-hookline-500 hover:bg-hookline-600 disabled:bg-gray-400 text-white font-semibold rounded-xl transition flex items-center justify-center gap-2"
       >
         {loading ? (
           <>

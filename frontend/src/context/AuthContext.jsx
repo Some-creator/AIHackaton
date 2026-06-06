@@ -76,9 +76,18 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const signInMock = useCallback(() => {
+    setUser({ email: 'mockuser@example.com', displayName: 'Mock Developer' });
+  }, []);
+
   const logout = useCallback(async () => {
+    setUser(null);
     if (!auth) return;
-    await signOut(auth);
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
   return (
@@ -91,6 +100,7 @@ export function AuthProvider({ children }) {
         signInWithEmail,
         signInWithGoogle,
         logout,
+        signInMock,
       }}
     >
       {children}

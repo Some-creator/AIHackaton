@@ -5,9 +5,10 @@ import { searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { getBusinessReviews } from '../backend/yelp.js';
 import { callSonnet, callHaiku } from '../backend/anthropic.js';
+import { USE_MOCK } from '../backend/config.js';
+import { parseClaudeJson } from '../backend/parseJson.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const USE_MOCK = true;
 
 const mockData = JSON.parse(
   readFileSync(join(__dirname, '../mock/mockLeads.json'), 'utf-8')
@@ -47,6 +48,30 @@ function calculatePriorityScore(fit, budget, response) {
   return Math.round((fit * 0.3 + budget * 0.3 + response * 0.4) * 10) / 10;
 }
 
+const LEAD_SYSTEM = `You are a lead generation agent. Analyze the provided lead details (Google place, website content, Yelp reviews) and compare them with the user's business profile and the target market gap opportunity.
+
+Generate:
+1. A compelling "hook" (why this business needs the user's services right now).
+2. Scores (fitScore, budgetScore, responseScore) between 1 and 10.
+3. A personalized cold outreach email tailored to the hook.
+4. A send strategy (best channel, timing, and follow-up plan).
+
+You must return ONLY a valid JSON object matching this schema:
+{
+  "hook": "string",
+  "fitScore": number,
+  "budgetScore": number,
+  "responseScore": number,
+  "email": "string",
+  "sendStrategy": {
+    "channel": "string",
+    "timing": "string",
+    "followUp": "string"
+  }
+}
+
+Do not include any other keys, markdown, or text outside the JSON.`;
+
 export async function leadAgent(context) {
   if (USE_MOCK) {
     return mockData;
@@ -69,7 +94,7 @@ export async function leadAgent(context) {
         if (await isFranchise(name, scraped.content)) return null;
 
         const { content } = await callSonnet({
-          system: 'You are a lead generation agent. Analyze lead data and return hook, scores, email, and send strategy. Return valid JSON only.',
+          system: LEAD_SYSTEM,
           messages: [
             {
               role: 'user',
@@ -78,7 +103,16 @@ export async function leadAgent(context) {
           ],
         });
 
-        const lead = JSON.parse(content);
+        const parsedLead = parseClaudeJson(content);
+        const lead = {
+          name,
+          address: place.formattedAddress || '',
+          phone: place.nationalPhoneNumber || '',
+          website,
+          lat: place.location?.latitude || null,
+          lng: place.location?.longitude || null,
+          ...parsedLead,
+        };
         lead.priorityScore = calculatePriorityScore(lead.fitScore, lead.budgetScore, lead.responseScore);
         return lead;
       })
@@ -86,7 +120,8 @@ export async function leadAgent(context) {
 
     const leads = leadResults.filter(Boolean).sort((a, b) => b.priorityScore - a.priorityScore);
     return { leads };
-  } catch {
+  } catch (err) {
+    console.error('[leadAgent] Error running agent:', err);
     return mockData;
   }
 }

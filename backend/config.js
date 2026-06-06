@@ -18,7 +18,7 @@ export const hasApify = Boolean(process.env.APIFY_API_KEY);
 export const hasGooglePlaces = Boolean(process.env.GOOGLE_PLACES_API_KEY);
 
 export const SONNET_MODEL = process.env.ANTHROPIC_SONNET_MODEL || 'claude-sonnet-4-6';
-export const HAIKU_MODEL = process.env.ANTHROPIC_HAIKU_MODEL || 'claude-3-5-haiku-latest';
+export const HAIKU_MODEL = process.env.ANTHROPIC_HAIKU_MODEL || 'claude-haiku-4-5-20251001';
 
 export function useMockFor(service) {
   if (USE_MOCK) return true;

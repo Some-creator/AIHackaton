@@ -1,12 +1,18 @@
 import { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 import ServiceTags from './ServiceTags';
 import SocialProfileTags from './SocialProfileTags';
 import ActivityLog from './ActivityLog';
 
 const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
-function AnalysisSection({ title, items, color }) {
-  const colors = {
+function AnalysisSection({ title, items, color, isDark }) {
+  const colors = isDark ? {
+    green: 'bg-green-950/30 border-green-900/50 text-green-400',
+    yellow: 'bg-yellow-950/30 border-yellow-900/50 text-yellow-400',
+    blue: 'bg-blue-950/30 border-blue-900/50 text-blue-400',
+    red: 'bg-red-950/30 border-red-900/50 text-red-400',
+  } : {
     green: 'bg-green-50 border-green-200 text-green-800',
     yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     blue: 'bg-blue-50 border-blue-200 text-blue-800',
@@ -29,6 +35,8 @@ function AnalysisSection({ title, items, color }) {
 }
 
 export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, benchmarkLogs = [] }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [profile, setProfile] = useState({ ...business });
 
   const updateField = (field, value) => {
@@ -40,9 +48,10 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Business Profile</h2>
-        <p className="text-gray-600 mt-1">
+        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Profile</h2>
+        <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           {hasAnalysis
+
             ? 'Review your profile and analysis below.'
             : 'Review and edit your business details, then run the analysis.'}
         </p>
@@ -55,58 +64,58 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8 space-y-5">
+      <div className={`rounded-2xl border p-6 mb-8 space-y-5 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Business Name</label>
+            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Business Name</label>
             <input
               value={profile.name}
               onChange={(e) => updateField('name', e.target.value)}
               disabled={loading}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none disabled:bg-gray-50"
+              className={`mt-1 w-full px-3 py-2 rounded-lg border outline-none transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 disabled:bg-gray-50'}`}
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Location</label>
+            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Location</label>
             <input
               value={profile.location}
               onChange={(e) => updateField('location', e.target.value)}
               disabled={loading}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none disabled:bg-gray-50"
+              className={`mt-1 w-full px-3 py-2 rounded-lg border outline-none transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 disabled:bg-gray-50'}`}
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Business Type</label>
+            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Business Type</label>
             <select
               value={profile.type}
               onChange={(e) => updateField('type', e.target.value)}
               disabled={loading}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none bg-white disabled:bg-gray-50"
+              className={`mt-1 w-full px-3 py-2 rounded-lg border outline-none transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white disabled:bg-zinc-900 text-zinc-400' : 'bg-white border-gray-300 text-gray-900 disabled:bg-gray-50'}`}
             >
               {BUSINESS_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t} className={isDark ? 'bg-zinc-900 text-white' : 'bg-white text-gray-900'}>{t}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700">Website</label>
+            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Website</label>
             <input
               value={profile.website}
               onChange={(e) => updateField('website', e.target.value)}
               disabled={loading}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none disabled:bg-gray-50"
+              className={`mt-1 w-full px-3 py-2 rounded-lg border outline-none transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'}`}
             />
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-gray-700">Target Market</label>
+          <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Target Market</label>
           <textarea
             value={profile.targetMarket}
             onChange={(e) => updateField('targetMarket', e.target.value)}
             rows={2}
             disabled={loading}
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none resize-none disabled:bg-gray-50"
+            className={`mt-1 w-full px-3 py-2 rounded-lg border outline-none transition focus:ring-2 focus:ring-hookline-500 resize-none ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500 disabled:bg-zinc-900 text-zinc-400' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 disabled:bg-gray-50'}`}
           />
         </div>
 
@@ -145,15 +154,15 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
       ) : (
         <>
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">Business Analysis</h2>
-            <p className="text-gray-600">AI-powered assessment of your strengths and opportunities.</p>
+            <h2 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Analysis</h2>
+            <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>AI-powered assessment of your strengths and opportunities.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <AnalysisSection title="Strengths" items={analysis.strengths} color="green" />
-            <AnalysisSection title="Weaknesses" items={analysis.weaknesses} color="yellow" />
-            <AnalysisSection title="Improvements" items={analysis.improvements} color="blue" />
-            <AnalysisSection title="Missing" items={analysis.missing} color="red" />
+            <AnalysisSection title="Strengths" items={analysis.strengths} color="green" isDark={isDark} />
+            <AnalysisSection title="Weaknesses" items={analysis.weaknesses} color="yellow" isDark={isDark} />
+            <AnalysisSection title="Improvements" items={analysis.improvements} color="blue" isDark={isDark} />
+            <AnalysisSection title="Missing" items={analysis.missing} color="red" isDark={isDark} />
           </div>
 
           <button

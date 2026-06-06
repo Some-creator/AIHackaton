@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 function profileKey(url) {
   try {
@@ -37,46 +38,58 @@ function findScrape(url, socialScrapes) {
   return null;
 }
 
-function ScrapePopover({ scrape, url, label, onEnter, onLeave }) {
+function ScrapePopover({ scrape, url, label, onEnter, onLeave, isDark }) {
   return (
     <div
-      className="absolute left-0 top-full mt-2 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 bg-white shadow-lg p-3"
+      className={`absolute left-0 top-full mt-2 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border p-3 shadow-xl transition-all duration-300 ${
+        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-gray-200 text-gray-900'
+      }`}
       role="tooltip"
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-xs font-semibold text-gray-900">{label} — scraped data</span>
+        <span className={`text-xs font-bold ${isDark ? 'text-zinc-200' : 'text-gray-900'}`}>{label} — scraped data</span>
         {scrape?.mock && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">Demo</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+            isDark ? 'bg-amber-950/40 text-amber-400 border border-amber-900/30' : 'bg-amber-100 text-amber-700'
+          }`}>Demo</span>
         )}
       </div>
 
       {scrape?.content?.trim() ? (
         <>
           <div className="flex gap-1.5 mb-2">
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+              isDark ? 'bg-zinc-900 text-zinc-400 border border-zinc-800' : 'bg-gray-100 text-gray-600'
+            }`}>
               {scrape.source || 'unknown'}
             </span>
           </div>
-          <p className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+          <p className={`text-xs leading-relaxed max-h-48 overflow-y-auto ${
+            isDark ? 'text-zinc-300' : 'text-gray-700'
+          } whitespace-pre-wrap`}>
             {scrape.content}
           </p>
         </>
       ) : (
-        <p className="text-xs text-gray-500 italic">
+        <p className={`text-xs italic ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
           No scraped data for this profile yet.
         </p>
       )}
 
-      <p className="text-[10px] text-gray-400 mt-2 truncate">{url}</p>
+      <p className={`text-[10px] mt-2 truncate ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>{url}</p>
 
-      <div className="absolute left-4 -top-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 rotate-45" />
+      <div className={`absolute left-4 -top-1.5 w-3 h-3 rotate-45 border-l border-t ${
+        isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-gray-200'
+      }`} />
     </div>
   );
 }
 
 export default function SocialProfileTags({ items, socialScrapes = [], onChange }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [input, setInput] = useState('');
   const [hovered, setHovered] = useState(null);
   const [pinned, setPinned] = useState(null);
@@ -125,10 +138,10 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
 
   return (
     <div>
-      <label className="text-sm font-medium text-gray-700">Social Profiles</label>
-      <p className="text-xs text-gray-400 mt-0.5">Hover a profile to preview scraped data</p>
+      <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Social Profiles</label>
+      <p className={`text-xs mt-0.5 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>Hover a profile to preview scraped data</p>
 
-      <div className="mt-2 flex flex-wrap gap-2 min-h-[2.5rem] p-3 rounded-lg border border-gray-300 bg-gray-50 overflow-visible">
+      <div className={`mt-2 flex flex-wrap gap-2 min-h-[2.5rem] p-3 rounded-lg border transition-all duration-300 overflow-visible ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-gray-50 border-gray-300'}`}>
         {items.length === 0 && (
           <span className="text-sm text-gray-400 italic">No profiles yet — add one below</span>
         )}
@@ -137,6 +150,16 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
           const hasData = Boolean(scrape?.content?.trim());
           const isActive = activeUrl && profileKey(activeUrl) === profileKey(item);
           const label = socialLabel(item);
+
+          const tagClass = isActive
+            ? 'bg-hookline-500 text-white ring-2 ring-hookline-300/55'
+            : hasData
+              ? isDark
+                ? 'bg-hookline-900/40 text-hookline-200 border border-hookline-800/40 hover:bg-hookline-900/60'
+                : 'bg-hookline-100 text-hookline-900 hover:bg-hookline-200 border border-hookline-200'
+              : isDark
+                ? 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700'
+                : 'bg-gray-200 text-gray-600 hover:bg-gray-300 border border-gray-300';
 
           return (
             <div
@@ -152,6 +175,7 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
                   label={label}
                   onEnter={cancelHide}
                   onLeave={scheduleHide}
+                  isDark={isDark}
                 />
               )}
 
@@ -160,13 +184,7 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
                 tabIndex={0}
                 onClick={(e) => togglePin(e, item)}
                 onKeyDown={(e) => { if (e.key === 'Enter') togglePin(e, item); }}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition select-none ${
-                  isActive
-                    ? 'bg-hookline-500 text-white ring-2 ring-hookline-300'
-                    : hasData
-                      ? 'bg-hookline-100 text-hookline-800 hover:bg-hookline-200 cursor-default'
-                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300 cursor-default'
-                }`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-full transition select-none ${tagClass}`}
               >
                 <span>{label}</span>
                 {hasData && !isActive && (
@@ -202,13 +220,13 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }}
           placeholder="e.g. instagram.com/yourbusiness"
-          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-hookline-500 outline-none text-sm"
+          className={`flex-1 px-3 py-2 rounded-lg border outline-none text-sm transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'}`}
         />
         <button
           type="button"
           onClick={addItem}
           disabled={!input.trim()}
-          className="px-4 py-2 bg-hookline-500 hover:bg-hookline-600 disabled:bg-gray-300 text-white text-sm font-medium rounded-lg transition"
+          className={`px-4 py-2 bg-hookline-500 hover:bg-hookline-600 disabled:bg-gray-300 text-white text-sm font-semibold rounded-lg transition ${isDark ? 'disabled:bg-zinc-800 disabled:text-zinc-500' : ''}`}
         >
           Add
         </button>

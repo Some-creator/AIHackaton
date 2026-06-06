@@ -1,6 +1,6 @@
 import { useMockFor } from './config.js';
 
-const PLACES_FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount';
+const PLACES_FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.location,places.nationalPhoneNumber';
 
 export async function searchPlaces(query, location) {
   if (useMockFor('googlePlaces')) {
