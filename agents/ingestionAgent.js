@@ -3,9 +3,16 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { scrapeSocialProfile, canScrapeSocial, needsApify, cleanSocialUrl } from '../backend/apify.js';
+import { geocodeLocation } from '../backend/googlePlaces.js';
 import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
-import { hasFirecrawl, hasAnthropic } from '../backend/config.js';
+import { hasFirecrawl, hasAnthropic, hasGooglePlaces } from '../backend/config.js';
+import {
+  buildBusinessLocationFields,
+  extractAddressCandidates,
+  geocodeMatchesLocation,
+  isLocationComplete,
+} from '../backend/locationUtils.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -25,7 +32,11 @@ const EXTRACTION_SYSTEM = `You are a business data extraction agent. Extract str
 
 Rules:
 - Only use info explicitly found in the content — never invent names, locations, or services
-- If location cannot be determined, use "Unknown"
+- Location must be as specific as possible: city, US state (2-letter), and ZIP when present
+- Many US cities share names across states (e.g. Richmond VA vs Richmond TX) — never guess the state
+- Prefer a full mailing/store address from contact, footer, or about pages over vague regional phrases
+- If only a metro or region is mentioned without a clear city + state, set locationConfidence to "low"
+- If city or state cannot be determined, leave city/state null and locationConfidence "unknown"
 - services must be specific offerings from the content, not guesses
 - type must be exactly one of: "fixed location", "mobile vendor", "service provider"
 - targetMarket: who the business sells to, based on site/social language
@@ -34,7 +45,11 @@ Return ONLY valid JSON:
 {
   "business": {
     "name": "string",
-    "location": "string",
+    "city": "string | null",
+    "state": "2-letter US state | null",
+    "zipCode": "5-digit ZIP | null",
+    "location": "City, ST or City, ST ZIP — only when city and state are known",
+    "locationConfidence": "high | low | unknown",
     "services": ["string"],
     "type": "fixed location | mobile vendor | service provider",
     "targetMarket": "string",
@@ -112,7 +127,40 @@ function formatSocialContent(socialScrapes) {
   return socialScrapes.map(({ url, content }) => `--- SOCIAL: ${url} ---\n${content}`).join('\n\n');
 }
 
-function validateAndNormalize(profile, url, socialProfiles) {
+async function verifyExtractedLocation(locationFields, onLog) {
+  if (!hasGooglePlaces || !isLocationComplete(locationFields)) {
+    return locationFields;
+  }
+
+  try {
+    const anchor = await geocodeLocation(locationFields.location);
+    if (!anchor?.formattedAddress) return locationFields;
+
+    const matches = geocodeMatchesLocation(anchor.formattedAddress, locationFields);
+    if (matches) {
+      onLog?.(`Location verified: ${locationFields.location}`);
+      return {
+        ...locationFields,
+        locationConfidence: locationFields.zipCode ? 'high' : 'medium',
+        locationNeedsInput: false,
+        locationMessage: null,
+      };
+    }
+
+    onLog?.(`Could not verify ${locationFields.location} — please confirm city, state, and ZIP`);
+    return {
+      ...locationFields,
+      locationConfidence: 'low',
+      locationNeedsInput: true,
+      locationMessage: 'We found a possible location but could not verify it. Please confirm your city, state, and ZIP.',
+    };
+  } catch (err) {
+    console.warn(`[ingestionAgent] Location verify failed: ${err.message}`);
+    return locationFields;
+  }
+}
+
+function validateAndNormalize(profile, url, socialProfiles, addressCandidates) {
   const business = profile?.business;
   if (!business || typeof business !== 'object') throw new Error('Missing business object in Claude response');
   if (!business.name?.trim()) throw new Error('Business name is required');
@@ -126,10 +174,18 @@ function validateAndNormalize(profile, url, socialProfiles) {
     ...(Array.isArray(business.socialProfiles) ? business.socialProfiles.map(normalizeUrl) : []),
   ])];
 
+  const locationFields = buildBusinessLocationFields(business, addressCandidates);
+
   return {
     business: {
       name: business.name.trim(),
-      location: business.location?.trim() || 'Unknown',
+      city: locationFields.city,
+      state: locationFields.state,
+      zipCode: locationFields.zipCode,
+      location: locationFields.location,
+      locationNeedsInput: locationFields.locationNeedsInput,
+      locationConfidence: locationFields.locationConfidence,
+      locationMessage: locationFields.locationMessage,
       services: business.services.map((s) => String(s).trim()).filter(Boolean),
       type: normalizedType,
       targetMarket: business.targetMarket?.trim() || 'Local customers',
@@ -182,18 +238,59 @@ export async function* streamIngestion(url, socialProfiles = []) {
 
     const truncatedContent = scraped.content.slice(0, 30000);
     const socialContent = formatSocialContent(socialScrapes);
+    const combinedContent = `${truncatedContent}\n\n${socialScrapes.map((s) => s.content).join('\n')}`;
+    const addressCandidates = extractAddressCandidates(combinedContent);
+
+    if (addressCandidates.length) {
+      yield {
+        type: 'log',
+        message: `Found ${addressCandidates.length} address hint${addressCandidates.length > 1 ? 's' : ''} on site`,
+      };
+    }
 
     const { content } = await callSonnet({
       system: EXTRACTION_SYSTEM,
       messages: [{
         role: 'user',
-        content: `Extract the business profile.\n\nWebsite URL: ${normalizedUrl}\n\n--- WEBSITE CONTENT ---\n${truncatedContent}\n\n--- SOCIAL MEDIA ---\n${socialContent}`,
+        content: `Extract the business profile.
+
+Website URL: ${normalizedUrl}
+
+Address hints detected in content (use only if they match this business — do not invent):
+${addressCandidates.length
+  ? addressCandidates.map((c) => `- ${c.location} (${c.source})`).join('\n')
+  : '- none'}
+
+--- WEBSITE CONTENT ---
+${truncatedContent}
+
+--- SOCIAL MEDIA ---
+${socialContent}`,
       }],
     });
 
     yield { type: 'log', message: 'Structuring profile...' };
     const parsed = parseClaudeJson(content);
-    const result = validateAndNormalize(parsed, normalizedUrl, socialUrls);
+    let result = validateAndNormalize(parsed, normalizedUrl, socialUrls, addressCandidates);
+
+    const pendingVerifyLogs = [];
+    const verifiedLocation = await verifyExtractedLocation(result.business, (msg) => pendingVerifyLogs.push(msg));
+    for (const msg of pendingVerifyLogs) yield { type: 'log', message: msg };
+
+    result = {
+      ...result,
+      business: {
+        ...result.business,
+        ...verifiedLocation,
+        location: verifiedLocation.location || result.business.location,
+      },
+    };
+
+    if (result.business.locationNeedsInput) {
+      yield { type: 'log', message: 'Location needs confirmation — you will be asked to verify city, state, and ZIP' };
+    } else {
+      yield { type: 'log', message: `Location: ${result.business.location}` };
+    }
 
     yield { type: 'log', message: `Found: ${result.business.name}` };
     yield { type: 'complete', ...result, socialScrapes };
