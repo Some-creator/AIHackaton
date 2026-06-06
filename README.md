@@ -28,6 +28,7 @@ Open `http://localhost:5173`
 | `GOOGLE_PLACES_API_KEY` | No (mock mode) |
 | `YELP_API_KEY` | No (mock mode) |
 | `FIRECRAWL_API_KEY` | No (mock mode) |
+| `APIFY_API_KEY` | No (needed for Instagram/Facebook/TikTok scraping) |
 | `SENDGRID_API_KEY` | No (mock mode) |
 | `FIREBASE_SERVICE_ACCOUNT` | No (skips DB save if missing) |
 
@@ -44,3 +45,9 @@ Health check: `GET /api/health`
 4. Add the JSON to Railway as `FIREBASE_SERVICE_ACCOUNT` (paste the full JSON as one line)
 
 Each company run is saved to the `companies` collection with business profile, analysis, competitors, gaps, and leads. Retrieve via `GET /api/companies/:companyId`.
+
+## Social Media Scraping
+
+- **Websites** → Firecrawl
+- **Instagram, Facebook, TikTok** → [Apify](https://apify.com) (Firecrawl blocks these with 403)
+- Sign up at [console.apify.com](https://console.apify.com), copy your API token to `APIFY_API_KEY`

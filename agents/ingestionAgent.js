@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { scrapeWebsite } from '../backend/scraper.js';
+import { scrapeSocialProfile, canScrapeSocial, needsApify, cleanSocialUrl } from '../backend/apify.js';
 import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import { USE_MOCK, hasFirecrawl, hasAnthropic } from '../backend/config.js';
@@ -71,37 +72,60 @@ function socialLabel(url) {
 }
 
 function discoverSocialLinks(websiteContent, userProfiles) {
-  const links = new Set(userProfiles.map(normalizeUrl).filter(Boolean));
+  const links = new Set(userProfiles.map((u) => cleanSocialUrl(normalizeUrl(u))).filter(Boolean));
 
   for (const pattern of SOCIAL_URL_PATTERNS) {
     const matches = websiteContent.match(pattern) || [];
-    matches.forEach((match) => links.add(normalizeUrl(match)));
+    matches.forEach((match) => links.add(cleanSocialUrl(normalizeUrl(match))));
   }
 
   return [...links].slice(0, MAX_SOCIAL_SCRAPES);
 }
 
-async function scrapeSocialProfiles(urls) {
+async function scrapeSocialProfiles(urls, onLog) {
   if (!urls.length) return [];
 
-  const results = await Promise.all(
-    urls.map(async (url) => {
-      try {
-        const scraped = await scrapeWebsite(url);
-        if (!scraped.content?.trim()) return null;
-        return {
+  const results = [];
+
+  for (const rawUrl of urls) {
+    const url = cleanSocialUrl(rawUrl);
+    const label = socialLabel(url);
+
+    try {
+      if (needsApify(url)) {
+        if (!canScrapeSocial(url)) {
+          onLog?.(`${label} needs Apify — skipped (add APIFY_API_KEY)`);
+          continue;
+        }
+        onLog?.(`Reading ${label} via Apify...`);
+        const scraped = await scrapeSocialProfile(url);
+        if (scraped?.content?.trim()) {
+          results.push(scraped);
+          onLog?.(`${label} profile loaded`);
+        }
+        continue;
+      }
+
+      if (!canScrapeSocial(url)) continue;
+
+      onLog?.(`Reading ${label}...`);
+      const scraped = await scrapeWebsite(url);
+      if (scraped.content?.trim()) {
+        results.push({
           url,
           content: scraped.content.slice(0, 8000),
           mock: scraped.mock ?? false,
-        };
-      } catch (err) {
-        console.warn(`[ingestionAgent] Social scrape failed for ${url}: ${err.message}`);
-        return null;
+          source: 'firecrawl',
+        });
+        onLog?.(`${label} loaded`);
       }
-    })
-  );
+    } catch (err) {
+      console.warn(`[ingestionAgent] Social scrape failed for ${url}: ${err.message}`);
+      onLog?.(`Could not read ${label} — continuing`);
+    }
+  }
 
-  return results.filter(Boolean);
+  return results;
 }
 
 function formatSocialContent(socialScrapes) {
@@ -215,10 +239,13 @@ export async function* streamIngestion(url, socialProfiles = []) {
     let socialScrapes = [];
     if (socialUrls.length) {
       yield { type: 'log', message: `Found ${socialUrls.length} social profile${socialUrls.length > 1 ? 's' : ''} to check` };
-      for (const profile of socialUrls) {
-        yield { type: 'log', message: `Reading ${socialLabel(profile)}...` };
+
+      const pendingLogs = [];
+      socialScrapes = await scrapeSocialProfiles(socialUrls, (msg) => pendingLogs.push(msg));
+      for (const msg of pendingLogs) {
+        yield { type: 'log', message: msg };
       }
-      socialScrapes = await scrapeSocialProfiles(socialUrls);
+
       if (socialScrapes.length) {
         yield { type: 'log', message: `Loaded content from ${socialScrapes.length} social profile${socialScrapes.length > 1 ? 's' : ''}` };
       } else {
