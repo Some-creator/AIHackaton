@@ -22,7 +22,8 @@ Open `http://localhost:5173`
 
 | Variable | Required for demo |
 |---|---|
-| `ANTHROPIC_API_KEY` | No (mock mode) |
+| `OPENROUTER_API_KEY` | No (mock mode) |
+| `OPENROUTER_MODEL` | No (defaults to `anthropic/claude-sonnet-4`) |
 | `GOOGLE_PLACES_API_KEY` | No (mock mode) |
 | `YELP_API_KEY` | No (mock mode) |
 | `FIRECRAWL_API_KEY` | No (mock mode) |

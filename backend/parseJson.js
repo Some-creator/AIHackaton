@@ -1,6 +1,6 @@
 export function parseClaudeJson(text) {
   if (!text || !text.trim()) {
-    throw new Error('Empty response from Claude');
+    throw new Error('Empty response from LLM');
   }
 
   const trimmed = text.trim();

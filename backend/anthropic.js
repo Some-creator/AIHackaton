@@ -1,42 +1,57 @@
-import { useMockFor } from './config.js';
+import { useMockFor, OPENROUTER_MODEL, OPENROUTER_HAIKU_MODEL } from './config.js';
 
-export async function callClaude({ system, messages, model = 'claude-sonnet-4-6' }) {
-  if (useMockFor('anthropic')) {
-    return { content: '', model, mock: true };
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+const LEGACY_MODEL_MAP = {
+  'claude-sonnet-4-6': OPENROUTER_MODEL,
+  'claude-3-5-haiku-latest': OPENROUTER_HAIKU_MODEL,
+};
+
+function resolveModel(model) {
+  return LEGACY_MODEL_MAP[model] || model || OPENROUTER_MODEL;
+}
+
+export async function callClaude({ system, messages, model = OPENROUTER_MODEL, maxTokens = 4096 }) {
+  if (useMockFor('openrouter')) {
+    return { content: '', model: resolveModel(model), mock: true };
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const resolvedModel = resolveModel(model);
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'https://github.com/Some-creator/AIHackaton',
+      'X-Title': process.env.OPENROUTER_APP_NAME || 'HookLine',
     },
     body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      system,
-      messages,
+      model: resolvedModel,
+      max_tokens: maxTokens,
+      messages: [
+        { role: 'system', content: system },
+        ...messages,
+      ],
     }),
   });
 
   if (!response.ok) {
     const errBody = await response.text().catch(() => '');
-    throw new Error(`Anthropic API failed (${response.status}): ${errBody.slice(0, 200)}`);
+    throw new Error(`OpenRouter API failed (${response.status}): ${errBody.slice(0, 200)}`);
   }
 
   const data = await response.json();
-  const content = data.content?.find((block) => block.type === 'text')?.text || '';
+  const content = data.choices?.[0]?.message?.content || '';
 
   if (!content) {
-    throw new Error('Anthropic returned empty response');
+    throw new Error('OpenRouter returned empty response');
   }
 
-  return { content, model, mock: false };
+  return { content, model: resolvedModel, mock: false };
 }
 
 export async function callHaiku({ system, messages }) {
-  return callClaude({ system, messages, model: 'claude-3-5-haiku-latest' });
+  return callClaude({ system, messages, model: OPENROUTER_HAIKU_MODEL });
 }
