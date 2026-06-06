@@ -69,29 +69,30 @@ Reply with ONLY "yes" or "no".
 yes = national/regional chain, franchise, corporate-owned multi-location brand (McDonald's, Starbucks, 7-Eleven, Planet Fitness, hotel chains, gas station chains, etc.)
 no = single independent local business, family-owned shop, one-off restaurant, or local operator even if the name sounds branded`;
 
-const LEAD_SYSTEM = `You are a lead generation agent. Score and personalize outreach for a LOCAL INDEPENDENT business that matches the target market gap.
+const LEAD_SYSTEM = `You are a lead qualification agent. Score a LOCAL INDEPENDENT business that matches the target market gap.
 
 The lead must be a plausible buyer for the user's business — not a franchise and not a competitor.
 
 Generate:
-1. hook — the specific real reason this business would respond to outreach right now (tie to gap niche + their listing/reviews)
-2. fitScore, budgetScore, responseScore (1-10) — responseScore weighted highest in practice
-3. email — short personalized cold outreach built around the hook (not a template)
-4. sendStrategy — channel, timing, follow-up
+1. hook — the specific real reason the user should reach out right now (tie to gap niche + listing/reviews)
+2. fitScore, budgetScore, responseScore (1-10) — responseScore reflects how likely the owner is to respond
 
 Return ONLY valid JSON:
 {
   "hook": "string",
   "fitScore": number,
   "budgetScore": number,
-  "responseScore": number,
-  "email": "string",
-  "sendStrategy": {
-    "channel": "string",
-    "timing": "string",
-    "followUp": "string"
-  }
+  "responseScore": number
 }`;
+
+function extractContactEmail(content = '') {
+  const matches = String(content).match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+  const filtered = matches.filter((email) => {
+    const lower = email.toLowerCase();
+    return !lower.endsWith('.png') && !lower.endsWith('.jpg') && !lower.includes('example.com');
+  });
+  return filtered[0] || null;
+}
 
 function resolveGapContext(context) {
   if (Array.isArray(context.gaps)) {
@@ -356,14 +357,19 @@ Lead data: ${JSON.stringify({ place, scraped, yelpData })}`,
   });
 
   const parsedLead = parseClaudeJson(content);
+  const contactEmail = extractContactEmail(scraped.content);
   const lead = {
     name,
     address: place.formattedAddress || '',
     phone: place.nationalPhoneNumber || '',
     website,
+    email: contactEmail,
     lat: place.location?.latitude || null,
     lng: place.location?.longitude || null,
-    ...parsedLead,
+    hook: parsedLead.hook,
+    fitScore: parsedLead.fitScore,
+    budgetScore: parsedLead.budgetScore,
+    responseScore: parsedLead.responseScore,
   };
   lead.priorityScore = calculatePriorityScore(lead.fitScore, lead.budgetScore, lead.responseScore);
   return lead;

@@ -89,9 +89,7 @@ export default function LeadGeneration({
   leads,
   streaming,
   streamComplete,
-  onSend,
   onSkip,
-  sentLeads,
   skippedLeads,
   onBack,
   backLabel,
@@ -132,7 +130,7 @@ export default function LeadGeneration({
           {streaming
             ? `Finding leads... ${leads.length} discovered so far`
             : streamComplete
-              ? `${leads.length} qualified leads ready — sorted by priority`
+              ? `${leads.length} qualified leads with contact info — sorted by priority`
               : 'Preparing lead generation...'}
         </p>
       </div>
@@ -152,10 +150,15 @@ export default function LeadGeneration({
                 icon={createDotIcon(lead, isDark)}
               >
                 <Popup>
-                  <div className="text-gray-900">
+                  <div className="text-gray-900 text-sm space-y-1">
                     <strong>{lead.name}</strong>
-                    <br />
-                    Priority: {lead.priorityScore}
+                    <div>Priority: {lead.priorityScore}</div>
+                    {lead.phone && <div>{lead.phone}</div>}
+                    {lead.website && (
+                      <a href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-600">
+                        Website
+                      </a>
+                    )}
                   </div>
                 </Popup>
               </Marker>
@@ -180,9 +183,7 @@ export default function LeadGeneration({
             <LeadCard
               key={`${lead.name}-${i}`}
               lead={lead}
-              onSend={onSend}
               onSkip={onSkip}
-              sent={sentLeads.has(lead.name)}
               skipped={skippedLeads.has(lead.name)}
             />
           ))}

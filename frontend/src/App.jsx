@@ -58,7 +58,6 @@ export default function App() {
   const [leads, setLeads] = useState([]);
   const [streaming, setStreaming] = useState(false);
   const [streamComplete, setStreamComplete] = useState(false);
-  const [sentLeads, setSentLeads] = useState(new Set());
   const [skippedLeads, setSkippedLeads] = useState(new Set());
   const [ingestLogs, setIngestLogs] = useState([]);
   const [analysisLogs, setAnalysisLogs] = useState([]);
@@ -229,16 +228,6 @@ export default function App() {
       setLoading(false);
     }
   };
-
-  const handleSend = useCallback(async (lead) => {
-    const to = lead.email?.includes('@') ? lead.email : `contact@${lead.website?.replace(/https?:\/\//, '') || 'business.com'}`;
-    await api.sendEmail({
-      to,
-      subject: `Quick question about ${lead.name}`,
-      body: lead.email,
-    });
-    setSentLeads((prev) => new Set([...prev, lead.name]));
-  }, []);
 
   const handleSkip = useCallback((lead) => {
     setSkippedLeads((prev) => new Set([...prev, lead.name]));
@@ -577,9 +566,7 @@ export default function App() {
             leads={leads}
             streaming={streaming}
             streamComplete={streamComplete}
-            onSend={handleSend}
             onSkip={handleSkip}
-            sentLeads={sentLeads}
             skippedLeads={skippedLeads}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.leads]}

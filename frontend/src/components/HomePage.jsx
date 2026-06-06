@@ -25,7 +25,7 @@ const steps = [
   },
   {
     title: 'Generate leads',
-    description: 'Get qualified prospects with personalized outreach emails, ready to send.',
+    description: 'Get qualified prospects with contact details so you can reach out directly.',
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
     ),
@@ -43,7 +43,7 @@ const features = [
   },
   {
     title: 'AI-powered lead generation',
-    description: 'Find businesses that match your ideal gap and get draft emails tailored to each prospect.',
+    description: 'Find businesses that match your ideal gap with phone, email, and website contact info.',
   },
 ];
 
