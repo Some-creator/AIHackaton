@@ -48,16 +48,27 @@ export default function App() {
         companyId: ingestResult.companyId,
       };
       setContext(updatedContext);
-
-      setIngestLogs((prev) => [...prev, 'Running business analysis...']);
-      const analysisResult = await api.analyze(updatedContext);
-      setContext((prev) => ({ ...prev, analysis: analysisResult.analysis }));
       setStep('analysis');
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
       setIngestLogs([]);
+    }
+  };
+
+  const handleAnalyze = async (updatedBusiness) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const updatedContext = { ...context, business: updatedBusiness };
+      setContext(updatedContext);
+      const analysisResult = await api.analyze(updatedContext);
+      setContext((prev) => ({ ...prev, analysis: analysisResult.analysis }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -203,11 +214,12 @@ export default function App() {
           <Onboarding onSubmit={handleIngest} loading={loading} logs={ingestLogs} />
         )}
 
-        {step === 'analysis' && context.business && context.analysis && (
+        {step === 'analysis' && context.business && (
           <BusinessAnalysis
             business={context.business}
             analysis={context.analysis}
             companyId={context.companyId}
+            onAnalyze={handleAnalyze}
             onContinue={handleContinueToBenchmark}
             loading={loading}
           />

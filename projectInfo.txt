@@ -1,0 +1,111 @@
+# HookLine — Project Summary for the Team
+
+## What Are We Building?
+
+HookLine is an AI-powered business intelligence and lead generation platform for small local businesses. The core idea is simple: a business owner pastes their website URL, and HookLine does everything else. It analyzes their business, finds their competitors, identifies the gap in the market that nobody is filling, and then hands them a list of qualified local leads with personalized emails ready to send — all in one seamless flow.
+
+---
+
+## The Problem We're Solving
+
+Small business owners struggle with two things: they don't know how to position themselves against competitors, and they don't know where to find new customers. Tools like Apollo and Clay solve this for funded startups with sales teams, but nobody has built this for the local Houston print shop owner, the independent energy broker, or the boutique gym trying to get more members. HookLine is built specifically for them.
+
+---
+
+## How It Works — The 5 Agents
+
+HookLine runs five AI agents sequentially. Each one takes the output of the previous agent and builds on it. Think of it as an assembly line — raw input goes in one end, qualified leads with personalized emails come out the other.
+
+---
+
+### Agent 1 — Data Ingestion
+The user pastes their website URL and any social media links. Firecrawl scrapes the website and extracts all the content. Claude Sonnet reads everything and builds a structured business profile — name, location, services, target market, business type. This profile is shown to the user on a confirmation screen where they can edit anything that's wrong or add anything that's missing. Once they confirm, everything moves forward with a clean verified profile.
+
+---
+
+### Agent 2 — Business Analysis
+Claude Sonnet takes the verified business profile and produces an honest consultant-style assessment. It identifies what the business is doing well, what it's missing, what could be improved, and what competitors likely have that this business doesn't. The user sees a clean card broken into four sections: strengths, weaknesses, improvements, and missing elements. This is valuable on its own — even before leads are found, the business owner learns something real about their position in the market.
+
+---
+
+### Agent 3 — Competitor Benchmarking
+Google Places finds 3 to 5 similar businesses in the same city. Firecrawl scrapes each of their websites. Claude Sonnet compares them directly to the user's business and identifies what competitors are doing better, what they're doing worse, and specifically what they offer that the user does not. The user sees a competitor grid with clear side by side callouts. This sets up the most important agent — the market gap.
+
+---
+
+### Agent 4 — Market Gap
+This is our core differentiator. Claude Sonnet takes everything gathered so far — the user's business profile, their analysis, and the full competitor landscape — and scans for niches that competitors are not serving but where real demand exists. For example, if every marketing agency in Houston is targeting restaurants but nobody is targeting construction companies, the agent surfaces that gap as an opportunity. The user sees a gap opportunity card explaining the niche, why demand exists, why competitors are ignoring it, and why the user is positioned to fill it. No other tool does this for small local businesses.
+
+---
+
+### Agent 5 — Lead Generation
+Armed with the gap niche, the agent searches Google Places for local independent businesses operating in that space. It automatically filters out franchises and chain businesses. For every remaining lead it scrapes their website via Firecrawl, pulls their Google reviews, and pulls their Yelp reviews — all running in parallel simultaneously so it's fast. Claude Sonnet then analyzes each lead and identifies the single strongest hook — the specific real reason this business would respond to an outreach message right now. Every lead gets three scores: a fit score based on how well they match the ideal customer, a budget score based on estimated spending capacity, and a response score based on how likely the owner is to actually reply. Response score is weighted highest because a perfect fit that never responds is worthless. A priority score combines all three. Claude Sonnet then writes one short personalized email per lead built entirely around the hook — not a template, a real email that references something specific about that business. Finally it generates a send strategy telling the user the best channel, timing, and follow up approach for each lead. The user reviews the ranked lead cards and hits send. SendGrid delivers the email instantly.
+
+---
+
+## The User Experience
+
+The entire flow is one continuous screen-by-screen journey. The user never has to leave the app or open another tool. It goes: paste URL → confirm profile → see analysis → see competitors → see market gap → confirm target → watch leads load in real time on a map → review emails → send. Lead cards stream in one by one using Server-Sent Events so judges watching the demo see them populating live. That live loading moment is our biggest wow factor on stage.
+
+---
+
+## What Makes This Different
+
+Most lead generation tools are built for funded startup sales teams. They're expensive, complex, and assume the user knows what a CRM is. HookLine is built for the business owner who just wants three new clients this month and has never heard of Apollo. The market gap feature is something genuinely novel — instead of showing you who your competitors are, HookLine shows you who your competitors are ignoring. That's the insight that changes how a small business thinks about growth.
+
+---
+
+## Tech Stack
+
+| Layer | Tool |
+|---|---|
+| Frontend | React + Tailwind CSS |
+| Backend | Node.js with Express |
+| AI | Claude Sonnet via Anthropic API |
+| Lead Finding | Google Places API |
+| Extra Reviews | Yelp Fusion API |
+| Web Scraping | Firecrawl API |
+| Email Sending | SendGrid API |
+| Real Time Streaming | Server-Sent Events |
+| Map Display | Leaflet.js |
+| Hosting | Vercel |
+| Version Control | GitHub |
+
+---
+
+## Team Split
+
+| Person | Owns |
+|---|---|
+| Haider | Project scaffold, all Claude prompts, agent chaining, demo prep, pitch |
+| Person 2 | Frontend — all React components and UI |
+| Person 3 | Backend — Google Places, Yelp, Firecrawl, SendGrid integrations |
+| Person 4 | Agent pipeline — connecting all 5 Claude Sonnet calls together |
+
+---
+
+## The Rules We Follow
+
+**Mock data for everything.** Every agent has a hardcoded JSON fallback with one line to swap in if any live API fails during the demo. A confident demo on mock data beats a crashing demo on live data every single time.
+
+**JSON contracts are sacred.** Every agent has a defined input and output format. Nobody deviates from it. This is how four people vibe coding independently produce code that actually connects.
+
+**Nobody touches someone else's files.** Frontend stays in the frontend folder. Backend stays in the backend folder. Agents stay in the agents folder. Merge conflicts at 2am Sunday are how hackathons are lost.
+
+**Code freezes at 4pm Sunday.** No new features after 4pm. Bug fixes only. The team that's still adding features at 7pm is the team that demos a broken product.
+
+---
+
+## The Pitch
+
+*"Small business owners don't know where to find customers or how to position themselves. HookLine analyzes your business, benchmarks you against competitors, finds the niche nobody in your market is serving, and hands you a list of those customers with personalized emails ready to send. Most tools show you who your competitors are. HookLine shows you who your competitors are ignoring."*
+
+---
+
+## API Keys Everyone Needs Tonight
+
+- Anthropic API key → console.anthropic.com
+- Google Cloud → Places API enabled → console.cloud.google.com
+- Yelp Fusion API key → yelp.com/developers
+- Firecrawl API key → firecrawl.dev
+- SendGrid API key → sendgrid.com
