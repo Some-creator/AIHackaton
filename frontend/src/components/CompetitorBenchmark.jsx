@@ -30,7 +30,7 @@ export default function CompetitorBenchmark({ competitors, mock = false, mockRea
             {mockReason || 'live search unavailable'}
             {mockReason?.includes('GOOGLE_PLACES') && (
               <span className="block mt-1 text-xs opacity-80">
-                Add <code className="font-mono">GOOGLE_PLACES_API_KEY</code> in Railway variables and enable Places API (New) in Google Cloud.
+                Add <code className="font-mono">GOOGLE_PLACES_API_KEY</code> and/or <code className="font-mono">FIRECRAWL_API_KEY</code> for live competitor search (Places + web).
               </span>
             )}
           </div>
