@@ -76,8 +76,17 @@ export function parseLocationHints(location) {
 }
 
 function getAddressStateAbbrev(address) {
-  const match = String(address || '').match(/,\s*([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?/);
-  return match ? match[1].toUpperCase() : null;
+  const text = String(address || '').trim();
+  if (!text) return null;
+
+  // Prefer ", TX 77469" — avoids false matches like ", Ho" from "Houston"
+  const withZip = text.match(/,\s*([A-Z]{2})\s+\d{5}(?:-\d{4})?/);
+  if (withZip) return withZip[1].toUpperCase();
+
+  const beforeCountry = text.match(/,\s*([A-Z]{2})\s*,?\s*(?:USA|United States)?\s*$/i);
+  if (beforeCountry) return beforeCountry[1].toUpperCase();
+
+  return null;
 }
 
 function placeMatchesRegionText(address, hints) {
@@ -208,13 +217,22 @@ function filterPlacesByProximity(places, anchor, hints, maxDistanceKm, onSkip) {
     }
 
     const name = place.displayName?.text || place.displayName || 'Unknown';
-    onSkip?.({
-      name,
-      address: place.formattedAddress || '',
-      reason: anchor
-        ? 'outside local search radius'
-        : 'address does not match business region',
-    });
+    const address = place.formattedAddress || '';
+    const addressState = getAddressStateAbbrev(address);
+    let reason = 'address does not match business region';
+    if (anchor && place.location?.latitude != null && place.location?.longitude != null) {
+      const distanceKm = haversineKm(
+        anchor.latitude,
+        anchor.longitude,
+        place.location.latitude,
+        place.location.longitude
+      );
+      reason = `outside local search radius (${distanceKm.toFixed(0)} km)`;
+    } else if (hints?.stateAbbrev && addressState && addressState !== hints.stateAbbrev) {
+      reason = `address state ${addressState} does not match ${hints.stateAbbrev}`;
+    }
+
+    onSkip?.({ name, address, reason });
   }
 
   return kept;

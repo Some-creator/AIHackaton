@@ -353,11 +353,12 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
 
   const anchor = await geocodeLocation(location);
   if (anchor) {
-    onLog?.(`Anchoring search to ${location} (within ~50 miles)`);
+    onLog?.(`Anchoring search to ${location}`);
   } else {
     onLog?.(`Could not geocode ${location} — using text-based local search`);
   }
 
+  // Location-in-query search first — returns businesses in the target city, not just the metro box
   await searchGooglePlacesForCandidates({
     business,
     searchPlan,
@@ -367,7 +368,7 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
     collected,
     seen,
     onLog,
-    relaxed: false,
+    relaxed: true,
   });
 
   if (collected.length === 0) {
@@ -380,7 +381,7 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
       collected,
       seen,
       onLog,
-      relaxed: true,
+      relaxed: false,
     });
   }
 
