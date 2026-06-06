@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { callClaude } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
-import { USE_MOCK, hasOpenRouter } from '../backend/config.js';
+import { USE_MOCK, hasAnthropic } from '../backend/config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -71,7 +71,7 @@ function validateAndNormalize(parsed) {
 
 function shouldUseMock() {
   if (USE_MOCK) return true;
-  if (!hasOpenRouter) return true;
+  if (!hasAnthropic) return true;
   return false;
 }
 
@@ -81,7 +81,7 @@ export async function analysisAgent(context) {
   }
 
   if (shouldUseMock()) {
-    return mockFallback('USE_MOCK enabled or OPENROUTER_API_KEY missing');
+    return mockFallback('USE_MOCK enabled or ANTHROPIC_API_KEY missing');
   }
 
   try {
