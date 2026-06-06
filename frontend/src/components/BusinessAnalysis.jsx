@@ -191,7 +191,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             )}
           </button>
 
-          <ActivityLog logs={benchmarkLogs} title="Competitor benchmark" />
+          <ActivityLog logs={benchmarkLogs} title="Competitor benchmark" loading={loading} />
         </>
       )}
     </div>

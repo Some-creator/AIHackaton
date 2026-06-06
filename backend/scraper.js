@@ -17,6 +17,7 @@ export async function scrapeWebsite(url) {
       formats: ['markdown'],
       onlyMainContent: true,
     }),
+    signal: AbortSignal.timeout(20000),
   });
 
   if (!response.ok) {

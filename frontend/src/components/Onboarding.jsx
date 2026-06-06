@@ -76,7 +76,7 @@ export default function Onboarding({ onSubmit, loading, logs = [] }) {
           )}
         </button>
 
-        {loading && <ActivityLog logs={logs} title="Agent 1 — Reading your website" />}
+        {loading && <ActivityLog logs={logs} title="Agent 1 — Reading your website" loading={loading} />}
       </form>
     </div>
   );

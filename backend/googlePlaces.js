@@ -14,6 +14,7 @@ export async function searchPlaces(query, location) {
       'X-Goog-FieldMask': PLACES_FIELD_MASK,
     },
     body: JSON.stringify({ textQuery: `${query} in ${location}` }),
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!response.ok) {
@@ -34,6 +35,7 @@ export async function getPlaceDetails(placeId) {
       'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'displayName,formattedAddress,websiteUri,rating,userRatingCount,reviews',
     },
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!response.ok) throw new Error(`Google Places details failed: ${response.status}`);
