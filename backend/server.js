@@ -12,7 +12,6 @@ import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
 import { createCompany, updateCompany, getCompany, initFirebase, getFirebaseStatus } from './firebase.js';
 import {
-  USE_MOCK,
   hasAnthropic,
   hasGooglePlaces,
   hasFirecrawl,
@@ -47,12 +46,12 @@ app.get('/api/health', (_req, res) => {
     service: 'hookline-backend',
     firebase: getFirebaseStatus(),
     services: {
-      useMock: USE_MOCK,
+      useMock: false,
       anthropic: hasAnthropic,
       googlePlaces: hasGooglePlaces,
       firecrawl: hasFirecrawl,
       apify: hasApify,
-      agent3Live: !USE_MOCK && hasAnthropic && hasGooglePlaces,
+      agent3Live: hasAnthropic && hasGooglePlaces,
     },
   });
 });
