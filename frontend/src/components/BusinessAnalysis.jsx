@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ServiceTags from './ServiceTags';
+import SocialProfileTags from './SocialProfileTags';
 
 const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
@@ -26,7 +27,7 @@ function AnalysisSection({ title, items, color }) {
   );
 }
 
-export default function BusinessAnalysis({ business, analysis, onAnalyze, onContinue, loading, companyId }) {
+export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, benchmarkLogs = [] }) {
   const [profile, setProfile] = useState({ ...business });
 
   const updateField = (field, value) => {
@@ -44,8 +45,12 @@ export default function BusinessAnalysis({ business, analysis, onAnalyze, onCont
             ? 'Review your profile and analysis below.'
             : 'Review and edit your business details, then run the analysis.'}
         </p>
-        {companyId && (
-          <p className="text-xs text-gray-400 mt-2">Saved to database · ID: {companyId}</p>
+        {companyId ? (
+          <p className="text-xs text-gray-400 mt-2">Saved to Firestore · companies/{companyId}</p>
+        ) : (
+          <p className="text-xs text-amber-600 mt-2">
+            Not saved to database — check Firebase credentials in .env (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)
+          </p>
         )}
       </div>
 
@@ -111,11 +116,10 @@ export default function BusinessAnalysis({ business, analysis, onAnalyze, onCont
           placeholder="e.g. Mobile beverage catering"
         />
 
-        <ServiceTags
-          label="Social Profiles"
+        <SocialProfileTags
           items={profile.socialProfiles || []}
+          socialScrapes={socialScrapes}
           onChange={(socialProfiles) => updateField('socialProfiles', socialProfiles)}
-          placeholder="e.g. instagram.com/yourbusiness"
         />
       </div>
 

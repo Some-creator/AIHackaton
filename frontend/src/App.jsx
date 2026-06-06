@@ -46,6 +46,8 @@ export default function App() {
       setContext({
         business: ingestResult.business,
         companyId: ingestResult.companyId,
+        saved: ingestResult.saved,
+        socialScrapes: ingestResult.socialScrapes || [],
       });
       setStep('analysis');
     } catch (err) {
@@ -221,6 +223,7 @@ export default function App() {
           <BusinessAnalysis
             business={context.business}
             analysis={context.analysis}
+            socialScrapes={context.socialScrapes}
             companyId={context.companyId}
             onAnalyze={handleAnalyze}
             onContinue={handleContinueToBenchmark}

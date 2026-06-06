@@ -10,7 +10,7 @@ import { benchmarkAgent } from '../agents/benchmarkAgent.js';
 import { gapAgent } from '../agents/gapAgent.js';
 import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
-import { createCompany, updateCompany, getCompany } from './firebase.js';
+import { createCompany, updateCompany, getCompany, initFirebase, getFirebaseStatus } from './firebase.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
@@ -29,8 +29,10 @@ const ingestSessions = new Map();
 app.use(cors());
 app.use(express.json());
 
+initFirebase();
+
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'hookline-backend' });
+  res.json({ status: 'ok', service: 'hookline-backend', firebase: getFirebaseStatus() });
 });
 
 app.post('/api/ingest', async (req, res) => {
@@ -39,13 +41,16 @@ app.post('/api/ingest', async (req, res) => {
     if (!url) return res.status(400).json({ error: 'Website URL is required' });
 
     const result = await ingestionAgent(url, socialProfiles);
-    const { id: companyId } = await createCompany({
+    const { id: companyId, saved, error: saveError } = await createCompany({
+      url,
+      socialProfiles,
       business: result.business,
+      socialScrapes: result.socialScrapes || [],
       step: 'ingested',
       mock: result.mock ?? false,
     });
 
-    res.json({ ...result, companyId });
+    res.json({ ...result, companyId, saved, saveError });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -82,22 +87,71 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
     'Access-Control-Allow-Origin': '*',
   });
 
+  let companyId = null;
+
   try {
+    const initialSave = await createCompany({
+      url: session.url,
+      socialProfiles: session.socialProfiles,
+      step: 'ingesting',
+      ingestStartedAt: new Date().toISOString(),
+    });
+    companyId = initialSave.id;
+
+    if (initialSave.saved) {
+      res.write(`data: ${JSON.stringify({ type: 'log', message: `Database record created (${companyId})` })}\n\n`);
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'log', message: `Warning: could not save to database — ${initialSave.error || 'Firebase not configured'}` })}\n\n`);
+    }
+
     for await (const event of streamIngestion(session.url, session.socialProfiles)) {
       if (event.type === 'log') {
         res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
       } else if (event.type === 'complete') {
         res.write(`data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
-        const { id: companyId } = await createCompany({
-          business: event.business,
-          step: 'ingested',
-          mock: event.mock ?? false,
-        });
+
+        let saved = false;
+        let saveError = null;
+
+        if (companyId) {
+          const update = await updateCompany(companyId, {
+            url: session.url,
+            socialProfiles: session.socialProfiles,
+            business: event.business,
+            socialScrapes: event.socialScrapes || [],
+            step: 'ingested',
+            mock: event.mock ?? false,
+            ingestCompletedAt: new Date().toISOString(),
+          });
+          saved = update.saved;
+          saveError = update.error;
+        } else {
+          const created = await createCompany({
+            url: session.url,
+            socialProfiles: session.socialProfiles,
+            business: event.business,
+            socialScrapes: event.socialScrapes || [],
+            step: 'ingested',
+            mock: event.mock ?? false,
+            ingestCompletedAt: new Date().toISOString(),
+          });
+          companyId = created.id;
+          saved = created.saved;
+          saveError = created.error;
+        }
+
+        if (!saved) {
+          res.write(`data: ${JSON.stringify({ type: 'log', message: `Warning: profile not saved to database — ${saveError || 'unknown error'}` })}\n\n`);
+        }
+
         res.write(`data: ${JSON.stringify({
           type: 'complete',
           business: event.business,
+          socialScrapes: event.socialScrapes || [],
           mock: event.mock ?? false,
           companyId,
+          saved,
+          saveError,
         })}\n\n`);
       }
     }
@@ -119,6 +173,7 @@ app.post('/api/analyze', async (req, res) => {
       await updateCompany(context.companyId, {
         business: context.business,
         analysis: result.analysis,
+        socialScrapes: context.socialScrapes || [],
         step: 'analyzed',
       });
     }
