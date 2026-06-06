@@ -121,6 +121,33 @@ export async function findGaps(context) {
   return post('/gap', context);
 }
 
+export async function createGapSession(context) {
+  return post('/gap/session', context);
+}
+
+export function streamGaps(sessionId, { onLog, onComplete, onError }) {
+  const eventSource = new EventSource(`${API_BASE}/gap/stream/${sessionId}`);
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'log') onLog?.(data.message);
+    else if (data.type === 'complete') {
+      onComplete?.(data);
+      eventSource.close();
+    } else if (data.type === 'error') {
+      onError?.(new Error(data.error));
+      eventSource.close();
+    }
+  };
+
+  eventSource.onerror = () => {
+    onError?.(new Error('Connection to gap stream lost'));
+    eventSource.close();
+  };
+
+  return eventSource;
+}
+
 export async function createLeadSession(context) {
   return post('/leads/session', context);
 }

@@ -1,6 +1,7 @@
 import { useTheme } from '../context/ThemeContext';
+import ActivityLog from './ActivityLog';
 
-export default function CompetitorBenchmark({ competitors, mock = false, mockReason, onContinue, loading }) {
+export default function CompetitorBenchmark({ competitors, mock = false, mockReason, onContinue, loading, gapLogs = [] }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -86,6 +87,12 @@ export default function CompetitorBenchmark({ competitors, mock = false, mockRea
           </div>
         ))}
       </div>
+
+      {loading && (
+        <div className="mb-6">
+          <ActivityLog logs={gapLogs} title="Agent 4 — Finding market gaps" />
+        </div>
+      )}
 
       <button
         onClick={onContinue}

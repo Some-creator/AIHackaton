@@ -37,6 +37,7 @@ export default function App() {
   const [ingestLogs, setIngestLogs] = useState([]);
   const [analysisLogs, setAnalysisLogs] = useState([]);
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
+  const [gapLogs, setGapLogs] = useState([]);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
@@ -136,18 +137,31 @@ export default function App() {
   const handleFindGaps = async () => {
     setLoading(true);
     setError(null);
+    setGapLogs([]);
     try {
-      const gapResult = await api.findGaps(context);
+      const { sessionId } = await api.createGapSession(context);
+
+      const gapResult = await new Promise((resolve, reject) => {
+        api.streamGaps(sessionId, {
+          onLog: (message) => setGapLogs((prev) => [...prev, message]),
+          onComplete: resolve,
+          onError: reject,
+        });
+      });
+
       setContext((prev) => ({
         ...prev,
         gaps: gapResult.gaps,
         recommendedGap: gapResult.recommendedGap,
+        gapsMock: gapResult.mock ?? false,
+        gapsMockReason: gapResult.mockReason || null,
       }));
       setStep('gap');
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setGapLogs([]);
     }
   };
 
@@ -405,6 +419,7 @@ export default function App() {
             mockReason={context.competitorsMockReason}
             onContinue={handleFindGaps}
             loading={loading}
+            gapLogs={gapLogs}
           />
         )}
 
