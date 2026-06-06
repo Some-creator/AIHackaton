@@ -43,11 +43,10 @@ export default function App() {
         });
       });
 
-      const updatedContext = {
+      setContext({
         business: ingestResult.business,
         companyId: ingestResult.companyId,
-      };
-      setContext(updatedContext);
+      });
       setStep('analysis');
     } catch (err) {
       setError(err.message);
@@ -64,7 +63,11 @@ export default function App() {
       const updatedContext = { ...context, business: updatedBusiness };
       setContext(updatedContext);
       const analysisResult = await api.analyze(updatedContext);
-      setContext((prev) => ({ ...prev, analysis: analysisResult.analysis }));
+      setContext((prev) => ({
+        ...prev,
+        business: updatedBusiness,
+        analysis: analysisResult.analysis,
+      }));
     } catch (err) {
       setError(err.message);
     } finally {

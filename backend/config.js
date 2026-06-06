@@ -1,9 +1,11 @@
 import dotenv from 'dotenv';
 import { existsSync } from 'fs';
-import path from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-const envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const envPath = join(__dirname, '..', '.env');
+
 if (existsSync(envPath)) {
   dotenv.config({ path: envPath });
 }
