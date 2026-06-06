@@ -1,32 +1,53 @@
 import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../context/ThemeContext';
 import LeadCard from './LeadCard';
 
-const createDotIcon = (isDark) => {
-  const dotColor = '#4f6ef7'; // Hookline primary color
+const createDotIcon = (lead, isDark) => {
+  const isPriority = parseFloat(lead.priorityScore) >= 8.0;
+  const dotColor = isPriority ? '#ef4444' : '#3b82f6'; // Red for priority leads, Blue for others
   return L.divIcon({
     html: `
-      <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; height: 60px; pointer-events: none;">
+        <!-- Text label on top -->
         <div style="
-          position: absolute;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background-color: ${dotColor};
-          opacity: 0.4;
-          animation: leaflet-pulsate 1.5s ease-out infinite;
-        "></div>
-        <div style="
-          position: relative;
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background-color: ${dotColor};
-          border: 2px solid ${isDark ? '#18181b' : '#ffffff'};
-          box-shadow: 0 0 8px ${dotColor};
-        "></div>
+          background-color: ${isDark ? 'rgba(24, 24, 27, 0.95)' : 'rgba(255, 255, 255, 0.95)'};
+          color: ${isDark ? '#e4e4e7' : '#18181b'};
+          border: 1px solid ${isDark ? '#3f3f46' : '#d4d4d8'};
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 700;
+          white-space: nowrap;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          margin-bottom: 4px;
+          pointer-events: auto;
+        ">
+          ${lead.name}
+        </div>
+        <!-- Dot -->
+        <div style="position: relative; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">
+          <div style="
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: ${dotColor};
+            opacity: 0.4;
+            animation: leaflet-pulsate 1.5s ease-out infinite;
+          "></div>
+          <div style="
+            position: relative;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: ${dotColor};
+            border: 2px solid ${isDark ? '#18181b' : '#ffffff'};
+            box-shadow: 0 0 6px ${dotColor};
+          "></div>
+        </div>
       </div>
       <style>
         @keyframes leaflet-pulsate {
@@ -35,12 +56,31 @@ const createDotIcon = (isDark) => {
         }
       </style>
     `,
-    className: 'custom-leaflet-dot',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -12],
+    className: 'custom-leaflet-dot-label',
+    iconSize: [120, 60],
+    iconAnchor: [60, 50],
+    popupAnchor: [0, -40],
   });
 };
+
+function MapBoundsUpdater({ leads }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (leads.length === 0) return;
+    const validLeads = leads.filter((l) => {
+      const lat = parseFloat(l.lat);
+      const lng = parseFloat(l.lng);
+      return !isNaN(lat) && !isNaN(lng);
+    });
+    if (validLeads.length === 0) return;
+
+    const bounds = L.latLngBounds(validLeads.map((l) => [parseFloat(l.lat), parseFloat(l.lng)]));
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+  }, [leads, map]);
+
+  return null;
+}
 
 const HOUSTON_CENTER = [29.7604, -95.3698];
 
@@ -90,11 +130,12 @@ export default function LeadGeneration({
               attribution={isDark ? '&copy; <a href="https://carto.com/attributions">CARTO</a>' : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}
               url={isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
             />
+            <MapBoundsUpdater leads={mapLeads} />
             {mapLeads.map((lead, i) => (
               <Marker 
                 key={i} 
                 position={[parseFloat(lead.lat), parseFloat(lead.lng)]} 
-                icon={createDotIcon(isDark)}
+                icon={createDotIcon(lead, isDark)}
               >
                 <Popup>
                   <div className="text-gray-900">
