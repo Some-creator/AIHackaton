@@ -18,7 +18,7 @@ export function ContainerScroll({
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ['start start', 'end start'],
+    offset: ['start end', 'end start'],
   });
   const [isMobile, setIsMobile] = useState(false);
   const isDark = theme === 'dark';
@@ -30,26 +30,24 @@ export function ContainerScroll({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const scaleDimensions = () => (isMobile ? [0.7, 0.92] : [1.05, 1]);
-  const rotate = useTransform(scrollYProgress, [0, 1], [20, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], scaleDimensions());
-  const translate = useTransform(scrollYProgress, [0, 1], [0, -100]);
+  // Flat at rest; subtle motion only while scrolling through the section
+  const rotate = useTransform(scrollYProgress, [0, 0.35, 1], [0, 0, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.4, 1], isMobile ? [1, 1, 0.94] : [1, 1, 0.96]);
+  const headerY = useTransform(scrollYProgress, [0, 0.5, 1], [0, -12, -48]);
+  const headerOpacity = useTransform(scrollYProgress, [0, 0.6, 1], [1, 1, 0.85]);
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        'relative flex items-center justify-center p-2 md:p-12',
+        'relative flex items-center justify-center px-4 py-16 md:py-24',
         isDark ? 'bg-black' : 'bg-[#f5f5f7]',
         className,
       )}
-      style={{ height: isMobile ? '52rem' : '72rem' }}
+      style={{ minHeight: isMobile ? 'auto' : '100vh' }}
     >
-      <div
-        className="py-8 md:py-24 w-full relative"
-        style={{ perspective: '1000px' }}
-      >
-        <ScrollHeader translate={translate} titleComponent={titleComponent} />
+      <div className="w-full max-w-5xl mx-auto flex flex-col gap-10 md:gap-14">
+        <ScrollHeader translate={headerY} opacity={headerOpacity} titleComponent={titleComponent} />
         <ScrollCard rotate={rotate} scale={scale} theme={theme}>
           {children}
         </ScrollCard>
@@ -57,7 +55,7 @@ export function ContainerScroll({
 
       <div
         className={cn(
-          'pointer-events-none absolute inset-x-0 bottom-0 h-40',
+          'pointer-events-none absolute inset-x-0 bottom-0 h-24',
           isDark
             ? 'bg-gradient-to-b from-transparent to-zinc-950'
             : 'bg-gradient-to-b from-transparent to-white',
@@ -69,15 +67,17 @@ export function ContainerScroll({
 
 function ScrollHeader({
   translate,
+  opacity,
   titleComponent,
 }: {
   translate: MotionValue<number>;
+  opacity: MotionValue<number>;
   titleComponent: string | ReactNode;
 }) {
   return (
     <motion.div
-      style={{ translateY: translate }}
-      className="max-w-5xl mx-auto text-center px-4"
+      style={{ translateY: translate, opacity }}
+      className="relative z-20 text-center px-2"
     >
       {titleComponent}
     </motion.div>
@@ -102,18 +102,18 @@ function ScrollCard({
       style={{
         rotateX: rotate,
         scale,
-        boxShadow:
-          '0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003',
+        transformPerspective: 1200,
+        transformOrigin: 'center bottom',
       }}
       className={cn(
-        'max-w-5xl -mt-8 md:-mt-12 mx-auto h-[26rem] md:h-[36rem] w-full border-4 p-2 md:p-5 rounded-[30px] shadow-2xl',
-        isDark ? 'border-zinc-600 bg-[#222222]' : 'border-gray-300 bg-gray-200',
+        'relative z-10 mx-auto w-full h-[22rem] sm:h-[28rem] md:h-[32rem] border-2 p-2 md:p-4 rounded-3xl shadow-xl',
+        isDark ? 'border-zinc-700 bg-zinc-900' : 'border-gray-200 bg-white',
       )}
     >
       <div
         className={cn(
-          'h-full w-full overflow-hidden rounded-2xl md:p-3',
-          isDark ? 'bg-zinc-900' : 'bg-gray-100',
+          'h-full w-full overflow-hidden rounded-2xl',
+          isDark ? 'bg-zinc-950' : 'bg-gray-50',
         )}
       >
         {children}

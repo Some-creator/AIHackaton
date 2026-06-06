@@ -87,7 +87,7 @@ export default function HomePage({ onGetStarted }) {
 
       <ContainerScroll
         theme={theme}
-        className="-mb-16 md:-mb-24"
+        className="-mb-8 md:-mb-12"
         titleComponent={
           <div className="space-y-4">
             <p
