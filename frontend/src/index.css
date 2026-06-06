@@ -158,7 +158,7 @@
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-    animation: text-gradient-flow 4s linear infinite;
+    animation: text-gradient-flow 10s linear infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
