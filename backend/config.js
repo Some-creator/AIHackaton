@@ -1,3 +1,13 @@
+import dotenv from 'dotenv';
+import { existsSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env');
+if (existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+}
+
 export const USE_MOCK = process.env.USE_MOCK === 'true';
 
 export const hasFirecrawl = Boolean(process.env.FIRECRAWL_API_KEY);
