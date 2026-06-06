@@ -127,15 +127,19 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
       ) : (
         <>
           <div className="mb-8">
-            <h2 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Analysis</h2>
-            <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>AI-powered assessment of your strengths and opportunities.</p>
+            <h2 className={`font-section-title text-2xl mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Business Analysis
+            </h2>
+            <p className={`font-body-medium ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+              AI-powered assessment of your strengths and opportunities.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
             <GlassAnalysisCard title="Strengths" items={analysis.strengths} color="green" isDark={isDark} />
-            <GlassAnalysisCard title="Weaknesses" items={analysis.weaknesses} color="amber" isDark={isDark} />
+            <GlassAnalysisCard title="Weaknesses" items={analysis.weaknesses} color="orange" isDark={isDark} />
             <GlassAnalysisCard title="Improvements" items={analysis.improvements} color="blue" isDark={isDark} />
-            <GlassAnalysisCard title="Missing" items={analysis.missing} color="red" isDark={isDark} />
+            <GlassAnalysisCard title="Missing" items={analysis.missing} color="violet" isDark={isDark} />
           </div>
 
           <button

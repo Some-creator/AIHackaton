@@ -1,148 +1,114 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { AlertTriangle, CheckCircle2, Lightbulb, SearchX } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { AlertTriangle, CheckCircle2, Lightbulb, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type GlassEffectProps = {
-  children: ReactNode;
-  className?: string;
-  style?: CSSProperties;
-  tint?: string;
-  accentClass?: string;
-};
+export type GlassCardColor = 'green' | 'orange' | 'blue' | 'violet';
 
-export function GlassFilter() {
-  return null;
-}
-
-export function GlassEffect({
-  children,
-  className = '',
-  style = {},
-  tint = 'rgba(255, 255, 255, 0.06)',
-  accentClass = 'border-l-zinc-500',
-}: GlassEffectProps) {
-  return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-2xl border border-white/10 shadow-lg',
-        'border-l-[5px]',
-        accentClass,
-        className,
-      )}
-      style={{
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.18)',
-        ...style,
-      }}
-    >
-      <div
-        className="absolute inset-0 rounded-inherit"
-        style={{
-          backdropFilter: 'blur(16px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-          background: tint,
-        }}
-      />
-      <div
-        className="pointer-events-none absolute inset-0 rounded-inherit"
-        style={{
-          boxShadow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.12)',
-        }}
-      />
-      <div className="relative">{children}</div>
-    </div>
-  );
-}
-
-export type GlassCardColor = 'green' | 'amber' | 'blue' | 'red';
-
-const glassThemes = {
+const cardConfig = {
   green: {
+    subtitle: "What's working well",
+    Icon: CheckCircle2,
     dark: {
-      tint: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(6, 78, 59, 0.35) 100%)',
-      accentClass: 'border-l-emerald-400',
-      iconBg: 'bg-emerald-500/25 border border-emerald-400/30',
-      iconColor: 'text-emerald-300',
-      label: 'text-emerald-300',
-      bullet: 'bg-emerald-400',
-      body: 'text-zinc-200',
+      strip: 'bg-gradient-to-r from-emerald-500 to-teal-400',
+      glow: 'shadow-[0_0_40px_-12px_rgba(16,185,129,0.45)]',
+      shell: 'border-emerald-500/20 bg-zinc-900/70',
+      iconWrap: 'bg-emerald-500/15 border-emerald-400/25 text-emerald-400',
+      title: 'text-emerald-400',
+      badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
+      item: 'border-emerald-500/10 bg-emerald-500/[0.06]',
+      dot: 'bg-emerald-400',
+      body: 'text-zinc-300',
     },
     light: {
-      tint: 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(209, 250, 229, 0.55) 100%)',
-      accentClass: 'border-l-emerald-500',
-      iconBg: 'bg-emerald-100 border border-emerald-200',
-      iconColor: 'text-emerald-700',
-      label: 'text-emerald-800',
-      bullet: 'bg-emerald-500',
-      body: 'text-gray-800',
+      strip: 'bg-gradient-to-r from-emerald-500 to-teal-400',
+      glow: 'shadow-[0_8px_30px_-10px_rgba(16,185,129,0.35)]',
+      shell: 'border-emerald-200 bg-white/90',
+      iconWrap: 'bg-emerald-50 border-emerald-200 text-emerald-600',
+      title: 'text-emerald-700',
+      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      item: 'border-emerald-100 bg-emerald-50/50',
+      dot: 'bg-emerald-500',
+      body: 'text-gray-700',
     },
   },
-  amber: {
+  orange: {
+    subtitle: 'Areas to address',
+    Icon: AlertTriangle,
     dark: {
-      tint: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(120, 53, 15, 0.35) 100%)',
-      accentClass: 'border-l-amber-400',
-      iconBg: 'bg-amber-500/25 border border-amber-400/30',
-      iconColor: 'text-amber-300',
-      label: 'text-amber-300',
-      bullet: 'bg-amber-400',
-      body: 'text-zinc-200',
+      strip: 'bg-gradient-to-r from-orange-500 to-amber-400',
+      glow: 'shadow-[0_0_40px_-12px_rgba(249,115,22,0.45)]',
+      shell: 'border-orange-500/20 bg-zinc-900/70',
+      iconWrap: 'bg-orange-500/15 border-orange-400/25 text-orange-400',
+      title: 'text-orange-400',
+      badge: 'bg-orange-500/15 text-orange-300 border-orange-500/25',
+      item: 'border-orange-500/10 bg-orange-500/[0.06]',
+      dot: 'bg-orange-400',
+      body: 'text-zinc-300',
     },
     light: {
-      tint: 'linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(254, 243, 199, 0.6) 100%)',
-      accentClass: 'border-l-amber-500',
-      iconBg: 'bg-amber-100 border border-amber-200',
-      iconColor: 'text-amber-700',
-      label: 'text-amber-900',
-      bullet: 'bg-amber-500',
-      body: 'text-gray-800',
+      strip: 'bg-gradient-to-r from-orange-500 to-amber-400',
+      glow: 'shadow-[0_8px_30px_-10px_rgba(249,115,22,0.3)]',
+      shell: 'border-orange-200 bg-white/90',
+      iconWrap: 'bg-orange-50 border-orange-200 text-orange-600',
+      title: 'text-orange-700',
+      badge: 'bg-orange-50 text-orange-700 border-orange-200',
+      item: 'border-orange-100 bg-orange-50/50',
+      dot: 'bg-orange-500',
+      body: 'text-gray-700',
     },
   },
   blue: {
+    subtitle: 'Recommended actions',
+    Icon: Lightbulb,
     dark: {
-      tint: 'linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(30, 58, 138, 0.35) 100%)',
-      accentClass: 'border-l-sky-400',
-      iconBg: 'bg-sky-500/25 border border-sky-400/30',
-      iconColor: 'text-sky-300',
-      label: 'text-sky-300',
-      bullet: 'bg-sky-400',
-      body: 'text-zinc-200',
+      strip: 'bg-gradient-to-r from-[#0071e3] to-[#2997ff]',
+      glow: 'shadow-[0_0_40px_-12px_rgba(0,113,227,0.5)]',
+      shell: 'border-[#0071e3]/25 bg-zinc-900/70',
+      iconWrap: 'bg-[#0071e3]/15 border-[#2997ff]/25 text-[#2997ff]',
+      title: 'text-[#2997ff]',
+      badge: 'bg-[#0071e3]/15 text-sky-300 border-[#0071e3]/25',
+      item: 'border-[#0071e3]/10 bg-[#0071e3]/[0.08]',
+      dot: 'bg-[#2997ff]',
+      body: 'text-zinc-300',
     },
     light: {
-      tint: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(219, 234, 254, 0.65) 100%)',
-      accentClass: 'border-l-blue-500',
-      iconBg: 'bg-blue-100 border border-blue-200',
-      iconColor: 'text-blue-700',
-      label: 'text-blue-900',
-      bullet: 'bg-blue-500',
-      body: 'text-gray-800',
+      strip: 'bg-gradient-to-r from-[#0071e3] to-[#2997ff]',
+      glow: 'shadow-[0_8px_30px_-10px_rgba(0,113,227,0.25)]',
+      shell: 'border-blue-200 bg-white/90',
+      iconWrap: 'bg-blue-50 border-blue-200 text-[#0071e3]',
+      title: 'text-[#0071e3]',
+      badge: 'bg-blue-50 text-[#0071e3] border-blue-200',
+      item: 'border-blue-100 bg-blue-50/40',
+      dot: 'bg-[#0071e3]',
+      body: 'text-gray-700',
     },
   },
-  red: {
+  violet: {
+    subtitle: 'Gaps in your offering',
+    Icon: Sparkles,
     dark: {
-      tint: 'linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(136, 19, 55, 0.35) 100%)',
-      accentClass: 'border-l-rose-400',
-      iconBg: 'bg-rose-500/25 border border-rose-400/30',
-      iconColor: 'text-rose-300',
-      label: 'text-rose-300',
-      bullet: 'bg-rose-400',
-      body: 'text-zinc-200',
+      strip: 'bg-gradient-to-r from-violet-500 to-purple-400',
+      glow: 'shadow-[0_0_40px_-12px_rgba(139,92,246,0.45)]',
+      shell: 'border-violet-500/20 bg-zinc-900/70',
+      iconWrap: 'bg-violet-500/15 border-violet-400/25 text-violet-400',
+      title: 'text-violet-400',
+      badge: 'bg-violet-500/15 text-violet-300 border-violet-500/25',
+      item: 'border-violet-500/10 bg-violet-500/[0.06]',
+      dot: 'bg-violet-400',
+      body: 'text-zinc-300',
     },
     light: {
-      tint: 'linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(255, 228, 230, 0.65) 100%)',
-      accentClass: 'border-l-rose-500',
-      iconBg: 'bg-rose-100 border border-rose-200',
-      iconColor: 'text-rose-700',
-      label: 'text-rose-900',
-      bullet: 'bg-rose-500',
-      body: 'text-gray-800',
+      strip: 'bg-gradient-to-r from-violet-500 to-purple-400',
+      glow: 'shadow-[0_8px_30px_-10px_rgba(139,92,246,0.3)]',
+      shell: 'border-violet-200 bg-white/90',
+      iconWrap: 'bg-violet-50 border-violet-200 text-violet-600',
+      title: 'text-violet-700',
+      badge: 'bg-violet-50 text-violet-700 border-violet-200',
+      item: 'border-violet-100 bg-violet-50/50',
+      dot: 'bg-violet-500',
+      body: 'text-gray-700',
     },
   },
-};
-
-const cardIcons = {
-  green: CheckCircle2,
-  amber: AlertTriangle,
-  blue: Lightbulb,
-  red: SearchX,
 };
 
 type GlassAnalysisCardProps = {
@@ -153,31 +119,74 @@ type GlassAnalysisCardProps = {
 };
 
 export function GlassAnalysisCard({ title, items, color, isDark = true }: GlassAnalysisCardProps) {
-  const theme = glassThemes[color][isDark ? 'dark' : 'light'];
-  const Icon = cardIcons[color];
+  const config = cardConfig[color];
+  const theme = config[isDark ? 'dark' : 'light'];
+  const Icon = config.Icon;
 
   return (
-    <GlassEffect
-      className={isDark ? 'bg-zinc-950/40' : 'bg-white/60 border-black/5'}
-      tint={theme.tint}
-      accentClass={theme.accentClass}
+    <article
+      className={cn(
+        'group relative overflow-hidden rounded-3xl border backdrop-blur-xl transition-all duration-300',
+        'hover:-translate-y-0.5',
+        theme.shell,
+        theme.glow,
+      )}
     >
-      <div className="p-5">
-        <div className="mb-4 flex items-center gap-3">
-          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', theme.iconBg)}>
-            <Icon className={cn('h-5 w-5', theme.iconColor)} aria-hidden="true" />
+      <div className={cn('h-1.5 w-full', theme.strip)} aria-hidden="true" />
+
+      <div className="p-5 sm:p-6">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border',
+                theme.iconWrap,
+              )}
+            >
+              <Icon className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <h3 className={cn('font-section-title text-lg leading-tight', theme.title)}>{title}</h3>
+              <p className={cn('mt-0.5 text-xs font-body-medium', isDark ? 'text-zinc-500' : 'text-gray-500')}>
+                {config.subtitle}
+              </p>
+            </div>
           </div>
-          <h3 className={cn('font-section-title text-base tracking-wide', theme.label)}>{title}</h3>
+          <span
+            className={cn(
+              'shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold tabular-nums',
+              theme.badge,
+            )}
+          >
+            {items.length}
+          </span>
         </div>
+
         <ul className="space-y-2.5">
           {items.map((item, index) => (
-            <li key={index} className={cn('flex gap-3 text-sm font-body leading-relaxed', theme.body)}>
-              <span className={cn('mt-2 h-2 w-2 shrink-0 rounded-full', theme.bullet)} />
-              {item}
+            <li
+              key={index}
+              className={cn(
+                'flex gap-3 rounded-2xl border px-3.5 py-3 text-sm font-body leading-relaxed',
+                theme.item,
+                theme.body,
+              )}
+            >
+              <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', theme.dot)} aria-hidden="true" />
+              <span>{item}</span>
             </li>
           ))}
         </ul>
       </div>
-    </GlassEffect>
+    </article>
   );
+}
+
+// Kept for compatibility if referenced elsewhere
+export function GlassFilter() {
+  return null;
+}
+
+export function GlassEffect({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={className}>{children}</div>;
 }
