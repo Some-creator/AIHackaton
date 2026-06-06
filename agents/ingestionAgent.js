@@ -13,17 +13,29 @@ const mockData = JSON.parse(
 );
 
 const VALID_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
+const MAX_SOCIAL_SCRAPES = 4;
 
-const EXTRACTION_SYSTEM = `You are a business data extraction agent. Read scraped website content and extract structured business information.
+const SOCIAL_URL_PATTERNS = [
+  /https?:\/\/(?:www\.)?instagram\.com\/[\w.-]+\/?/gi,
+  /https?:\/\/(?:www\.)?facebook\.com\/[\w.-]+\/?/gi,
+  /https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[\w.-]+\/?/gi,
+  /https?:\/\/(?:www\.)?tiktok\.com\/@?[\w.-]+\/?/gi,
+  /https?:\/\/(?:www\.)?linkedin\.com\/(?:company|in)\/[\w.-]+\/?/gi,
+  /https?:\/\/(?:www\.)?youtube\.com\/(?:@|channel\/|c\/)[\w.-]+\/?/gi,
+];
+
+const EXTRACTION_SYSTEM = `You are a business data extraction agent. Read scraped website and social media content and extract structured business information.
 
 Rules:
 - Only use information explicitly found in the scraped content or provided inputs
 - Never invent business names, locations, or services not supported by the content
-- If location is not stated, infer city/region only if clearly implied (e.g. address, "serving West Houston")
+- Use social media bios and posts to enrich services, target market, and business type
+- If location is not stated, infer city/region only if clearly implied (e.g. address, bio, "serving West Houston")
 - If location cannot be determined, use "Unknown"
-- services must be specific offerings found on the site, not generic guesses
+- services must be specific offerings found in the content, not generic guesses
 - type must be exactly one of: "fixed location", "mobile vendor", "service provider"
-- targetMarket should describe who the business sells to based on site language
+- targetMarket should describe who the business sells to based on site and social language
+- socialProfiles should list all social URLs found or provided
 
 Return ONLY valid JSON matching this exact schema:
 {
@@ -42,7 +54,62 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function normalizeUrl(url) {
   if (!url) return '';
-  return url.startsWith('http') ? url : `https://${url}`;
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('http')) return trimmed.replace(/\/+$/, '');
+  return `https://${trimmed.replace(/\/+$/, '')}`;
+}
+
+function socialLabel(url) {
+  if (/instagram/i.test(url)) return 'Instagram';
+  if (/facebook/i.test(url)) return 'Facebook';
+  if (/twitter|x\.com/i.test(url)) return 'X/Twitter';
+  if (/tiktok/i.test(url)) return 'TikTok';
+  if (/linkedin/i.test(url)) return 'LinkedIn';
+  if (/youtube/i.test(url)) return 'YouTube';
+  return 'social profile';
+}
+
+function discoverSocialLinks(websiteContent, userProfiles) {
+  const links = new Set(userProfiles.map(normalizeUrl).filter(Boolean));
+
+  for (const pattern of SOCIAL_URL_PATTERNS) {
+    const matches = websiteContent.match(pattern) || [];
+    matches.forEach((match) => links.add(normalizeUrl(match)));
+  }
+
+  return [...links].slice(0, MAX_SOCIAL_SCRAPES);
+}
+
+async function scrapeSocialProfiles(urls) {
+  if (!urls.length) return [];
+
+  const results = await Promise.all(
+    urls.map(async (url) => {
+      try {
+        const scraped = await scrapeWebsite(url);
+        if (!scraped.content?.trim()) return null;
+        return {
+          url,
+          content: scraped.content.slice(0, 8000),
+          mock: scraped.mock ?? false,
+        };
+      } catch (err) {
+        console.warn(`[ingestionAgent] Social scrape failed for ${url}: ${err.message}`);
+        return null;
+      }
+    })
+  );
+
+  return results.filter(Boolean);
+}
+
+function formatSocialContent(socialScrapes) {
+  if (!socialScrapes.length) return 'No social media content scraped.';
+
+  return socialScrapes
+    .map(({ url, content }) => `--- SOCIAL: ${url} ---\n${content}`)
+    .join('\n\n');
 }
 
 function mockFallback(url, socialProfiles, reason) {
@@ -71,6 +138,11 @@ function validateAndNormalize(profile, url, socialProfiles) {
   const type = business.type?.trim().toLowerCase();
   const normalizedType = VALID_TYPES.find((t) => t === type) || 'service provider';
 
+  const mergedSocial = [...new Set([
+    ...socialProfiles.map(normalizeUrl).filter(Boolean),
+    ...(Array.isArray(business.socialProfiles) ? business.socialProfiles.map(normalizeUrl) : []),
+  ])];
+
   return {
     business: {
       name: business.name.trim(),
@@ -79,9 +151,7 @@ function validateAndNormalize(profile, url, socialProfiles) {
       type: normalizedType,
       targetMarket: business.targetMarket?.trim() || 'Local customers',
       website: normalizeUrl(business.website || url),
-      socialProfiles: socialProfiles.length > 0
-        ? socialProfiles
-        : (Array.isArray(business.socialProfiles) ? business.socialProfiles : []),
+      socialProfiles: mergedSocial,
     },
     mock: false,
   };
@@ -95,6 +165,7 @@ function shouldUseMock() {
 
 export async function* streamIngestion(url, socialProfiles = []) {
   const normalizedUrl = normalizeUrl(url);
+  const normalizedSocial = socialProfiles.map(normalizeUrl).filter(Boolean);
 
   if (!normalizedUrl) {
     throw new Error('Website URL is required');
@@ -106,11 +177,21 @@ export async function* streamIngestion(url, socialProfiles = []) {
   if (shouldUseMock()) {
     yield { type: 'log', message: 'Reading your website...' };
     await delay(500);
+
+    const mockSocial = normalizedSocial.length
+      ? normalizedSocial
+      : ['https://instagram.com/example'];
+
+    for (const profile of mockSocial.slice(0, MAX_SOCIAL_SCRAPES)) {
+      yield { type: 'log', message: `Checking ${socialLabel(profile)}...` };
+      await delay(400);
+    }
+
     yield { type: 'log', message: 'Extracting business name and services...' };
     await delay(500);
     yield { type: 'log', message: 'Building your business profile...' };
     await delay(400);
-    const result = mockFallback(normalizedUrl, socialProfiles, 'USE_MOCK enabled or API keys missing');
+    const result = mockFallback(normalizedUrl, mockSocial, 'USE_MOCK enabled or API keys missing');
     yield { type: 'log', message: `Found: ${result.business.name}` };
     yield { type: 'complete', ...result };
     return;
@@ -122,17 +203,35 @@ export async function* streamIngestion(url, socialProfiles = []) {
 
     if (scraped.mock) {
       yield { type: 'log', message: 'Using demo data...' };
-      const result = mockFallback(normalizedUrl, socialProfiles, 'scraper returned mock');
+      const result = mockFallback(normalizedUrl, normalizedSocial, 'scraper returned mock');
       yield { type: 'complete', ...result };
       return;
     }
 
     yield { type: 'log', message: 'Website content loaded successfully' };
-    await delay(200);
-    yield { type: 'log', message: 'AI is reading your pages...' };
-    await delay(300);
+
+    const socialUrls = discoverSocialLinks(scraped.content, normalizedSocial);
+
+    let socialScrapes = [];
+    if (socialUrls.length) {
+      yield { type: 'log', message: `Found ${socialUrls.length} social profile${socialUrls.length > 1 ? 's' : ''} to check` };
+      for (const profile of socialUrls) {
+        yield { type: 'log', message: `Reading ${socialLabel(profile)}...` };
+      }
+      socialScrapes = await scrapeSocialProfiles(socialUrls);
+      if (socialScrapes.length) {
+        yield { type: 'log', message: `Loaded content from ${socialScrapes.length} social profile${socialScrapes.length > 1 ? 's' : ''}` };
+      } else {
+        yield { type: 'log', message: 'Could not load social pages — using website only' };
+      }
+    } else {
+      yield { type: 'log', message: 'No social profiles found — using website only' };
+    }
+
+    yield { type: 'log', message: 'AI is analyzing your website and social presence...' };
 
     const truncatedContent = scraped.content.slice(0, 30000);
+    const socialContent = formatSocialContent(socialScrapes);
 
     yield { type: 'log', message: 'Extracting business name, location, and services...' };
     const { content } = await callSonnet({
@@ -140,26 +239,30 @@ export async function* streamIngestion(url, socialProfiles = []) {
       messages: [
         {
           role: 'user',
-          content: `Extract the business profile from this website content.
+          content: `Extract the business profile from this website and social media content.
 
 Website URL: ${normalizedUrl}
-User-provided social profiles: ${JSON.stringify(socialProfiles)}
+User-provided social profiles: ${JSON.stringify(normalizedSocial)}
+Discovered social profiles: ${JSON.stringify(socialUrls)}
 
 --- WEBSITE CONTENT ---
-${truncatedContent}`,
+${truncatedContent}
+
+--- SOCIAL MEDIA CONTENT ---
+${socialContent}`,
         },
       ],
     });
 
     yield { type: 'log', message: 'Structuring your business profile...' };
     const parsed = parseClaudeJson(content);
-    const result = validateAndNormalize(parsed, normalizedUrl, socialProfiles);
+    const result = validateAndNormalize(parsed, normalizedUrl, socialUrls);
 
     yield { type: 'log', message: `Found: ${result.business.name} · ${result.business.services.length} services` };
     yield { type: 'complete', ...result };
   } catch (err) {
     yield { type: 'log', message: 'Switching to backup data...' };
-    const result = mockFallback(normalizedUrl, socialProfiles, err.message);
+    const result = mockFallback(normalizedUrl, normalizedSocial, err.message);
     yield { type: 'complete', ...result };
   }
 }
