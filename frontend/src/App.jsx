@@ -32,12 +32,27 @@ export default function App() {
     setError(null);
     try {
       const ingestResult = await api.ingest(url, socialProfiles);
-      const updatedContext = { business: ingestResult.business };
-      setContext(updatedContext);
-
-      const analysisResult = await api.analyze(updatedContext);
-      setContext((prev) => ({ ...prev, analysis: analysisResult.analysis }));
+      setContext({ business: ingestResult.business });
       setStep('analysis');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnalyzeProfile = async (updatedBusiness) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const updatedContext = { business: updatedBusiness };
+      setContext(updatedContext);
+      const analysisResult = await api.analyze(updatedContext);
+      setContext((prev) => ({
+        ...prev,
+        business: updatedBusiness,
+        analysis: analysisResult.analysis,
+      }));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -187,10 +202,11 @@ export default function App() {
           <Onboarding onSubmit={handleIngest} loading={loading} />
         )}
 
-        {step === 'analysis' && context.business && context.analysis && (
+        {step === 'analysis' && context.business && (
           <BusinessAnalysis
             business={context.business}
             analysis={context.analysis}
+            onAnalyze={handleAnalyzeProfile}
             onContinue={handleContinueToBenchmark}
             loading={loading}
           />
