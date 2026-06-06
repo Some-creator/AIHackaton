@@ -23,8 +23,8 @@ Open `http://localhost:5173`
 | Variable | Required for demo |
 |---|---|
 | `ANTHROPIC_API_KEY` | No (mock mode) |
-| `ANTHROPIC_MODEL` | No (defaults to `claude-sonnet-4-6`) |
-| `ANTHROPIC_REASONING_MODEL` | No (defaults to `claude-sonnet-4-6` for agents 4–5) |
+| `ANTHROPIC_SONNET_MODEL` | No (defaults to `claude-sonnet-4-6` — all agents) |
+| `ANTHROPIC_HAIKU_MODEL` | No (defaults to `claude-3-5-haiku-latest` — franchise classification) |
 | `GOOGLE_PLACES_API_KEY` | No (mock mode) |
 | `YELP_API_KEY` | No (mock mode) |
 | `FIRECRAWL_API_KEY` | No (mock mode) |

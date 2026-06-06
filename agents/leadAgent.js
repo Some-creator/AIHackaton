@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import { searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { getBusinessReviews } from '../backend/yelp.js';
-import { callReasoning } from '../backend/anthropic.js';
+import { callSonnet, callHaiku } from '../backend/anthropic.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const USE_MOCK = true;
@@ -18,9 +18,29 @@ const FRANCHISE_INDICATORS = [
   'find a location', 'own a franchise', 'franchise opportunities',
 ];
 
-function isFranchise(name, content = '') {
+function isFranchiseByRules(name, content = '') {
   const lower = `${name} ${content}`.toLowerCase();
   return FRANCHISE_INDICATORS.some((indicator) => lower.includes(indicator));
+}
+
+async function isFranchise(name, content = '') {
+  if (isFranchiseByRules(name, content)) return true;
+
+  try {
+    const { content: result } = await callHaiku({
+      system: 'You classify whether a business is a franchise or chain. Reply with only "yes" or "no".',
+      messages: [
+        {
+          role: 'user',
+          content: `Business name: ${name}\nWebsite content excerpt: ${content.slice(0, 2000)}`,
+        },
+      ],
+      maxTokens: 10,
+    });
+    return result.trim().toLowerCase().startsWith('yes');
+  } catch {
+    return false;
+  }
 }
 
 function calculatePriorityScore(fit, budget, response) {
@@ -46,9 +66,9 @@ export async function leadAgent(context) {
           getBusinessReviews(name, business.location),
         ]);
 
-        if (isFranchise(name, scraped.content)) return null;
+        if (await isFranchise(name, scraped.content)) return null;
 
-        const { content } = await callReasoning({
+        const { content } = await callSonnet({
           system: 'You are a lead generation agent. Analyze lead data and return hook, scores, email, and send strategy. Return valid JSON only.',
           messages: [
             {

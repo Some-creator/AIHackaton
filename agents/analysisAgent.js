@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { callClaude } from '../backend/anthropic.js';
+import { callSonnet } from '../backend/anthropic.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const USE_MOCK = true;
@@ -16,7 +16,7 @@ export async function analysisAgent(context) {
   }
 
   try {
-    const { content } = await callClaude({
+    const { content } = await callSonnet({
       system: 'You are a business consultant. Analyze the business profile and return strengths, weaknesses, improvements, and missing elements. Return valid JSON only.',
       messages: [
         {

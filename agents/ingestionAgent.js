@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { scrapeWebsite } from '../backend/scraper.js';
-import { callClaude } from '../backend/anthropic.js';
+import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import { USE_MOCK, hasFirecrawl, hasAnthropic } from '../backend/config.js';
 
@@ -113,7 +113,7 @@ export async function ingestionAgent(url, socialProfiles = []) {
     const truncatedContent = scraped.content.slice(0, 30000);
 
     console.log(`[ingestionAgent] Extracting business profile via Claude`);
-    const { content } = await callClaude({
+    const { content } = await callSonnet({
       system: EXTRACTION_SYSTEM,
       messages: [
         {
