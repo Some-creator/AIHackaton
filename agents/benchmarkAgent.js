@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { searchPlaces } from '../backend/googlePlaces.js';
+import { geocodeLocation, searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { callSonnet, callHaiku } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
@@ -38,7 +38,7 @@ Rules for searchQueries:
 - 5-8 plain-English queries a customer would type into Google Maps
 - Cover EVERY distinct service line with dedicated queries
 - Use specific terms from services, target market, and analysis — not generic labels alone
-- Short queries only (2-5 words); location is added separately
+- Short queries only (2-5 words); never include city, state, or country — location is applied separately
 - Do not include the business's own name
 
 Rules for excludeTypes:
@@ -228,6 +228,13 @@ async function findCompetitorPlaces(business, searchPlan, onLog) {
   onLog?.(`Service lines: ${searchPlan.serviceLines.join(', ')}`);
   onLog?.(`Search queries: ${queries.slice(0, 5).join(', ')}`);
 
+  const anchor = await geocodeLocation(location);
+  if (anchor) {
+    onLog?.(`Anchoring competitor search to ${location} (within ~40 miles)`);
+  } else {
+    onLog?.(`Could not geocode ${location} — filtering results by regional address match`);
+  }
+
   for (let i = 0; i < queries.length; i++) {
     if (collected.length >= MAX_COMPETITORS) break;
 
@@ -236,7 +243,13 @@ async function findCompetitorPlaces(business, searchPlan, onLog) {
       onLog?.(`Trying: "${query}"...`);
     }
 
-    const { places } = await searchPlaces(query, location);
+    const { places } = await searchPlaces(query, location, {
+      anchor,
+      onSkip: ({ name, address, reason }) => {
+        onLog?.(`Skipping distant result: ${name}${address ? ` (${address})` : ''} — ${reason}`);
+      },
+    });
+
     for (const place of places || []) {
       if (collected.length >= MAX_COMPETITORS) break;
       if (isOwnBusiness(place, business)) continue;
