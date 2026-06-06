@@ -7,13 +7,10 @@ import { renderHighlightedText } from '@/components/ui/animated-gradient-text';
 type Theme = 'dark' | 'light';
 
 const FALLING_SHAPES = [
-  { width: 320, height: 90, rotate: 14, gradient: 'from-violet-500', left: '8%', duration: 22, delay: 0 },
-  { width: 260, height: 72, rotate: -18, gradient: 'from-fuchsia-500', left: '72%', duration: 19, delay: 2 },
-  { width: 200, height: 56, rotate: 8, gradient: 'from-cyan-400', left: '38%', duration: 25, delay: 4 },
-  { width: 180, height: 48, rotate: -22, gradient: 'from-amber-400', left: '18%', duration: 21, delay: 6 },
-  { width: 240, height: 64, rotate: 16, gradient: 'from-emerald-400', left: '58%', duration: 23, delay: 1 },
-  { width: 140, height: 40, rotate: -10, gradient: 'from-sky-400', left: '85%', duration: 20, delay: 8 },
-  { width: 300, height: 80, rotate: -6, gradient: 'from-rose-500', left: '45%', duration: 27, delay: 3 },
+  { width: 280, height: 80, rotate: 14, gradient: 'from-violet-500', left: '10%', duration: 24, delay: 0 },
+  { width: 220, height: 64, rotate: -16, gradient: 'from-cyan-400', left: '68%', duration: 22, delay: 3 },
+  { width: 200, height: 56, rotate: 8, gradient: 'from-sky-400', left: '42%', duration: 26, delay: 6 },
+  { width: 240, height: 68, rotate: -8, gradient: 'from-fuchsia-500', left: '82%', duration: 23, delay: 2 },
 ];
 
 function FallingShape({
@@ -101,10 +98,8 @@ function HeroGeometric({
   return (
     <div
       className={cn(
-        'relative min-h-[90vh] w-full flex items-center justify-center overflow-hidden transition-colors duration-500',
-        isDark
-          ? 'bg-[#000000]'
-          : 'bg-[#f5f5f7]',
+        'relative min-h-[78vh] md:min-h-[82vh] w-full flex items-center justify-center overflow-hidden transition-colors duration-500',
+        isDark ? 'bg-black' : 'bg-[#f5f5f7]',
       )}
     >
       <div
@@ -122,10 +117,10 @@ function HeroGeometric({
         ))}
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 md:px-6 py-16">
+      <div className="relative z-10 container mx-auto px-4 md:px-6 py-10 md:py-12">
         <div
           className={cn(
-            'max-w-3xl mx-auto text-center rounded-[2rem] px-6 py-12 sm:px-12 sm:py-14 transition-all duration-500',
+            'max-w-3xl mx-auto text-center rounded-[2rem] px-5 py-9 sm:px-10 sm:py-11 transition-all duration-500',
             isDark
               ? 'bg-white/[0.08] backdrop-blur-2xl border border-white/15 shadow-[0_8px_40px_rgba(0,0,0,0.5)]'
               : 'bg-white/80 backdrop-blur-2xl border border-black/[0.06] shadow-[0_8px_40px_rgba(0,0,0,0.08)]',
@@ -137,7 +132,7 @@ function HeroGeometric({
             initial="hidden"
             animate="visible"
             className={cn(
-              'inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 md:mb-10 border',
+              'inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6 md:mb-7 border',
               isDark
                 ? 'bg-white/10 border-white/20 text-sky-300'
                 : 'bg-black/[0.04] border-black/[0.08] text-blue-600',
@@ -148,7 +143,7 @@ function HeroGeometric({
           </motion.div>
 
           <motion.div custom={1} variants={fadeUpVariants} initial="hidden" animate="visible">
-            <h1 className="font-hero text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 md:mb-6">
+            <h1 className="font-hero text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-3 md:mb-5">
               <span
                 className={cn(
                   'block',
@@ -171,7 +166,7 @@ function HeroGeometric({
           <motion.div custom={2} variants={fadeUpVariants} initial="hidden" animate="visible">
             <p
               className={cn(
-                'font-body text-base sm:text-lg md:text-xl mb-10 max-w-xl mx-auto',
+                'font-body text-base sm:text-lg md:text-xl mb-8 max-w-xl mx-auto',
                 isDark ? 'text-gray-200' : 'text-gray-600',
               )}
             >
@@ -189,7 +184,7 @@ function HeroGeometric({
 
       <div
         className={cn(
-          'absolute inset-x-0 bottom-0 h-32 pointer-events-none transition-opacity duration-500',
+          'absolute inset-x-0 bottom-0 h-12 pointer-events-none transition-opacity duration-500',
           isDark
             ? 'bg-gradient-to-t from-black to-transparent'
             : 'bg-gradient-to-t from-[#f5f5f7] to-transparent',

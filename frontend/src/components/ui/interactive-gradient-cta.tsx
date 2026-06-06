@@ -30,7 +30,7 @@ export function InteractiveGradientCta({ children, className }: InteractiveGradi
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        'relative overflow-hidden rounded-[2rem] border border-white/10 px-8 py-14 sm:px-16 sm:py-16',
+        'relative overflow-hidden rounded-[2rem] border border-white/10 px-6 py-10 sm:px-12 sm:py-12',
         className,
       )}
     >

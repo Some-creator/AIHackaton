@@ -91,21 +91,14 @@ export default function HomePage({ onGetStarted }) {
       <ContainerScroll
         theme={theme}
         titleComponent={
-          <div className="space-y-4">
-            <p
-              className={`text-sm font-ui uppercase tracking-widest ${
-                isDark ? 'text-sky-400' : 'text-[#0071e3]'
-              }`}
-            >
-              Scroll to explore
-            </p>
+          <div>
             <h2
               className={`font-section-title text-3xl sm:text-4xl md:text-5xl ${
                 isDark ? 'text-white' : 'text-gray-900'
               }`}
             >
               Your business intelligence,
-              <span className={`block mt-2 ${isDark ? 'text-[#2997ff]' : 'text-[#0071e3]'}`}>
+              <span className={`block mt-1.5 ${isDark ? 'text-[#2997ff]' : 'text-[#0071e3]'}`}>
                 in one dashboard
               </span>
             </h2>
@@ -117,12 +110,12 @@ export default function HomePage({ onGetStarted }) {
 
       <section
         id="how-it-works"
-        className={`scroll-mt-16 border-t transition-colors duration-300 relative z-10 ${
-          isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-gray-200'
+        className={`scroll-mt-16 transition-colors duration-300 relative z-10 ${
+          isDark ? 'bg-black' : 'bg-white'
         }`}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-          <div className="text-center mb-14">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 md:py-16">
+          <div className="text-center mb-10">
             <h2 className={`font-section-title text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>
               How HookLine works
             </h2>
@@ -135,7 +128,7 @@ export default function HomePage({ onGetStarted }) {
             {steps.map((step, index) => (
               <div
                 key={step.title}
-                className={`relative rounded-3xl border p-6 transition ${
+                className={`relative rounded-3xl border p-5 transition ${
                   isDark
                     ? 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-600'
                     : 'bg-[#f5f5f7] border-gray-200/80 hover:border-blue-200'
@@ -167,12 +160,12 @@ export default function HomePage({ onGetStarted }) {
 
       <section
         id="features"
-        className={`border-t transition-colors duration-300 ${
-          isDark ? 'bg-black border-zinc-800' : 'bg-[#f5f5f7] border-gray-200'
+        className={`transition-colors duration-300 ${
+          isDark ? 'bg-black' : 'bg-[#f5f5f7]'
         }`}
       >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-          <div className="text-center mb-14">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 md:py-16">
+          <div className="text-center mb-10">
             <h2 className={`font-section-title text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>
               Everything you need to grow
             </h2>
@@ -185,7 +178,7 @@ export default function HomePage({ onGetStarted }) {
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className={`rounded-3xl border p-8 transition ${
+                className={`rounded-3xl border p-6 transition ${
                   isDark
                     ? 'bg-zinc-900 border-zinc-800'
                     : 'bg-white border-gray-200 shadow-sm'
@@ -210,18 +203,14 @@ export default function HomePage({ onGetStarted }) {
         </div>
       </section>
 
-      <section
-        className={`border-t transition-colors duration-300 ${
-          isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-gray-200'
-        }`}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+      <section className={isDark ? 'bg-black' : 'bg-white'}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-14 md:pb-16">
           <InteractiveGradientCta>
             <div className="max-w-2xl mx-auto text-center">
-              <h2 className="font-section-title text-3xl sm:text-4xl mb-4 text-white">
+              <h2 className="font-section-title text-3xl sm:text-4xl mb-3 text-white">
                 Ready to find your next customers?
               </h2>
-              <p className="mb-8 font-body-medium text-blue-50/90">
+              <p className="mb-6 font-body-medium text-blue-50/90">
                 Start with your website URL and let HookLine do the rest.
               </p>
               <button
