@@ -1,5 +1,6 @@
 import { HeroGeometric } from '@/components/ui/shape-landing-hero';
 import { ContainerScroll } from '@/components/ui/container-scroll-animation';
+import { InteractiveGradientCta } from '@/components/ui/interactive-gradient-cta';
 import DashboardPreview from './DashboardPreview';
 import { useTheme } from '../context/ThemeContext';
 
@@ -215,27 +216,23 @@ export default function HomePage({ onGetStarted }) {
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-          <div
-            className={`max-w-3xl mx-auto text-center rounded-[2rem] px-8 py-14 sm:px-16 ${
-              isDark
-                ? 'bg-gradient-to-br from-zinc-900 to-black border border-zinc-800'
-                : 'bg-[#f5f5f7] border border-gray-200'
-            }`}
-          >
-            <h2 className={`font-section-title text-3xl mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Ready to find your next customers?
-            </h2>
-            <p className={`mb-8 font-body-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Start with your website URL and let HookLine do the rest.
-            </p>
-            <button
-              type="button"
-              onClick={onGetStarted}
-              className="px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-button rounded-full transition"
-            >
-              Analyze My Business
-            </button>
-          </div>
+          <InteractiveGradientCta>
+            <div className="max-w-2xl mx-auto text-center">
+              <h2 className="font-section-title text-3xl sm:text-4xl mb-4 text-white">
+                Ready to find your next customers?
+              </h2>
+              <p className="mb-8 font-body-medium text-blue-50/90">
+                Start with your website URL and let HookLine do the rest.
+              </p>
+              <button
+                type="button"
+                onClick={onGetStarted}
+                className="px-8 py-3.5 bg-white hover:bg-blue-50 text-gray-900 font-button rounded-full transition shadow-lg shadow-blue-950/20"
+              >
+                Analyze My Business
+              </button>
+            </div>
+          </InteractiveGradientCta>
         </div>
       </section>
     </div>
