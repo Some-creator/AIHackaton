@@ -23,7 +23,7 @@ Open `http://localhost:5173`
 | Variable | Required for demo |
 |---|---|
 | `OPENROUTER_API_KEY` | No (mock mode) |
-| `OPENROUTER_MODEL` | No (defaults to `anthropic/claude-sonnet-4`) |
+| `OPENROUTER_MODEL` | No (defaults to `anthropic/claude-3.5-sonnet`) |
 | `GOOGLE_PLACES_API_KEY` | No (mock mode) |
 | `YELP_API_KEY` | No (mock mode) |
 | `FIRECRAWL_API_KEY` | No (mock mode) |
@@ -33,3 +33,14 @@ Open `http://localhost:5173`
 5. The Express server serves both the API (`/api/*`) and the React frontend from a single URL.
 
 Health check: `GET /api/health`
+
+## OpenRouter Troubleshooting
+
+If you see `No endpoints available matching your guardrail restrictions and data policy`:
+
+1. Open https://openrouter.ai/settings/privacy
+2. Under **Data Policy**, allow providers that may store data (disable strict "deny all" if enabled)
+3. Under **Zero Data Retention**, disable ZDR for Anthropic unless you have credits on ZDR-only endpoints
+4. Save settings and retry
+
+HookLine also auto-falls back across several models (`claude-3.5-sonnet`, `claude-3-haiku`, `gemini-2.0-flash`) if the primary model is blocked.
