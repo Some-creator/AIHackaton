@@ -1,4 +1,5 @@
 import { HeroGeometric } from '@/components/ui/shape-landing-hero';
+import { ContainerScroll } from '@/components/ui/container-scroll-animation';
 import { useTheme } from '../context/ThemeContext';
 
 const steps = [
@@ -84,9 +85,43 @@ export default function HomePage({ onGetStarted }) {
         </p>
       </HeroGeometric>
 
+      <ContainerScroll
+        theme={theme}
+        className="-mb-16 md:-mb-24"
+        titleComponent={
+          <div className="space-y-4">
+            <p
+              className={`text-sm font-bold uppercase tracking-widest ${
+                isDark ? 'text-sky-400' : 'text-[#0071e3]'
+              }`}
+            >
+              Scroll to explore
+            </p>
+            <h2
+              className={`text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}
+            >
+              Your business intelligence,
+              <span className={`block mt-2 ${isDark ? 'text-[#2997ff]' : 'text-[#0071e3]'}`}>
+                in one dashboard
+              </span>
+            </h2>
+          </div>
+        }
+      >
+        <img
+          src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1400&q=80&auto=format&fit=crop"
+          alt="HookLine analytics dashboard preview"
+          className="mx-auto rounded-xl object-cover h-full w-full object-center"
+          draggable={false}
+          loading="lazy"
+        />
+      </ContainerScroll>
+
       <section
         id="how-it-works"
-        className={`scroll-mt-20 border-t transition-colors duration-300 ${
+        className={`scroll-mt-16 border-t transition-colors duration-300 relative z-10 ${
           isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-gray-200'
         }`}
       >
