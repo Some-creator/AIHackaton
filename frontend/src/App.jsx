@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import HomePage from './components/HomePage';
 import Onboarding from './components/Onboarding';
 import BusinessAnalysis from './components/BusinessAnalysis';
 import CompetitorBenchmark from './components/CompetitorBenchmark';
@@ -6,7 +7,7 @@ import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
 import * as api from './api';
 
-const STEPS = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+const STEPS = ['home', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
 
 const stepLabels = {
   onboarding: 'Start',
@@ -17,7 +18,7 @@ const stepLabels = {
 };
 
 export default function App() {
-  const [step, setStep] = useState('onboarding');
+  const [step, setStep] = useState('home');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [context, setContext] = useState({});
@@ -138,19 +139,32 @@ export default function App() {
     <div className="min-h-screen">
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setStep('home')}
+            className="flex items-center gap-3 hover:opacity-80 transition"
+          >
             <div className="w-8 h-8 rounded-lg bg-hookline-500 flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <span className="font-bold text-gray-900">HookLine</span>
-          </div>
+          </button>
 
-          {step !== 'onboarding' && (
+          {step === 'home' && (
+            <button
+              onClick={() => setStep('onboarding')}
+              className="px-5 py-2 bg-hookline-500 hover:bg-hookline-600 text-white text-sm font-semibold rounded-lg transition"
+            >
+              Get Started
+            </button>
+          )}
+
+          {step !== 'home' && step !== 'onboarding' && (
             <nav className="hidden md:flex items-center gap-1">
-              {STEPS.slice(1).map((s, i) => {
-                const stepIndex = i + 1;
+              {STEPS.slice(2).map((s, i) => {
+                const stepIndex = i + 2;
                 const isActive = currentStepIndex === stepIndex;
                 const isComplete = currentStepIndex > stepIndex;
                 return (
@@ -175,12 +189,16 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-10">
+      <main className={`max-w-6xl mx-auto px-4 ${step === 'home' ? '' : 'py-10'}`}>
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
             {error}
             <button onClick={() => setError(null)} className="ml-4 underline">Dismiss</button>
           </div>
+        )}
+
+        {step === 'home' && (
+          <HomePage onGetStarted={() => setStep('onboarding')} />
         )}
 
         {step === 'onboarding' && (
