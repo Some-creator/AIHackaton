@@ -4,77 +4,57 @@
       "name": "Sample Lead Business A",
       "address": "1234 Main St, Houston, TX 77077",
       "phone": "(713) 555-0101",
-      "website": "",
+      "email": "hello@sampleleada.com",
+      "website": "https://sampleleada.com",
       "lat": 29.7604,
       "lng": -95.6301,
-      "hook": "Opened 8 months ago with 67 reviews and growing fast — strong engagement signals operational maturity and openness to new vendor partnerships that can support their growth phase.",
+      "hook": "Opened 8 months ago with 67 reviews and growing fast — strong engagement signals operational maturity and openness to new vendor partnerships.",
       "fitScore": 9,
       "budgetScore": 7,
       "responseScore": 9,
-      "priorityScore": 8.4,
-      "email": "Hi — I came across your business while researching the Houston market and was impressed by your early traction (67 reviews in 8 months is strong). I think there's a real opportunity for us to work together. Would you be open to a quick 10-minute call this week?",
-      "sendStrategy": {
-        "channel": "email",
-        "timing": "Tuesday morning between 9-10am",
-        "followUp": "If no reply in 3 days, follow up with a specific value proposition tied to a pain point visible in their reviews"
-      }
+      "priorityScore": 8.4
     },
     {
       "name": "Sample Lead Business B",
       "address": "5678 Memorial Dr, Houston, TX 77079",
       "phone": "(713) 555-0202",
-      "website": "",
+      "email": "contact@sampleleadb.com",
+      "website": "https://sampleleadb.com",
       "lat": 29.7832,
       "lng": -95.6124,
-      "hook": "Recent reviews mention service delays — a classic growth pains signal showing the business is scaling but lacks the infrastructure to keep up. Prime timing for a solution provider.",
+      "hook": "Recent reviews mention service delays — a classic growth pain signal and good timing for a solution provider to reach out.",
       "fitScore": 8,
       "budgetScore": 8,
       "responseScore": 8,
-      "priorityScore": 8.0,
-      "email": "Hey — I noticed a few recent reviews mentioning wait times at your location. When businesses grow this fast, operations often need to catch up. We help Houston businesses solve exactly this kind of scaling challenge. Happy to share a few quick ideas if useful.",
-      "sendStrategy": {
-        "channel": "phone",
-        "timing": "Wednesday 3pm during afternoon lull",
-        "followUp": "Send a brief case study email if no callback within 48 hours"
-      }
+      "priorityScore": 8.0
     },
     {
       "name": "Sample Lead Business C",
       "address": "9012 Eldridge Pkwy, Houston, TX 77077",
       "phone": "(713) 555-0303",
-      "website": "",
+      "email": "",
+      "website": "https://sampleleadc.com",
       "lat": 29.7456,
       "lng": -95.6445,
-      "hook": "142 reviews with strong engagement but owner responses stopped 3 months ago — suggests operational pressure or bandwidth constraints, making them receptive to solutions that reduce their workload.",
+      "hook": "142 reviews with strong engagement but owner responses stopped 3 months ago — suggests operational pressure and bandwidth constraints.",
       "fitScore": 9,
       "budgetScore": 9,
       "responseScore": 7,
-      "priorityScore": 8.2,
-      "email": "Hi — your business has outstanding reviews (142!) and clearly a loyal following. I noticed your review responses dropped off recently — often a sign of a team that's stretched thin. We work with Houston businesses to streamline operations. Would a 15-minute intro call be worth your time?",
-      "sendStrategy": {
-        "channel": "email",
-        "timing": "Thursday morning 8-9am",
-        "followUp": "Follow up via Instagram DM with a brief success story from a similar business"
-      }
+      "priorityScore": 8.2
     },
     {
       "name": "Sample Lead Business D",
       "address": "3456 Highway 6, Houston, TX 77082",
       "phone": "(713) 555-0404",
+      "email": "info@sampleleadd.com",
       "website": "",
       "lat": 29.7123,
       "lng": -95.6589,
-      "hook": "Opened 11 months ago, 89 reviews — strong early traction with minimal online presence beyond Google. High growth trajectory suggests they'll need scalable support services soon.",
+      "hook": "Opened 11 months ago with 89 reviews — strong early traction and likely need for scalable support services soon.",
       "fitScore": 8,
       "budgetScore": 6,
       "responseScore": 9,
-      "priorityScore": 7.7,
-      "email": "Hi — 89 reviews in under a year is impressive for a new business. You're clearly doing something right. I work with growing Houston businesses to help them scale without the usual growing pains. Would love to share one idea that might be a fit — takes 5 minutes to explain.",
-      "sendStrategy": {
-        "channel": "phone",
-        "timing": "Monday 2pm",
-        "followUp": "Visit in person with a brief one-page proposal if phone call doesn't connect"
-      }
+      "priorityScore": 7.7
     }
   ]
 }
