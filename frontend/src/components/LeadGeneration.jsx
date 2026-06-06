@@ -4,15 +4,43 @@ import L from 'leaflet';
 import { useTheme } from '../context/ThemeContext';
 import LeadCard from './LeadCard';
 
-const markerIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+const createDotIcon = (isDark) => {
+  const dotColor = '#4f6ef7'; // Hookline primary color
+  return L.divIcon({
+    html: `
+      <div style="position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+        <div style="
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background-color: ${dotColor};
+          opacity: 0.4;
+          animation: leaflet-pulsate 1.5s ease-out infinite;
+        "></div>
+        <div style="
+          position: relative;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background-color: ${dotColor};
+          border: 2px solid ${isDark ? '#18181b' : '#ffffff'};
+          box-shadow: 0 0 8px ${dotColor};
+        "></div>
+      </div>
+      <style>
+        @keyframes leaflet-pulsate {
+          0% { transform: scale(0.5); opacity: 0.8; }
+          100% { transform: scale(1.8); opacity: 0; }
+        }
+      </style>
+    `,
+    className: 'custom-leaflet-dot',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+  });
+};
 
 const HOUSTON_CENTER = [29.7604, -95.3698];
 
@@ -36,7 +64,11 @@ export default function LeadGeneration({
   }, [leads.length]);
 
   const sortedLeads = [...leads].sort((a, b) => b.priorityScore - a.priorityScore);
-  const mapLeads = sortedLeads.filter((l) => l.lat && l.lng);
+  const mapLeads = sortedLeads.filter((l) => {
+    const lat = parseFloat(l.lat);
+    const lng = parseFloat(l.lng);
+    return !isNaN(lat) && !isNaN(lng);
+  });
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -59,7 +91,11 @@ export default function LeadGeneration({
               url={isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
             />
             {mapLeads.map((lead, i) => (
-              <Marker key={i} position={[lead.lat, lead.lng]} icon={markerIcon}>
+              <Marker 
+                key={i} 
+                position={[parseFloat(lead.lat), parseFloat(lead.lng)]} 
+                icon={createDotIcon(isDark)}
+              >
                 <Popup>
                   <div className="text-gray-900">
                     <strong>{lead.name}</strong>
