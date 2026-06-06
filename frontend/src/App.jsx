@@ -21,6 +21,23 @@ const stepLabels = {
   leads: 'Leads',
 };
 
+const PREVIOUS_STEP = {
+  auth: 'home',
+  onboarding: 'home',
+  analysis: 'onboarding',
+  competitors: 'analysis',
+  gap: 'competitors',
+  leads: 'gap',
+};
+
+const BACK_LABELS = {
+  home: 'Home',
+  onboarding: 'Start',
+  analysis: 'Analysis',
+  competitors: 'Competitors',
+  gap: 'Market Gap',
+};
+
 export default function App() {
   const { theme } = useTheme();
   const { user, loading: authLoading, logout } = useAuth();
@@ -238,6 +255,53 @@ export default function App() {
     setError(null);
   }, [logout]);
 
+  const canNavigateToStep = useCallback((targetStep) => {
+    switch (targetStep) {
+      case 'onboarding':
+        return Boolean(user);
+      case 'analysis':
+        return Boolean(context.business);
+      case 'competitors':
+        return Boolean(context.competitors);
+      case 'gap':
+        return Boolean(context.gaps);
+      case 'leads':
+        return Boolean(context.gaps);
+      default:
+        return false;
+    }
+  }, [user, context]);
+
+  const handleGoToStep = useCallback((targetStep) => {
+    if (loading) return;
+
+    const targetIndex = STEPS.indexOf(targetStep);
+    const currentIndex = STEPS.indexOf(step);
+    if (targetIndex < 0 || targetIndex >= currentIndex) return;
+    if (!canNavigateToStep(targetStep)) return;
+
+    setError(null);
+    if (step === 'leads') {
+      setStreaming(false);
+      setStreamComplete(false);
+    }
+    setStep(targetStep);
+  }, [loading, streaming, step, canNavigateToStep]);
+
+  const handleBack = useCallback(() => {
+    if (loading || (streaming && step !== 'leads')) return;
+
+    const previousStep = PREVIOUS_STEP[step];
+    if (!previousStep) return;
+
+    setError(null);
+    if (step === 'leads') {
+      setStreaming(false);
+      setStreamComplete(false);
+    }
+    setStep(previousStep);
+  }, [loading, streaming, step]);
+
   useEffect(() => {
     const protectedSteps = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
     if (!authLoading && !user && protectedSteps.includes(step)) {
@@ -291,21 +355,33 @@ export default function App() {
                         className={`w-8 h-0.5 ${isComplete ? 'bg-[#0071e3]' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
                       />
                     )}
-                    <span
-                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        isActive
-                          ? 'bg-[#0071e3] text-white'
-                          : isComplete
-                            ? isDark
-                              ? 'bg-blue-500/20 text-sky-400'
-                              : 'bg-blue-50 text-[#0071e3]'
-                            : isDark
-                              ? 'bg-zinc-800 text-zinc-500'
-                              : 'bg-gray-100 text-gray-400'
-                      }`}
-                    >
-                      {stepLabels[s]}
-                    </span>
+                    {isComplete && !loading ? (
+                      <button
+                        type="button"
+                        onClick={() => handleGoToStep(s)}
+                        className={`px-3 py-1 text-xs font-semibold rounded-full transition hover:opacity-80 ${
+                          isDark ? 'bg-blue-500/20 text-sky-400' : 'bg-blue-50 text-[#0071e3]'
+                        }`}
+                      >
+                        {stepLabels[s]}
+                      </button>
+                    ) : (
+                      <span
+                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                          isActive
+                            ? 'bg-[#0071e3] text-white'
+                            : isComplete
+                              ? isDark
+                                ? 'bg-blue-500/20 text-sky-400'
+                                : 'bg-blue-50 text-[#0071e3]'
+                              : isDark
+                                ? 'bg-zinc-800 text-zinc-500'
+                                : 'bg-gray-100 text-gray-400'
+                        }`}
+                      >
+                        {stepLabels[s]}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -391,11 +467,17 @@ export default function App() {
         )}
 
         {step === 'auth' && (
-          <AuthPage onSuccess={handleAuthSuccess} onClose={() => setStep('home')} />
+          <AuthPage onSuccess={handleAuthSuccess} onClose={handleBack} />
         )}
 
         {step === 'onboarding' && user && (
-          <Onboarding onSubmit={handleIngest} loading={loading} logs={ingestLogs} />
+          <Onboarding
+            onSubmit={handleIngest}
+            loading={loading}
+            logs={ingestLogs}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.onboarding]}
+          />
         )}
 
         {step === 'analysis' && context.business && (
@@ -409,6 +491,8 @@ export default function App() {
             loading={loading}
             analysisLogs={analysisLogs}
             benchmarkLogs={benchmarkLogs}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.analysis]}
           />
         )}
 
@@ -420,6 +504,8 @@ export default function App() {
             onContinue={handleFindGaps}
             loading={loading}
             gapLogs={gapLogs}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.competitors]}
           />
         )}
 
@@ -429,6 +515,8 @@ export default function App() {
             recommendedGap={context.recommendedGap}
             onConfirm={handleConfirmGap}
             loading={loading}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.gap]}
           />
         )}
 
@@ -441,6 +529,8 @@ export default function App() {
             onSkip={handleSkip}
             sentLeads={sentLeads}
             skippedLeads={skippedLeads}
+            onBack={handleBack}
+            backLabel={BACK_LABELS[PREVIOUS_STEP.leads]}
           />
         )}
       </main>

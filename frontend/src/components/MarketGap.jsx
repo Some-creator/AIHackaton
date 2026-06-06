@@ -1,4 +1,5 @@
 import { useTheme } from '../context/ThemeContext';
+import StepBackButton from './StepBackButton';
 
 const competitionColors = {
   low: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300',
@@ -6,13 +7,14 @@ const competitionColors = {
   high: 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300',
 };
 
-export default function MarketGap({ gaps, recommendedGap, onConfirm, loading }) {
+export default function MarketGap({ gaps, recommendedGap, onConfirm, loading, onBack, backLabel }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const primary = gaps[recommendedGap ?? 0];
 
   return (
     <div className="max-w-3xl mx-auto">
+      <StepBackButton onBack={onBack} disabled={loading} label={backLabel} />
       <div className="mb-8">
         <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Market Gap Analysis</h2>
         <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
