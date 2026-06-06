@@ -27,6 +27,7 @@ export default function App() {
   const [sentLeads, setSentLeads] = useState(new Set());
   const [skippedLeads, setSkippedLeads] = useState(new Set());
   const [ingestLogs, setIngestLogs] = useState([]);
+  const [benchmarkLogs, setBenchmarkLogs] = useState([]);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
@@ -80,16 +81,28 @@ export default function App() {
   const handleContinueToBenchmark = async (updatedBusiness) => {
     setLoading(true);
     setError(null);
+    setBenchmarkLogs([]);
     try {
       const updatedContext = { ...context, business: updatedBusiness };
       setContext(updatedContext);
-      const competitorResult = await api.benchmark(updatedContext);
-      setContext((prev) => ({ ...prev, competitors: competitorResult.competitors }));
+
+      const { sessionId } = await api.createBenchmarkSession(updatedContext);
+
+      const benchmarkResult = await new Promise((resolve, reject) => {
+        api.streamBenchmark(sessionId, {
+          onLog: (message) => setBenchmarkLogs((prev) => [...prev, message]),
+          onComplete: resolve,
+          onError: reject,
+        });
+      });
+
+      setContext((prev) => ({ ...prev, competitors: benchmarkResult.competitors }));
       setStep('competitors');
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setBenchmarkLogs([]);
     }
   };
 
@@ -228,6 +241,7 @@ export default function App() {
             onAnalyze={handleAnalyze}
             onContinue={handleContinueToBenchmark}
             loading={loading}
+            benchmarkLogs={benchmarkLogs}
           />
         )}
 

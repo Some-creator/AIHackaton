@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ServiceTags from './ServiceTags';
 import SocialProfileTags from './SocialProfileTags';
+import ActivityLog from './ActivityLog';
 
 const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
@@ -172,6 +173,8 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
               'Continue to Competitor Benchmark'
             )}
           </button>
+
+          <ActivityLog logs={benchmarkLogs} title="Competitor benchmark" />
         </>
       )}
     </div>
