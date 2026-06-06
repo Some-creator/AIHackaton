@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ServiceTags from './ServiceTags';
+import SocialProfileTags from './SocialProfileTags';
 
 const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
@@ -26,7 +27,7 @@ function AnalysisSection({ title, items, color }) {
   );
 }
 
-export default function BusinessAnalysis({ business, analysis, onContinue, loading, companyId }) {
+export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onContinue, loading, companyId }) {
   const [profile, setProfile] = useState({ ...business });
 
   const updateField = (field, value) => {
@@ -100,11 +101,10 @@ export default function BusinessAnalysis({ business, analysis, onContinue, loadi
           placeholder="e.g. Mobile beverage catering"
         />
 
-        <ServiceTags
-          label="Social Profiles"
+        <SocialProfileTags
           items={profile.socialProfiles || []}
+          socialScrapes={socialScrapes}
           onChange={(socialProfiles) => updateField('socialProfiles', socialProfiles)}
-          placeholder="e.g. instagram.com/yourbusiness"
         />
       </div>
 

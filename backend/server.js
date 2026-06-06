@@ -90,12 +90,14 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
         res.write(`data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
         const { id: companyId } = await createCompany({
           business: event.business,
+          socialScrapes: event.socialScrapes || [],
           step: 'ingested',
           mock: event.mock ?? false,
         });
         res.write(`data: ${JSON.stringify({
           type: 'complete',
           business: event.business,
+          socialScrapes: event.socialScrapes || [],
           mock: event.mock ?? false,
           companyId,
         })}\n\n`);
@@ -119,6 +121,7 @@ app.post('/api/analyze', async (req, res) => {
       await updateCompany(context.companyId, {
         business: context.business,
         analysis: result.analysis,
+        socialScrapes: context.socialScrapes || [],
         step: 'analyzed',
       });
     }

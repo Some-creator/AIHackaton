@@ -46,6 +46,7 @@ export default function App() {
       const updatedContext = {
         business: ingestResult.business,
         companyId: ingestResult.companyId,
+        socialScrapes: ingestResult.socialScrapes || [],
       };
       setContext(updatedContext);
 
@@ -207,6 +208,7 @@ export default function App() {
           <BusinessAnalysis
             business={context.business}
             analysis={context.analysis}
+            socialScrapes={context.socialScrapes}
             companyId={context.companyId}
             onContinue={handleContinueToBenchmark}
             loading={loading}

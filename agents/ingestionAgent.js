@@ -215,9 +215,16 @@ export async function* streamIngestion(url, socialProfiles = []) {
     await delay(500);
     yield { type: 'log', message: 'Building your business profile...' };
     await delay(400);
+    const mockScrapes = [];
+    for (const profile of mockSocial.slice(0, MAX_SOCIAL_SCRAPES)) {
+      try {
+        const scraped = await scrapeSocialProfile(profile);
+        if (scraped) mockScrapes.push(scraped);
+      } catch { /* skip */ }
+    }
     const result = mockFallback(normalizedUrl, mockSocial, 'USE_MOCK enabled or API keys missing');
     yield { type: 'log', message: `Found: ${result.business.name}` };
-    yield { type: 'complete', ...result };
+    yield { type: 'complete', ...result, socialScrapes: mockScrapes };
     return;
   }
 
@@ -227,8 +234,16 @@ export async function* streamIngestion(url, socialProfiles = []) {
 
     if (scraped.mock) {
       yield { type: 'log', message: 'Using demo data...' };
-      const result = mockFallback(normalizedUrl, normalizedSocial, 'scraper returned mock');
-      yield { type: 'complete', ...result };
+      const socialUrls = discoverSocialLinks(scraped.content, normalizedSocial);
+      const mockScrapes = [];
+      for (const profile of socialUrls.slice(0, MAX_SOCIAL_SCRAPES)) {
+        try {
+          const s = await scrapeSocialProfile(profile);
+          if (s) mockScrapes.push(s);
+        } catch { /* skip */ }
+      }
+      const result = mockFallback(normalizedUrl, socialUrls.length ? socialUrls : normalizedSocial, 'scraper returned mock');
+      yield { type: 'complete', ...result, socialScrapes: mockScrapes };
       return;
     }
 
@@ -286,11 +301,11 @@ ${socialContent}`,
     const result = validateAndNormalize(parsed, normalizedUrl, socialUrls);
 
     yield { type: 'log', message: `Found: ${result.business.name} · ${result.business.services.length} services` };
-    yield { type: 'complete', ...result };
+    yield { type: 'complete', ...result, socialScrapes };
   } catch (err) {
     yield { type: 'log', message: 'Switching to backup data...' };
     const result = mockFallback(normalizedUrl, normalizedSocial, err.message);
-    yield { type: 'complete', ...result };
+    yield { type: 'complete', ...result, socialScrapes: [] };
   }
 }
 
@@ -299,5 +314,5 @@ export async function ingestionAgent(url, socialProfiles = []) {
   for await (const event of streamIngestion(url, socialProfiles)) {
     if (event.type === 'complete') result = event;
   }
-  return { business: result.business, mock: result.mock };
+  return { business: result.business, mock: result.mock, socialScrapes: result.socialScrapes || [] };
 }
