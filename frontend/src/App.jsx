@@ -26,18 +26,30 @@ export default function App() {
   const [streamComplete, setStreamComplete] = useState(false);
   const [sentLeads, setSentLeads] = useState(new Set());
   const [skippedLeads, setSkippedLeads] = useState(new Set());
+  const [ingestLogs, setIngestLogs] = useState([]);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
     setError(null);
+    setIngestLogs([]);
     try {
-      const ingestResult = await api.ingest(url, socialProfiles);
+      const { sessionId } = await api.createIngestSession(url, socialProfiles);
+
+      const ingestResult = await new Promise((resolve, reject) => {
+        api.streamIngest(sessionId, {
+          onLog: (message) => setIngestLogs((prev) => [...prev, message]),
+          onComplete: resolve,
+          onError: reject,
+        });
+      });
+
       const updatedContext = {
         business: ingestResult.business,
         companyId: ingestResult.companyId,
       };
       setContext(updatedContext);
 
+      setIngestLogs((prev) => [...prev, 'Running business analysis...']);
       const analysisResult = await api.analyze(updatedContext);
       setContext((prev) => ({ ...prev, analysis: analysisResult.analysis }));
       setStep('analysis');
@@ -45,6 +57,7 @@ export default function App() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setIngestLogs([]);
     }
   };
 
@@ -187,7 +200,7 @@ export default function App() {
         )}
 
         {step === 'onboarding' && (
-          <Onboarding onSubmit={handleIngest} loading={loading} />
+          <Onboarding onSubmit={handleIngest} loading={loading} logs={ingestLogs} />
         )}
 
         {step === 'analysis' && context.business && context.analysis && (

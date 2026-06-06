@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import ActivityLog from './ActivityLog';
 
-export default function Onboarding({ onSubmit, loading }) {
+export default function Onboarding({ onSubmit, loading, logs = [] }) {
   const [url, setUrl] = useState('https://kahfe.square.site/');
   const [socialLinks, setSocialLinks] = useState('');
 
@@ -71,6 +72,8 @@ export default function Onboarding({ onSubmit, loading }) {
             'Get Started'
           )}
         </button>
+
+        {loading && <ActivityLog logs={logs} title="Agent 1 — Reading your website" />}
       </form>
     </div>
   );

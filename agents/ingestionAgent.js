@@ -38,6 +38,8 @@ Return ONLY valid JSON matching this exact schema:
   }
 }`;
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function normalizeUrl(url) {
   if (!url) return '';
   return url.startsWith('http') ? url : `https://${url}`;
@@ -91,28 +93,48 @@ function shouldUseMock() {
   return false;
 }
 
-export async function ingestionAgent(url, socialProfiles = []) {
+export async function* streamIngestion(url, socialProfiles = []) {
   const normalizedUrl = normalizeUrl(url);
 
   if (!normalizedUrl) {
     throw new Error('Website URL is required');
   }
 
+  yield { type: 'log', message: 'Starting website analysis...' };
+  await delay(300);
+
   if (shouldUseMock()) {
-    return mockFallback(normalizedUrl, socialProfiles, 'USE_MOCK enabled or API keys missing');
+    yield { type: 'log', message: 'Reading your website...' };
+    await delay(500);
+    yield { type: 'log', message: 'Extracting business name and services...' };
+    await delay(500);
+    yield { type: 'log', message: 'Building your business profile...' };
+    await delay(400);
+    const result = mockFallback(normalizedUrl, socialProfiles, 'USE_MOCK enabled or API keys missing');
+    yield { type: 'log', message: `Found: ${result.business.name}` };
+    yield { type: 'complete', ...result };
+    return;
   }
 
   try {
-    console.log(`[ingestionAgent] Scraping ${normalizedUrl}`);
+    yield { type: 'log', message: `Connecting to ${normalizedUrl}...` };
     const scraped = await scrapeWebsite(normalizedUrl);
 
     if (scraped.mock) {
-      return mockFallback(normalizedUrl, socialProfiles, 'scraper returned mock');
+      yield { type: 'log', message: 'Using demo data...' };
+      const result = mockFallback(normalizedUrl, socialProfiles, 'scraper returned mock');
+      yield { type: 'complete', ...result };
+      return;
     }
+
+    yield { type: 'log', message: 'Website content loaded successfully' };
+    await delay(200);
+    yield { type: 'log', message: 'AI is reading your pages...' };
+    await delay(300);
 
     const truncatedContent = scraped.content.slice(0, 30000);
 
-    console.log(`[ingestionAgent] Extracting business profile via Claude`);
+    yield { type: 'log', message: 'Extracting business name, location, and services...' };
     const { content } = await callSonnet({
       system: EXTRACTION_SYSTEM,
       messages: [
@@ -129,12 +151,23 @@ ${truncatedContent}`,
       ],
     });
 
+    yield { type: 'log', message: 'Structuring your business profile...' };
     const parsed = parseClaudeJson(content);
     const result = validateAndNormalize(parsed, normalizedUrl, socialProfiles);
 
-    console.log(`[ingestionAgent] Extracted profile for: ${result.business.name}`);
-    return result;
+    yield { type: 'log', message: `Found: ${result.business.name} · ${result.business.services.length} services` };
+    yield { type: 'complete', ...result };
   } catch (err) {
-    return mockFallback(normalizedUrl, socialProfiles, err.message);
+    yield { type: 'log', message: 'Switching to backup data...' };
+    const result = mockFallback(normalizedUrl, socialProfiles, err.message);
+    yield { type: 'complete', ...result };
   }
+}
+
+export async function ingestionAgent(url, socialProfiles = []) {
+  let result = null;
+  for await (const event of streamIngestion(url, socialProfiles)) {
+    if (event.type === 'complete') result = event;
+  }
+  return { business: result.business, mock: result.mock };
 }

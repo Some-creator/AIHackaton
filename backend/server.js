@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { ingestionAgent } from '../agents/ingestionAgent.js';
+import { ingestionAgent, streamIngestion } from '../agents/ingestionAgent.js';
 import { analysisAgent } from '../agents/analysisAgent.js';
 import { benchmarkAgent } from '../agents/benchmarkAgent.js';
 import { gapAgent } from '../agents/gapAgent.js';
@@ -24,6 +24,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 const leadSessions = new Map();
+const ingestSessions = new Map();
 
 app.use(cors());
 app.use(express.json());
@@ -47,6 +48,64 @@ app.post('/api/ingest', async (req, res) => {
     res.json({ ...result, companyId });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ingest/session', (req, res) => {
+  try {
+    const { url, socialProfiles = [] } = req.body;
+    if (!url) return res.status(400).json({ error: 'Website URL is required' });
+
+    const sessionId = `ingest-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    ingestSessions.set(sessionId, { url, socialProfiles });
+
+    setTimeout(() => ingestSessions.delete(sessionId), 10 * 60 * 1000);
+
+    res.json({ sessionId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/ingest/stream/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const session = ingestSessions.get(sessionId);
+
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found or expired' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  try {
+    for await (const event of streamIngestion(session.url, session.socialProfiles)) {
+      if (event.type === 'log') {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'complete') {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
+        const { id: companyId } = await createCompany({
+          business: event.business,
+          step: 'ingested',
+          mock: event.mock ?? false,
+        });
+        res.write(`data: ${JSON.stringify({
+          type: 'complete',
+          business: event.business,
+          mock: event.mock ?? false,
+          companyId,
+        })}\n\n`);
+      }
+    }
+  } catch (err) {
+    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+  } finally {
+    ingestSessions.delete(sessionId);
+    res.end();
   }
 });
 
