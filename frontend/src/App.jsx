@@ -6,6 +6,7 @@ import BusinessAnalysis from './components/BusinessAnalysis';
 import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
+import OptimizedSitePreview from './components/OptimizedSitePreview';
 import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
@@ -60,9 +61,11 @@ export default function App() {
   const [streamComplete, setStreamComplete] = useState(false);
   const [skippedLeads, setSkippedLeads] = useState(new Set());
   const [ingestLogs, setIngestLogs] = useState([]);
+  const [ingestFinishing, setIngestFinishing] = useState(false);
   const [analysisLogs, setAnalysisLogs] = useState([]);
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
   const [gapLogs, setGapLogs] = useState([]);
+  const [showSitePreview, setShowSitePreview] = useState(false);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
@@ -79,6 +82,9 @@ export default function App() {
         });
       });
 
+      setIngestFinishing(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       setContext({
         business: ingestResult.business,
         companyId: ingestResult.companyId,
@@ -89,6 +95,7 @@ export default function App() {
     } catch (err) {
       setError(err.message);
     } finally {
+      setIngestFinishing(false);
       setLoading(false);
       setIngestLogs([]);
     }
@@ -450,6 +457,7 @@ const currentStepIndex = STEPS.indexOf(step);
           <Onboarding
             onSubmit={handleIngest}
             loading={loading}
+            ingestFinishing={ingestFinishing}
             logs={ingestLogs}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.onboarding]}
@@ -475,6 +483,7 @@ const currentStepIndex = STEPS.indexOf(step);
             onNext={nextStep ? handleNext : null}
             nextLabel={nextLabel}
             navDisabled={navDisabled}
+            onPreviewSite={() => setShowSitePreview(true)}
           />
         )}
 
@@ -523,6 +532,14 @@ const currentStepIndex = STEPS.indexOf(step);
           />
         )}
       </main>
+
+      {showSitePreview && (
+        <OptimizedSitePreview
+          business={context.business}
+          onClose={() => setShowSitePreview(false)}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }

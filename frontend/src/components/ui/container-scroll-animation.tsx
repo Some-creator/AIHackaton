@@ -37,37 +37,37 @@ export function ContainerScroll({
     restDelta: 0.001,
   });
 
-  const headerY = useTransform(smoothProgress, [0, 0.7, 1], [0, 0, -40]);
-  const headerOpacity = useTransform(smoothProgress, [0, 0.7, 1], [1, 1, 0.6]);
+  const headerY = useTransform(smoothProgress, [0, 0.8, 1], [0, 0, -30]);
+  const headerOpacity = useTransform(smoothProgress, [0, 0.8, 1], [1, 1, 0.7]);
 
   const cardY = useTransform(
     smoothProgress,
-    [0, 0.06, 0.12, 0.7, 1],
-    isMobile ? [24, 8, 0, 0, -28] : [32, 12, 0, 0, -36],
+    [0, 0.8, 1],
+    isMobile ? [0, 0, -20] : [0, 0, -30],
   );
   const cardScale = useTransform(
     smoothProgress,
-    [0, 0.06, 0.12, 0.7, 1],
-    isMobile ? [0.95, 0.98, 1, 1, 0.97] : [0.94, 0.97, 1, 1, 0.96],
+    [0, 0.8, 1],
+    isMobile ? [1, 1, 0.98] : [1, 1, 0.97],
   );
   const cardRotate = useTransform(
     smoothProgress,
-    [0, 0.06, 0.12, 0.7, 1],
-    isMobile ? [8, 4, 0, 0, -6] : [12, 6, 0, 0, -10],
+    [0, 1],
+    [0, 0],
   );
-  const cardOpacity = useTransform(smoothProgress, [0, 0.05, 0.85, 1], [0.9, 1, 1, 0.82]);
+  const cardOpacity = useTransform(smoothProgress, [0, 0.8, 1], [1, 1, 0.9]);
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        'relative h-[150vh] sm:h-[165vh] md:h-[185vh]',
+        'relative h-[110vh] sm:h-[115vh] md:h-[120vh]',
         isDark ? 'bg-black' : 'bg-[#f5f5f7]',
         className,
       )}
     >
-      <div className="sticky top-16 md:top-20 flex flex-col items-center justify-center px-4 py-10 md:py-14 min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
-        <div className="w-full max-w-5xl mx-auto flex flex-col gap-6 md:gap-8">
+      <div className="sticky top-16 md:top-20 flex flex-col items-center justify-center px-4 py-4 md:py-6 min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
+        <div className="w-full max-w-5xl mx-auto flex flex-col gap-4 md:gap-6">
           <ScrollHeader translate={headerY} opacity={headerOpacity} titleComponent={titleComponent} />
           <ScrollCard
             translate={cardY}
