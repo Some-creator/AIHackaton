@@ -29,8 +29,18 @@ Open `http://localhost:5173`
 | `YELP_API_KEY` | No (mock mode) |
 | `FIRECRAWL_API_KEY` | No (mock mode) |
 | `SENDGRID_API_KEY` | No (mock mode) |
+| `FIREBASE_SERVICE_ACCOUNT` | No (skips DB save if missing) |
 
 4. Deploy — Railway runs `npm install`, `npm run build`, then `npm start`.
 5. The Express server serves both the API (`/api/*`) and the React frontend from a single URL.
 
 Health check: `GET /api/health`
+
+## Firebase Setup
+
+1. Create a project at [Firebase Console](https://console.firebase.google.com)
+2. Enable **Firestore Database**
+3. Go to Project Settings → Service Accounts → Generate new private key
+4. Add the JSON to Railway as `FIREBASE_SERVICE_ACCOUNT` (paste the full JSON as one line)
+
+Each company run is saved to the `companies` collection with business profile, analysis, competitors, gaps, and leads. Retrieve via `GET /api/companies/:companyId`.

@@ -32,7 +32,10 @@ export default function App() {
     setError(null);
     try {
       const ingestResult = await api.ingest(url, socialProfiles);
-      const updatedContext = { business: ingestResult.business };
+      const updatedContext = {
+        business: ingestResult.business,
+        companyId: ingestResult.companyId,
+      };
       setContext(updatedContext);
 
       const analysisResult = await api.analyze(updatedContext);
@@ -191,6 +194,7 @@ export default function App() {
           <BusinessAnalysis
             business={context.business}
             analysis={context.analysis}
+            companyId={context.companyId}
             onContinue={handleContinueToBenchmark}
             loading={loading}
           />
