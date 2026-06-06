@@ -65,12 +65,12 @@ export default function HomePage({ onGetStarted }) {
           </button>
           <a
             href="#how-it-works"
-            className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl border border-white/20 transition text-center backdrop-blur-sm"
+            className="w-full sm:w-auto px-8 py-4 bg-white/15 hover:bg-white/20 text-sky-100 font-semibold rounded-xl border border-sky-400/40 transition text-center backdrop-blur-sm"
           >
             See How It Works
           </a>
         </div>
-        <p className="mt-6 text-sm text-white/40">
+        <p className="mt-6 text-sm text-slate-300">
           No credit card required · Works in demo mode instantly
         </p>
       </HeroGeometric>
