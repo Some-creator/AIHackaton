@@ -137,7 +137,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shrink-0">
+      <header
+        className={`sticky top-0 z-50 shrink-0 border-b ${
+          step === 'home'
+            ? 'bg-[#030303]/80 backdrop-blur-md border-white/10'
+            : 'bg-white border-gray-200'
+        }`}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <button
             type="button"
@@ -149,7 +155,7 @@ export default function App() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="font-bold text-gray-900">HookLine</span>
+            <span className={`font-bold ${step === 'home' ? 'text-white' : 'text-gray-900'}`}>HookLine</span>
           </button>
 
           {step === 'home' && (

@@ -1,3 +1,5 @@
+import { HeroGeometric } from '@/components/ui/shape-landing-hero';
+
 const steps = [
   {
     title: 'Paste your URL',
@@ -44,62 +46,34 @@ const features = [
   },
 ];
 
-function HookLineLogo({ className = 'w-8 h-8' }) {
-  return (
-    <div className={`rounded-lg bg-hookline-500 flex items-center justify-center shrink-0 ${className}`}>
-      <svg className="w-1/2 h-1/2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    </div>
-  );
-}
-
 export default function HomePage({ onGetStarted }) {
   return (
     <div className="w-full overflow-x-hidden">
-      <section className="relative isolate bg-gradient-to-b from-hookline-50 via-white to-gray-50">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="absolute top-24 left-1/4 w-72 h-72 bg-hookline-100 rounded-full blur-3xl opacity-60" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-hookline-50 rounded-full blur-3xl opacity-80" />
+      <HeroGeometric
+        badge="AI Business Intelligence"
+        title1="Find who your competitors"
+        title2="are ignoring."
+        description="Paste your website. HookLine analyzes your business, benchmarks competitors, uncovers market gaps, and generates qualified leads with personalized outreach."
+      >
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-lg sm:max-w-none mx-auto">
+          <button
+            type="button"
+            onClick={onGetStarted}
+            className="w-full sm:w-auto px-8 py-4 bg-hookline-500 hover:bg-hookline-600 text-white font-semibold rounded-xl transition shadow-lg shadow-hookline-500/25"
+          >
+            Get Started — It&apos;s Free
+          </button>
+          <a
+            href="#how-it-works"
+            className="w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/15 text-white font-semibold rounded-xl border border-white/20 transition text-center backdrop-blur-sm"
+          >
+            See How It Works
+          </a>
         </div>
-
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-20 sm:pt-16 sm:pb-28 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-hookline-100 text-hookline-700 text-sm font-medium mb-8 shadow-sm">
-            <HookLineLogo className="w-5 h-5 rounded-md" />
-            AI Business Intelligence
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight leading-tight">
-            Find who your competitors
-            <span className="block text-hookline-500">are ignoring.</span>
-          </h1>
-
-          <p className="mt-6 text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Paste your website. HookLine analyzes your business, benchmarks competitors,
-            uncovers market gaps, and generates qualified leads with personalized outreach.
-          </p>
-
-          <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-lg sm:max-w-none mx-auto">
-            <button
-              type="button"
-              onClick={onGetStarted}
-              className="w-full sm:w-auto px-8 py-4 bg-hookline-500 hover:bg-hookline-600 text-white font-semibold rounded-xl transition shadow-lg shadow-hookline-500/25"
-            >
-              Get Started — It&apos;s Free
-            </button>
-            <a
-              href="#how-it-works"
-              className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-200 transition text-center"
-            >
-              See How It Works
-            </a>
-          </div>
-
-          <p className="mt-6 text-sm text-gray-500">
-            No credit card required · Works in demo mode instantly
-          </p>
-        </div>
-      </section>
+        <p className="mt-6 text-sm text-white/40">
+          No credit card required · Works in demo mode instantly
+        </p>
+      </HeroGeometric>
 
       <section id="how-it-works" className="scroll-mt-20 bg-white border-t border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
