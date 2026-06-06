@@ -78,9 +78,10 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         backDisabled={navDisabled}
         nextDisabled={navDisabled}
       />
-      <div className="mb-8">
-        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Profile</h2>
-        <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+      <div className="mb-8 animate-rise">
+        <p className="eyebrow mb-2">Step 2 · Profile</p>
+        <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Profile</h2>
+        <p className={`mt-1.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           {hasAnalysis
 
             ? 'Review your profile and analysis below.'
@@ -150,6 +151,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
               onChange={(e) => updateField('zipCode', e.target.value)}
               placeholder="77469"
               inputMode="numeric"
+              maxLength={5}
               disabled={loading}
               className={`mt-1 w-full px-3 py-2 rounded-lg border outline-none transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 disabled:bg-gray-50'}`}
             />
@@ -218,7 +220,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
               loading || needsLocation
                 ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
             }`}
           >
             {loading ? (
@@ -240,8 +242,9 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         </>
       ) : (
         <>
-          <div className="mb-8">
-            <h2 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Analysis</h2>
+          <div className="mb-8 animate-rise">
+            <p className="eyebrow mb-2">Step 2 · Analysis</p>
+            <h2 className={`font-section-title text-2xl sm:text-3xl mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Analysis</h2>
             <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>AI-powered assessment of your strengths and opportunities.</p>
           </div>
 
@@ -258,7 +261,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
               loading || needsLocation
                 ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
             }`}
           >
             {loading ? (

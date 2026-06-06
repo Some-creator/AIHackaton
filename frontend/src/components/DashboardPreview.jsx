@@ -5,7 +5,7 @@ export default function DashboardPreview({ theme = 'dark' }) {
   const muted = isDark ? 'text-zinc-500' : 'text-gray-500';
   const text = isDark ? 'text-zinc-100' : 'text-gray-900';
   const barBg = isDark ? 'bg-zinc-800' : 'bg-gray-200';
-  const barFill = isDark ? 'bg-sky-500' : 'bg-[#0071e3]';
+  const barFill = isDark ? 'bg-hookline-500' : 'bg-hookline-500';
 
   const stats = [
     { label: 'Market score', value: '87', delta: '+12%' },

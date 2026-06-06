@@ -30,14 +30,15 @@ export default function Onboarding({ onSubmit, loading, ingestFinishing = false,
         backDisabled={navDisabled}
         nextDisabled={navDisabled}
       />
-      <div className="text-center mb-10">
-        <h1 className={`text-3xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Let&apos;s analyze your business</h1>
-        <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>
+      <div className="text-center mb-10 animate-rise">
+        <p className="eyebrow mb-3">Step 1 · Ingestion</p>
+        <h1 className={`font-section-title text-3xl sm:text-4xl mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Let&apos;s analyze your business</h1>
+        <p className={`max-w-md mx-auto ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           Enter your website and we&apos;ll build your profile automatically.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className={`rounded-2xl shadow-lg border p-8 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
+      <form onSubmit={handleSubmit} className={`animate-rise rounded-2xl shadow-lg border p-8 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`} style={{ animationDelay: '0.06s' }}>
         <label className={`block text-sm font-semibold mb-2 ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
           Your website URL
         </label>
@@ -69,7 +70,7 @@ export default function Onboarding({ onSubmit, loading, ingestFinishing = false,
           className={`w-full mt-6 px-6 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
             loading || !url.trim()
               ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-              : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+              : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
           }`}
         >
           {loading ? (

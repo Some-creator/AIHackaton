@@ -10,7 +10,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 211 100% 45%;
+    --primary: 229 91% 64%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 211 100% 45%;
+    --ring: 229 91% 64%;
     --radius: 0.75rem;
     --font-heading: 'General Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -35,7 +35,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 211 100% 55%;
+    --primary: 229 94% 68%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -47,7 +47,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 211 100% 55%;
+    --ring: 229 94% 68%;
   }
 
   html {
@@ -140,6 +140,54 @@
   .font-button {
     font-family: var(--font-heading);
     font-weight: 600;
+  }
+
+  /* Eyebrow label above section/step titles */
+  .eyebrow {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: hsl(var(--primary));
+  }
+
+  /* Atmospheric background for the in-app working area (replaces flat fill) */
+  .app-atmosphere {
+    background-color: #f5f5f7;
+    background-image:
+      radial-gradient(60rem 40rem at 12% -8%, rgba(79, 110, 247, 0.10), transparent 60%),
+      radial-gradient(48rem 36rem at 100% 0%, rgba(125, 144, 250, 0.08), transparent 55%);
+  }
+
+  .dark .app-atmosphere {
+    background-color: #000000;
+    background-image:
+      radial-gradient(64rem 44rem at 10% -10%, rgba(79, 110, 247, 0.16), transparent 60%),
+      radial-gradient(52rem 40rem at 100% 0%, rgba(125, 144, 250, 0.10), transparent 55%);
+  }
+
+  /* Primary action button with subtle lift */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white font-button
+      bg-hookline-500 transition-all duration-200 shadow-glow-sm;
+  }
+  .btn-primary:hover {
+    @apply bg-hookline-600 shadow-glow -translate-y-0.5;
+  }
+  .btn-primary:active {
+    @apply translate-y-0;
+  }
+  .btn-primary:disabled {
+    @apply bg-hookline-500/40 text-white/60 cursor-not-allowed shadow-none translate-y-0;
+  }
+
+  /* Surface card with hover lift */
+  .card-lift {
+    @apply transition-all duration-300;
+  }
+  .card-lift:hover {
+    @apply -translate-y-1;
   }
 
   .text-gradient-animate {

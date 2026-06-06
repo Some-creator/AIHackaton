@@ -364,8 +364,8 @@ const currentStepIndex = STEPS.indexOf(step);
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : isDark
-                        ? 'bg-blue-500/20 text-sky-400'
-                        : 'bg-blue-50 text-[#0071e3]'
+                        ? 'bg-hookline-500/20 text-hookline-300'
+                        : 'bg-hookline-50 text-hookline-600'
                   }`}
                 >
                   {stepLabels[s]}
@@ -377,8 +377,8 @@ const currentStepIndex = STEPS.indexOf(step);
                       ? 'bg-primary text-primary-foreground'
                       : isBehind || isAheadComplete
                         ? isDark
-                          ? 'bg-blue-500/20 text-sky-400'
-                          : 'bg-blue-50 text-[#0071e3]'
+                          ? 'bg-hookline-500/20 text-hookline-300'
+                          : 'bg-hookline-50 text-hookline-600'
                         : isDark
                           ? 'bg-zinc-800 text-zinc-500'
                           : 'bg-gray-100 text-gray-400'
@@ -394,7 +394,7 @@ const currentStepIndex = STEPS.indexOf(step);
     ) : null;
 
   return (
-    <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-[#f5f5f7]'}`}>
+    <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isHomeOrAuth ? (isDark ? 'bg-black' : 'bg-[#f5f5f7]') : 'app-atmosphere'}`}>
       <Header
         onLogoClick={() => setStep('home')}
         onSignIn={() => setStep('auth')}

@@ -67,7 +67,7 @@ export default function HomePage({ onGetStarted }) {
           <button
             type="button"
             onClick={onGetStarted}
-            className="w-full sm:w-auto px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-button rounded-full transition shadow-lg shadow-blue-500/20"
+            className="w-full sm:w-auto px-8 py-3.5 bg-hookline-500 hover:bg-hookline-600 text-white font-button rounded-full transition-all duration-200 shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5"
           >
             Get Started — It&apos;s Free
           </button>
@@ -93,7 +93,7 @@ export default function HomePage({ onGetStarted }) {
           <div className="space-y-4">
             <p
               className={`text-sm font-ui uppercase tracking-widest ${
-                isDark ? 'text-sky-400' : 'text-[#0071e3]'
+                isDark ? 'text-hookline-300' : 'text-hookline-600'
               }`}
             >
               Scroll to explore
@@ -104,7 +104,7 @@ export default function HomePage({ onGetStarted }) {
               }`}
             >
               Your business intelligence,
-              <span className={`block mt-2 ${isDark ? 'text-[#2997ff]' : 'text-[#0071e3]'}`}>
+              <span className={`block mt-2 ${isDark ? 'text-hookline-400' : 'text-hookline-500'}`}>
                 in one dashboard
               </span>
             </h2>
@@ -134,19 +134,19 @@ export default function HomePage({ onGetStarted }) {
             {steps.map((step, index) => (
               <div
                 key={step.title}
-                className={`relative rounded-3xl border p-6 transition ${
+                className={`card-lift relative rounded-3xl border p-6 ${
                   isDark
-                    ? 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-600'
-                    : 'bg-[#f5f5f7] border-gray-200/80 hover:border-blue-200'
+                    ? 'bg-zinc-900/80 border-zinc-800 hover:border-hookline-500/50'
+                    : 'bg-[#f5f5f7] border-gray-200/80 hover:border-hookline-300'
                 }`}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0071e3] text-white text-sm font-bold shrink-0">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-hookline-500 text-white text-sm font-bold shrink-0">
                     {index + 1}
                   </span>
                   <div
                     className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 ${
-                      isDark ? 'bg-zinc-800 border-zinc-700 text-sky-400' : 'bg-white border-gray-200 text-[#0071e3]'
+                      isDark ? 'bg-zinc-800 border-zinc-700 text-hookline-300' : 'bg-white border-gray-200 text-hookline-600'
                     }`}
                   >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -184,15 +184,15 @@ export default function HomePage({ onGetStarted }) {
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className={`rounded-3xl border p-8 transition ${
+                className={`card-lift rounded-3xl border p-8 ${
                   isDark
-                    ? 'bg-zinc-900 border-zinc-800'
-                    : 'bg-white border-gray-200 shadow-sm'
+                    ? 'bg-zinc-900 border-zinc-800 hover:border-hookline-500/40'
+                    : 'bg-white border-gray-200 shadow-sm hover:shadow-md'
                 }`}
               >
                 <div
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-5 ${
-                    isDark ? 'bg-blue-500/20 text-sky-400' : 'bg-blue-50 text-[#0071e3]'
+                    isDark ? 'bg-hookline-500/20 text-hookline-300' : 'bg-hookline-50 text-hookline-600'
                   }`}
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -231,7 +231,7 @@ export default function HomePage({ onGetStarted }) {
             <button
               type="button"
               onClick={onGetStarted}
-              className="px-8 py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-button rounded-full transition"
+              className="px-8 py-3.5 bg-hookline-500 hover:bg-hookline-600 text-white font-button rounded-full transition-all duration-200 shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5"
             >
               Analyze My Business
             </button>

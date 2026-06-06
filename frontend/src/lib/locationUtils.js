@@ -24,9 +24,13 @@ export function normalizeState(state) {
   return US_STATES.some(([abbrev]) => abbrev === raw) ? raw : '';
 }
 
+export function sanitizeZipInput(zip) {
+  return String(zip || '').replace(/\D/g, '').slice(0, 5);
+}
+
 export function normalizeZipCode(zip) {
-  const match = String(zip || '').match(/\b(\d{5})(?:-\d{4})?\b/);
-  return match ? match[1] : '';
+  const digits = sanitizeZipInput(zip);
+  return digits.length === 5 ? digits : '';
 }
 
 export function formatLocation({ city, state, zipCode } = {}) {
@@ -48,7 +52,7 @@ export function isLocationComplete({ city, state } = {}) {
 export function applyUserLocationUpdate(business = {}) {
   const city = cleanCity(business.city);
   const state = normalizeState(business.state);
-  const zipCode = normalizeZipCode(business.zipCode);
+  const zipCode = sanitizeZipInput(business.zipCode);
   const complete = isLocationComplete({ city, state });
 
   return {

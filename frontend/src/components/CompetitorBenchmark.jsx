@@ -16,9 +16,10 @@ export default function CompetitorBenchmark({ competitors, mock = false, mockRea
         backDisabled={navDisabled}
         nextDisabled={navDisabled}
       />
-      <div className="mb-8">
-        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Competitor Benchmark</h2>
-        <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+      <div className="mb-8 animate-rise">
+        <p className="eyebrow mb-2">Step 3 · Benchmark</p>
+        <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Competitor Benchmark</h2>
+        <p className={`mt-1.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           How you stack up against similar businesses in your market.
         </p>
         {mock && (
@@ -39,7 +40,7 @@ export default function CompetitorBenchmark({ competitors, mock = false, mockRea
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {competitors.map((comp, i) => (
-          <div key={i} className={`rounded-2xl shadow-lg border p-6 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
+          <div key={i} className={`card-lift animate-rise rounded-2xl shadow-lg border p-6 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md hover:border-zinc-700' : 'bg-white border-gray-200 hover:shadow-xl'}`} style={{ animationDelay: `${0.05 + i * 0.05}s` }}>
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>{comp.name}</h3>
@@ -109,7 +110,7 @@ export default function CompetitorBenchmark({ competitors, mock = false, mockRea
         className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
           loading
             ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-            : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+            : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
         }`}
       >
         {loading ? (
