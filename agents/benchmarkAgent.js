@@ -210,7 +210,11 @@ function validateAndNormalize(parsed) {
         result[field] = normalizeStringArray(comp[field], field);
       } else {
         const value = String(comp[field] || '').trim();
-        if (!value) throw new Error(`competitor[${index}].${field} is required`);
+        // website is optional — many businesses don't have one in Google Places
+        // only targetMarket is required as a non-array string field
+        if (!value && field !== 'website') {
+          throw new Error(`competitor[${index}].${field} is required`);
+        }
         result[field] = value;
       }
     }

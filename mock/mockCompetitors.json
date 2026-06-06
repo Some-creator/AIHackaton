@@ -1,83 +1,63 @@
 {
   "competitors": [
     {
-      "name": "Houston Print Pros",
-      "website": "https://houstonprintpros.example.com",
+      "name": "Local Competitor A",
+      "website": "",
       "strengths": [
-        "Strong online portfolio with restaurant case studies",
-        "Same-day rush printing available",
-        "Active Google reviews with owner responses"
+        "Established local reputation with strong Google reviews",
+        "Active social media presence with regular posts",
+        "Diverse service offerings covering multiple customer needs"
       ],
       "weaknesses": [
-        "Higher pricing visible on website",
-        "Limited direct mail services",
-        "No design consultation included"
+        "Higher pricing with no visible value justification",
+        "Limited hours reducing customer accessibility",
+        "No loyalty or rewards program for repeat customers"
       ],
-      "targetMarket": "Restaurants and retail in central Houston",
+      "targetMarket": "General local customers in the same area",
       "theyHaveYouDont": [
-        "Restaurant-specific portfolio page",
-        "Online instant quote calculator",
-        "Video testimonials from local clients"
+        "Strong online review volume building trust",
+        "Professional website with online booking or ordering",
+        "Active community engagement and local partnerships"
       ]
     },
     {
-      "name": "Westside Graphics Co",
-      "website": "https://westsidegraphics.example.com",
+      "name": "Local Competitor B",
+      "website": "",
       "strengths": [
-        "Modern website with online ordering",
-        "Strong Instagram presence showcasing work",
-        "Offers packaging design for food businesses"
+        "Modern, user-friendly website with easy navigation",
+        "Consistent branding across all marketing channels",
+        "Offers bundled service packages at competitive rates"
       ],
       "weaknesses": [
-        "No direct mail fulfillment",
-        "Smaller team means longer turnaround on large jobs",
-        "Limited large format capabilities"
+        "Limited personalization in customer interactions",
+        "Slow response time to online inquiries",
+        "Outdated interior or equipment reducing quality perception"
       ],
-      "targetMarket": "Food trucks and boutique eateries in West Houston",
+      "targetMarket": "Budget-conscious customers seeking convenience",
       "theyHaveYouDont": [
-        "Active social media showcasing recent restaurant work",
-        "Packaging design services for takeout menus",
-        "Monthly email newsletter with design tips"
+        "Online booking or order management system",
+        "Email newsletter with regular promotions",
+        "Clearly advertised pricing on website"
       ]
     },
     {
-      "name": "PrintMax Houston",
-      "website": "https://printmaxhouston.example.com",
+      "name": "Local Competitor C",
+      "website": "",
       "strengths": [
-        "Lowest advertised prices in the area",
-        "24-hour turnaround guarantee",
-        "Franchise-level brand recognition"
+        "Premium positioning with high-quality service delivery",
+        "Strong word-of-mouth referral network",
+        "Specialized niche expertise that commands premium pricing"
       ],
       "weaknesses": [
-        "Generic templates with no custom design",
-        "No local relationship building",
-        "Impersonal customer service"
+        "Pricing is too high for budget-conscious customers",
+        "Limited marketing visibility outside loyal customer base",
+        "No flexible pricing or entry-level service options"
       ],
-      "targetMarket": "High-volume commercial clients across Houston metro",
+      "targetMarket": "Premium customers seeking quality over price",
       "theyHaveYouDont": [
-        "National brand recognition",
-        "Automated online ordering portal",
-        "Volume discount pricing tiers"
-      ]
-    },
-    {
-      "name": "Bayou Mail & Print",
-      "website": "https://bayoumailprint.example.com",
-      "strengths": [
-        "Specializes in direct mail campaigns",
-        "EDDM (Every Door Direct Mail) expertise",
-        "Long-standing relationships with local chambers"
-      ],
-      "weaknesses": [
-        "Outdated website design",
-        "No graphic design in-house",
-        "Slow response to online inquiries"
-      ],
-      "targetMarket": "Local service businesses and nonprofits in Houston",
-      "theyHaveYouDont": [
-        "EDDM direct mail specialization page",
-        "Chamber of commerce partnership badges",
-        "Mailing list management services"
+        "Premium brand positioning and identity",
+        "Exclusive membership or VIP customer program",
+        "Professional photography showcasing services"
       ]
     }
   ]
