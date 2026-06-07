@@ -3,7 +3,12 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { scrapeSocialProfile, canScrapeSocial, needsApify, cleanSocialUrl } from '../backend/apify.js';
-import { extractSocialLinksFromPage, partitionSocialLinks } from '../backend/socialLinks.js';
+import {
+  dedupeSocialProfiles,
+  dedupeSocialScrapes,
+  extractSocialLinksFromPage,
+  partitionSocialLinks,
+} from '../backend/socialLinks.js';
 import { geocodeLocation } from '../backend/googlePlaces.js';
 import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
@@ -223,10 +228,10 @@ function validateAndNormalize(profile, url, socialProfiles, addressCandidates) {
   const type = business.type?.trim().toLowerCase();
   const normalizedType = VALID_TYPES.find((t) => t === type) || 'service provider';
 
-  const mergedSocial = [...new Set([
-    ...socialProfiles.map(normalizeUrl).filter(Boolean),
-    ...(Array.isArray(business.socialProfiles) ? business.socialProfiles.map(normalizeUrl) : []),
-  ])];
+  const mergedSocial = dedupeSocialProfiles([
+    ...socialProfiles,
+    ...(Array.isArray(business.socialProfiles) ? business.socialProfiles : []),
+  ]);
 
   const locationFields = buildBusinessLocationFields(business, addressCandidates);
 
@@ -299,7 +304,9 @@ export async function* streamIngestion(url, socialProfiles = []) {
       const labels = socialUrls.map((u) => socialLabel(cleanSocialUrl(u))).join(', ');
       yield { type: 'log', message: `Reading ${labels} — this step can take 10–30 seconds...` };
       const pendingLogs = [];
-      socialScrapes = await scrapeSocialProfiles(socialUrls, (msg) => pendingLogs.push(msg));
+      socialScrapes = dedupeSocialScrapes(
+        await scrapeSocialProfiles(socialUrls, (msg) => pendingLogs.push(msg)),
+      );
       for (const msg of pendingLogs) yield { type: 'log', message: msg };
 
       if (socialScrapes.length) {

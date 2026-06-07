@@ -46,6 +46,13 @@ const CONTENT_URL_PATTERNS = [
   /(?:^|[\s(])(?:www\.)?tiktok\.com\/@?[\w.-]+\/?/gi,
 ];
 
+function canonicalHost(hostname) {
+  const host = String(hostname || '').replace(/^www\./i, '').toLowerCase();
+  if (host === 'm.facebook.com') return 'facebook.com';
+  if (host === 'mobile.twitter.com') return 'twitter.com';
+  return host;
+}
+
 function normalizeSocialUrl(url) {
   if (!url) return '';
   const trimmed = String(url).trim();
@@ -56,6 +63,50 @@ function normalizeSocialUrl(url) {
   } catch {
     return '';
   }
+}
+
+export function socialProfileKey(url) {
+  const normalized = normalizeSocialUrl(url);
+  if (!normalized) return String(url || '').toLowerCase().trim();
+
+  try {
+    const parsed = new URL(normalized);
+    const host = canonicalHost(parsed.hostname);
+    const path = parsed.pathname.replace(/\/+/g, '/').replace(/\/$/, '').toLowerCase();
+    return `${host}${path}`;
+  } catch {
+    return normalized.toLowerCase();
+  }
+}
+
+export function dedupeSocialProfiles(urls) {
+  const byKey = new Map();
+
+  for (const raw of urls) {
+    const normalized = normalizeSocialUrl(raw);
+    if (!normalized || !isLikelySocialProfileUrl(normalized)) continue;
+
+    const key = socialProfileKey(normalized);
+    if (!byKey.has(key)) {
+      byKey.set(key, normalized);
+    }
+  }
+
+  return [...byKey.values()];
+}
+
+export function dedupeSocialScrapes(scrapes) {
+  const byKey = new Map();
+
+  for (const scrape of scrapes || []) {
+    if (!scrape?.url) continue;
+    const key = socialProfileKey(scrape.url);
+    if (!byKey.has(key)) {
+      byKey.set(key, scrape);
+    }
+  }
+
+  return [...byKey.values()];
 }
 
 function isLikelySocialProfileUrl(url) {
@@ -85,34 +136,24 @@ function isLikelySocialProfileUrl(url) {
 }
 
 export function extractSocialLinksFromPage({ content = '', links = [], userProfiles = [] } = {}) {
-  const found = new Set();
+  const candidates = [];
 
   for (const profile of userProfiles) {
-    const normalized = normalizeSocialUrl(profile);
-    if (normalized && isLikelySocialProfileUrl(normalized)) {
-      found.add(normalized);
-    }
+    candidates.push(profile);
   }
 
   for (const link of links) {
-    const normalized = normalizeSocialUrl(link);
-    if (normalized && isLikelySocialProfileUrl(normalized)) {
-      found.add(normalized);
-    }
+    candidates.push(link);
   }
 
   for (const pattern of CONTENT_URL_PATTERNS) {
     const matches = String(content).match(pattern) || [];
     for (const match of matches) {
-      const cleaned = match.trim().replace(/^[\s(]+/, '');
-      const normalized = normalizeSocialUrl(cleaned);
-      if (normalized && isLikelySocialProfileUrl(normalized)) {
-        found.add(normalized);
-      }
+      candidates.push(match.trim().replace(/^[\s(]+/, ''));
     }
   }
 
-  return [...found];
+  return dedupeSocialProfiles(candidates);
 }
 
 export function partitionSocialLinks(urls, userProfiles = []) {
@@ -123,15 +164,14 @@ export function partitionSocialLinks(urls, userProfiles = []) {
   const fromWebsite = [];
   const fromUser = [];
 
-  for (const url of urls) {
-    const normalized = normalizeSocialUrl(url);
-    if (!normalized) continue;
-    if ([...userKeys].some((key) => key === normalized)) {
-      fromUser.push(normalized);
-    } else {
-      fromWebsite.push(normalized);
-    }
+  const deduped = dedupeSocialProfiles(urls);
+
+  for (const normalized of deduped) {
+    const key = socialProfileKey(normalized);
+    const isUser = [...userKeys].some((userUrl) => socialProfileKey(userUrl) === key);
+    if (isUser) fromUser.push(normalized);
+    else fromWebsite.push(normalized);
   }
 
-  return { fromWebsite, fromUser, all: urls.map((url) => normalizeSocialUrl(url)).filter(Boolean) };
+  return { fromWebsite, fromUser, all: deduped };
 }

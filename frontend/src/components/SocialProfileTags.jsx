@@ -1,20 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { dedupeSocialProfiles, socialProfileKey } from '../lib/socialUtils';
 import { useTheme } from '../context/ThemeContext';
 
 const POPOVER_WIDTH = 320;
 const POPOVER_GAP = 6;
-
-function profileKey(url) {
-  try {
-    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
-    const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
-    const path = parsed.pathname.replace(/\/+$/, '').toLowerCase();
-    return `${host}${path}`;
-  } catch {
-    return url.toLowerCase().trim();
-  }
-}
 
 function socialLabel(url) {
   if (/instagram/i.test(url)) return 'Instagram';
@@ -29,8 +19,8 @@ function socialLabel(url) {
 function findScrape(url, socialScrapes) {
   if (!socialScrapes?.length) return null;
 
-  const key = profileKey(url);
-  const exact = socialScrapes.find((s) => profileKey(s.url) === key);
+  const key = socialProfileKey(url);
+  const exact = socialScrapes.find((s) => socialProfileKey(s.url) === key);
   if (exact) return exact;
 
   const label = socialLabel(url).toLowerCase();
@@ -174,6 +164,14 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
   const anchorRefs = useRef({});
 
   const activeUrl = pinned || hovered;
+  const displayItems = useMemo(() => dedupeSocialProfiles(items), [items]);
+
+  useEffect(() => {
+    const deduped = dedupeSocialProfiles(items);
+    const changed = deduped.length !== items.length
+      || deduped.some((url, index) => socialProfileKey(url) !== socialProfileKey(items[index]));
+    if (changed) onChange(deduped);
+  }, [items, onChange]);
 
   const cancelHide = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -213,15 +211,17 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
 
   const addItem = () => {
     const trimmed = input.trim();
-    if (!trimmed || items.includes(trimmed)) return;
-    onChange([...items, trimmed]);
+    if (!trimmed) return;
+    const next = dedupeSocialProfiles([...items, trimmed]);
+    if (next.length === items.length) return;
+    onChange(next);
     setInput('');
   };
 
   const removeItem = (index) => {
     const removed = items[index];
     onChange(items.filter((_, i) => i !== index));
-    if (activeUrl && profileKey(activeUrl) === profileKey(removed)) {
+    if (activeUrl && socialProfileKey(activeUrl) === socialProfileKey(removed)) {
       setHovered(null);
       setPinned(null);
     }
@@ -235,7 +235,7 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
   const togglePin = (e, url) => {
     e.preventDefault();
     e.stopPropagation();
-    setPinned((prev) => (prev && profileKey(prev) === profileKey(url) ? null : url));
+    setPinned((prev) => (prev && socialProfileKey(prev) === socialProfileKey(url) ? null : url));
     setHovered(url);
   };
 
@@ -257,19 +257,19 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
           isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-gray-50 border-gray-300'
         }`}
       >
-        {items.length === 0 && (
+        {displayItems.length === 0 && (
           <span className={`text-sm italic ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
             No profiles yet — add one below
           </span>
         )}
-        {items.map((item, i) => {
+        {displayItems.map((item, i) => {
           const scrape = findScrape(item, socialScrapes);
           const hasData = Boolean(
             scrape?.summary?.topics || scrape?.summary?.engagement || scrape?.content?.trim(),
           );
-          const isActive = activeUrl && profileKey(activeUrl) === profileKey(item);
+          const isActive = activeUrl && socialProfileKey(activeUrl) === socialProfileKey(item);
           const label = socialLabel(item);
-          const key = profileKey(item);
+          const key = socialProfileKey(item);
 
           const tagClass = isActive
             ? 'bg-hookline-500 text-white border-hookline-400 shadow-md shadow-hookline-500/20'
