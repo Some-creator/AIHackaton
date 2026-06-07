@@ -36,6 +36,62 @@ function formatWebsiteUrl(website) {
   return website.startsWith('http') ? website : `https://${website}`;
 }
 
+function formatReviewCount(count) {
+  const value = Number(count);
+  if (!Number.isFinite(value) || value < 0) return null;
+  return value.toLocaleString();
+}
+
+function StarRating({ rating, isDark }) {
+  const value = Number(rating);
+  if (!Number.isFinite(value)) return null;
+  const fullStars = Math.floor(value);
+  const hasHalf = value - fullStars >= 0.25 && value - fullStars < 0.75;
+  const stars = Array.from({ length: 5 }, (_, i) => {
+    if (i < fullStars) return 'full';
+    if (i === fullStars && hasHalf) return 'half';
+    if (i === fullStars && value - fullStars >= 0.75) return 'full';
+    return 'empty';
+  });
+
+  return (
+    <div className="flex items-center gap-0.5" aria-label={`${value.toFixed(1)} out of 5 stars`}>
+      {stars.map((type, i) => (
+        <span
+          key={i}
+          className={`text-sm leading-none ${
+            type === 'empty'
+              ? isDark ? 'text-zinc-600' : 'text-gray-300'
+              : 'text-amber-400'
+          }`}
+        >
+          {type === 'empty' ? '☆' : '★'}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function LeadReviewExcerpt({ lead, isDark, compact }) {
+  const recentReview = lead.recentReviews?.[0];
+  if (!recentReview?.text) return null;
+
+  return (
+    <div
+      className={`rounded-lg border shrink-0 ${
+        compact ? 'p-3 mb-3' : 'p-4 mb-4'
+      } ${isDark ? 'bg-zinc-950/40 border-zinc-800' : 'bg-gray-50 border-gray-200'}`}
+    >
+      <p className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+        Recent review · {recentReview.author}
+      </p>
+      <p className={`text-xs leading-snug line-clamp-2 italic ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
+        “{recentReview.text}”
+      </p>
+    </div>
+  );
+}
+
 export default function LeadCard({
   lead,
   business,
@@ -163,10 +219,30 @@ export default function LeadCard({
             : 'bg-white border-gray-200 shadow-sm hover:shadow-md'
       }`}
     >
-      <div className={compact ? 'mb-3 shrink-0' : 'mb-4'}>
-        <h3 className={`font-bold ${compact ? 'text-base' : 'text-lg'} ${isDark ? 'text-white' : 'text-gray-900'}`}>
+      <div className={`flex items-start justify-between gap-3 shrink-0 ${compact ? 'mb-3' : 'mb-4'}`}>
+        <h3 className={`font-bold min-w-0 ${compact ? 'text-base' : 'text-lg'} ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {lead.name}
         </h3>
+        {(Number.isFinite(Number(lead.rating)) || formatReviewCount(lead.reviewCount)) && (
+          <div className={`text-right shrink-0 rounded-lg border px-2.5 py-1.5 ${
+            isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-gray-50 border-gray-200'
+          }`}>
+            {Number.isFinite(Number(lead.rating)) && (
+              <div className="flex items-center justify-end gap-1.5">
+                <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {Number(lead.rating).toFixed(1)}
+                </span>
+                <StarRating rating={lead.rating} isDark={isDark} />
+              </div>
+            )}
+            {formatReviewCount(lead.reviewCount) && (
+              <p className={`text-[11px] mt-0.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+                {formatReviewCount(lead.reviewCount)} reviews
+                {lead.reviewSource === 'google' ? ' · Google' : lead.reviewSource === 'yelp' ? ' · Yelp' : ''}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className={`grid grid-cols-4 gap-1.5 shrink-0 ${compact ? 'mb-3' : 'mb-4 gap-2'}`}>
@@ -200,6 +276,8 @@ export default function LeadCard({
         </div>
         <p className={`text-sm leading-snug ${compact && !hookExpanded ? 'line-clamp-3' : ''}`}>{lead.hook}</p>
       </div>
+
+      <LeadReviewExcerpt lead={lead} isDark={isDark} compact={compact} />
 
       {contactItems.length > 0 && (
         <div
