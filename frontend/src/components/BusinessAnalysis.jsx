@@ -13,6 +13,26 @@ import {
 
 const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
+function RequiredMark() {
+  return (
+    <span className="text-red-500 ml-0.5" aria-hidden="true">
+      *
+    </span>
+  );
+}
+
+function FieldLabel({ children, required = false, isDark, hint }) {
+  return (
+    <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
+      {children}
+      {required && <RequiredMark />}
+      {hint && (
+        <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}> {hint}</span>
+      )}
+    </label>
+  );
+}
+
 function AnalysisSection({ title, items, color, isDark }) {
   const colors = isDark ? {
     green: 'bg-green-950/30 border-green-900/50 text-green-400',
@@ -108,7 +128,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
       <div className={`rounded-2xl border p-6 mb-8 space-y-5 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Business Name</label>
+            <FieldLabel required isDark={isDark}>Business Name</FieldLabel>
             <input
               value={profile.name}
               onChange={(e) => updateField('name', e.target.value)}
@@ -117,7 +137,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             />
           </div>
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>City</label>
+            <FieldLabel required isDark={isDark}>City</FieldLabel>
             <input
               value={profile.city || ''}
               onChange={(e) => updateField('city', e.target.value)}
@@ -127,7 +147,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             />
           </div>
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>State</label>
+            <FieldLabel required isDark={isDark}>State</FieldLabel>
             <select
               value={profile.state || ''}
               onChange={(e) => updateField('state', e.target.value)}
@@ -143,9 +163,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             </select>
           </div>
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
-              ZIP code <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>(recommended)</span>
-            </label>
+            <FieldLabel isDark={isDark} hint="(recommended)">ZIP code</FieldLabel>
             <input
               value={profile.zipCode || ''}
               onChange={(e) => updateField('zipCode', e.target.value)}
@@ -164,7 +182,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             </div>
           )}
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Business Type</label>
+            <FieldLabel required isDark={isDark}>Business Type</FieldLabel>
             <select
               value={profile.type}
               onChange={(e) => updateField('type', e.target.value)}
@@ -177,7 +195,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             </select>
           </div>
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Website</label>
+            <FieldLabel required isDark={isDark}>Website</FieldLabel>
             <input
               value={profile.website}
               onChange={(e) => updateField('website', e.target.value)}
@@ -188,7 +206,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         </div>
 
         <div>
-          <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Target Market</label>
+          <FieldLabel isDark={isDark}>Target Market</FieldLabel>
           <textarea
             value={profile.targetMarket}
             onChange={(e) => updateField('targetMarket', e.target.value)}
@@ -210,6 +228,10 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
           socialScrapes={socialScrapes}
           onChange={(socialProfiles) => updateField('socialProfiles', socialProfiles)}
         />
+
+        <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+          <span className="text-red-500">*</span> Required
+        </p>
       </div>
 
       {!hasAnalysis ? (
