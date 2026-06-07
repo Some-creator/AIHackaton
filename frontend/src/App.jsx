@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import HomePage from './components/HomePage';
 import AuthPage from './components/AuthPage';
 import Onboarding from './components/Onboarding';
@@ -7,6 +8,7 @@ import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
 import Dashboard from './components/Dashboard';
+import AmbientBackground from './components/ui/AmbientBackground';
 import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
@@ -583,7 +585,9 @@ const currentStepIndex = STEPS.indexOf(step);
         centerContent={stepNav}
       />
 
-      <main className={isHomeOrAuth ? 'flex-1 w-full' : 'flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full'}>
+      {!isHomeOrAuth && <AmbientBackground />}
+
+      <main className={isHomeOrAuth ? 'flex-1 w-full' : 'relative z-10 flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full'}>
         {authLoading && !isHomeOrAuth && (
           <div className={`mb-6 text-center text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Checking authentication…
@@ -628,97 +632,109 @@ const currentStepIndex = STEPS.indexOf(step);
           <AuthPage onSuccess={handleAuthSuccess} onClose={handleBack} />
         )}
 
-        {step === 'dashboard' && user && (
-          <Dashboard
-            user={user}
-            onOpenRun={handleOpenRun}
-            onNewAnalysis={handleNewAnalysis}
-            onBack={() => setStep('home')}
-          />
-        )}
+        {!isHomeOrAuth && (
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {step === 'dashboard' && user && (
+                <Dashboard
+                  user={user}
+                  onOpenRun={handleOpenRun}
+                  onNewAnalysis={handleNewAnalysis}
+                  onBack={() => setStep('home')}
+                />
+              )}
 
-        {step === 'onboarding' && user && (
-          <Onboarding
-            onSubmit={handleIngest}
-            loading={loading}
-            ingestFinishing={ingestFinishing}
-            logs={ingestLogs}
-            onBack={handleBack}
-            backLabel={BACK_LABELS[PREVIOUS_STEP.onboarding]}
-            onNext={nextStep ? handleNext : null}
-            nextLabel={nextLabel}
-            navDisabled={navDisabled}
-          />
-        )}
+              {step === 'onboarding' && user && (
+                <Onboarding
+                  onSubmit={handleIngest}
+                  loading={loading}
+                  ingestFinishing={ingestFinishing}
+                  logs={ingestLogs}
+                  onBack={handleBack}
+                  backLabel={BACK_LABELS[PREVIOUS_STEP.onboarding]}
+                  onNext={nextStep ? handleNext : null}
+                  nextLabel={nextLabel}
+                  navDisabled={navDisabled}
+                />
+              )}
 
-        {step === 'analysis' && context.business && (
-          <BusinessAnalysis
-            business={context.business}
-            analysis={context.analysis}
-            socialScrapes={context.socialScrapes}
-            companyId={context.companyId}
-            onAnalyze={handleAnalyze}
-            onContinue={handleContinueToBenchmark}
-            loading={loading}
-            analysisLogs={analysisLogs}
-            benchmarkLogs={benchmarkLogs}
-            analysisFinishing={analysisFinishing}
-            benchmarkFinishing={benchmarkFinishing}
-            onBack={handleBack}
-            backLabel={BACK_LABELS[PREVIOUS_STEP.analysis]}
-            onNext={nextStep ? handleNext : null}
-            nextLabel={nextLabel}
-            navDisabled={navDisabled}
-          />
-        )}
+              {step === 'analysis' && context.business && (
+                <BusinessAnalysis
+                  business={context.business}
+                  analysis={context.analysis}
+                  socialScrapes={context.socialScrapes}
+                  companyId={context.companyId}
+                  onAnalyze={handleAnalyze}
+                  onContinue={handleContinueToBenchmark}
+                  loading={loading}
+                  analysisLogs={analysisLogs}
+                  benchmarkLogs={benchmarkLogs}
+                  analysisFinishing={analysisFinishing}
+                  benchmarkFinishing={benchmarkFinishing}
+                  onBack={handleBack}
+                  backLabel={BACK_LABELS[PREVIOUS_STEP.analysis]}
+                  onNext={nextStep ? handleNext : null}
+                  nextLabel={nextLabel}
+                  navDisabled={navDisabled}
+                />
+              )}
 
-        {step === 'competitors' && context.competitors && (
-          <CompetitorBenchmark
-            competitors={context.competitors}
-            mock={context.competitorsMock}
-            mockReason={context.competitorsMockReason}
-            onContinue={handleFindGaps}
-            loading={loading}
-            gapLogs={gapLogs}
-            gapFinishing={gapFinishing}
-            onBack={handleBack}
-            backLabel={BACK_LABELS[PREVIOUS_STEP.competitors]}
-            onNext={nextStep ? handleNext : null}
-            nextLabel={nextLabel}
-            navDisabled={navDisabled}
-          />
-        )}
+              {step === 'competitors' && context.competitors && (
+                <CompetitorBenchmark
+                  competitors={context.competitors}
+                  mock={context.competitorsMock}
+                  mockReason={context.competitorsMockReason}
+                  onContinue={handleFindGaps}
+                  loading={loading}
+                  gapLogs={gapLogs}
+                  gapFinishing={gapFinishing}
+                  onBack={handleBack}
+                  backLabel={BACK_LABELS[PREVIOUS_STEP.competitors]}
+                  onNext={nextStep ? handleNext : null}
+                  nextLabel={nextLabel}
+                  navDisabled={navDisabled}
+                />
+              )}
 
-        {step === 'gap' && context.gaps && (
-          <MarketGap
-            gaps={context.gaps}
-            recommendedGap={context.recommendedGap}
-            onConfirm={handleConfirmGap}
-            loading={loading}
-            onBack={handleBack}
-            backLabel={BACK_LABELS[PREVIOUS_STEP.gap]}
-            onNext={nextStep ? handleNext : null}
-            nextLabel={nextLabel}
-            navDisabled={navDisabled}
-          />
-        )}
+              {step === 'gap' && context.gaps && (
+                <MarketGap
+                  gaps={context.gaps}
+                  recommendedGap={context.recommendedGap}
+                  onConfirm={handleConfirmGap}
+                  loading={loading}
+                  onBack={handleBack}
+                  backLabel={BACK_LABELS[PREVIOUS_STEP.gap]}
+                  onNext={nextStep ? handleNext : null}
+                  nextLabel={nextLabel}
+                  navDisabled={navDisabled}
+                />
+              )}
 
-        {step === 'leads' && (
-          <LeadGeneration
-            leads={leads}
-            business={context.business}
-            analysis={context.analysis}
-            marketGap={context.gaps?.[context.recommendedGap]}
-            streaming={streaming}
-            streamComplete={streamComplete}
-            onSkip={handleSkip}
-            skippedLeads={skippedLeads}
-            onBack={handleBack}
-            backLabel={BACK_LABELS[PREVIOUS_STEP.leads]}
-            onNext={nextStep ? handleNext : null}
-            nextLabel={nextLabel}
-            navDisabled={navDisabled}
-          />
+              {step === 'leads' && (
+                <LeadGeneration
+                  leads={leads}
+                  business={context.business}
+                  analysis={context.analysis}
+                  marketGap={context.gaps?.[context.recommendedGap]}
+                  streaming={streaming}
+                  streamComplete={streamComplete}
+                  onSkip={handleSkip}
+                  skippedLeads={skippedLeads}
+                  onBack={handleBack}
+                  backLabel={BACK_LABELS[PREVIOUS_STEP.leads]}
+                  onNext={nextStep ? handleNext : null}
+                  nextLabel={nextLabel}
+                  navDisabled={navDisabled}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
       </main>
     </div>

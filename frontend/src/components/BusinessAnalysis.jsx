@@ -241,10 +241,16 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-            <GlassAnalysisCard title="Strengths" items={analysis.strengths} color="green" isDark={isDark} />
-            <GlassAnalysisCard title="Weaknesses" items={analysis.weaknesses} color="orange" isDark={isDark} />
-            <GlassAnalysisCard title="Improvements" items={analysis.improvements} color="blue" isDark={isDark} />
-            <GlassAnalysisCard title="Missing" items={analysis.missing} color="violet" isDark={isDark} />
+            {[
+              { title: 'Strengths', items: analysis.strengths, color: 'green' },
+              { title: 'Weaknesses', items: analysis.weaknesses, color: 'orange' },
+              { title: 'Improvements', items: analysis.improvements, color: 'blue' },
+              { title: 'Missing', items: analysis.missing, color: 'violet' },
+            ].map((card, i) => (
+              <div key={card.title} className="animate-rise" style={{ animationDelay: `${0.05 + i * 0.08}s` }}>
+                <GlassAnalysisCard title={card.title} items={card.items} color={card.color} isDark={isDark} />
+              </div>
+            ))}
           </div>
 
           <PrimaryButton

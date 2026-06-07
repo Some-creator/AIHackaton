@@ -248,18 +248,15 @@
 
   .text-gradient-animate {
     background: linear-gradient(
-      115deg,
-      #c084fc 0%,
-      #818cf8 12%,
-      #38bdf8 25%,
-      #2dd4bf 38%,
-      #f472b6 52%,
-      #fb923c 65%,
-      #facc15 78%,
-      #c084fc 90%,
-      #818cf8 100%
+      110deg,
+      #4f6ef7 0%,
+      #6d8bff 18%,
+      #38bdf8 38%,
+      #22d3ee 52%,
+      #7c92ff 72%,
+      #4f6ef7 100%
     );
-    background-size: 300% auto;
+    background-size: 250% auto;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -374,6 +371,46 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-drift,
   .animate-drift-slow { animation: none; }
+}
+
+/* ─── Ambient "market signal" background (app-wide, subtle) ─── */
+.ambient-dots {
+  background-image: radial-gradient(rgba(79, 110, 247, 0.07) 1px, transparent 1.4px);
+  background-size: 30px 30px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 18%, #000 35%, transparent 92%);
+  mask-image: radial-gradient(ellipse 90% 75% at 50% 18%, #000 35%, transparent 92%);
+  animation: grid-breathe 12s ease-in-out infinite;
+}
+.dark .ambient-dots {
+  background-image: radial-gradient(rgba(125, 144, 250, 0.08) 1px, transparent 1.4px);
+}
+
+@keyframes grid-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes aurora-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, 30px) scale(1.12); }
+}
+@keyframes aurora-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-36px, 26px) scale(1.1); }
+}
+@keyframes aurora-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(24px, -34px) scale(1.08); }
+}
+.animate-aurora-a { animation: aurora-a 26s ease-in-out infinite; }
+.animate-aurora-b { animation: aurora-b 32s ease-in-out infinite; }
+.animate-aurora-c { animation: aurora-c 29s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-dots { animation: none; opacity: 0.7; }
+  .animate-aurora-a,
+  .animate-aurora-b,
+  .animate-aurora-c { animation: none; }
 }
 
 #root {

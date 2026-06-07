@@ -126,7 +126,7 @@ export function GlassAnalysisCard({ title, items, color, isDark = true }: GlassA
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-3xl border backdrop-blur-xl transition-all duration-300',
+        'group relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-300',
         'hover:-translate-y-0.5',
         theme.shell,
         theme.glow,
@@ -167,7 +167,7 @@ export function GlassAnalysisCard({ title, items, color, isDark = true }: GlassA
             <li
               key={index}
               className={cn(
-                'flex gap-3 rounded-2xl border px-3.5 py-3 text-sm font-body leading-relaxed',
+                'flex gap-3 rounded-xl border px-3.5 py-3 text-sm font-body leading-relaxed',
                 theme.item,
                 theme.body,
               )}

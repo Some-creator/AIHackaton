@@ -40,14 +40,6 @@ export default function Onboarding({ onSubmit, loading, ingestFinishing = false,
         nextDisabled={navDisabled}
       />
 
-      {/* Decorative atmosphere */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-24 -bottom-10 z-0 overflow-visible">
-        <div className="absolute inset-0 bg-grid" />
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 h-72 w-72 rounded-full bg-hookline-500/25 blur-[90px] animate-drift" />
-        <div className="absolute top-24 -left-16 h-56 w-56 rounded-full bg-hookline-400/20 blur-[90px] animate-drift-slow" />
-        <div className="absolute top-32 -right-16 h-56 w-56 rounded-full bg-fuchsia-500/15 blur-[90px] animate-drift" />
-      </div>
-
       <div className="relative z-10">
         <div className="text-center mb-9 animate-rise">
           <div className="flex justify-center mb-5">
