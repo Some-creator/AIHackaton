@@ -308,19 +308,47 @@
   border-radius: 0 2px 2px 0;
 }
 
-/* ─── Terminal log scrollbar ─── */
-.font-mono::-webkit-scrollbar {
+/* ─── Activity log / terminal console ─── */
+:root {
+  --terminal-bg: 0 0% 100%;
+  --terminal-header-bg: 210 40% 98%;
+  --terminal-border: 214.3 31.8% 91.4%;
+  --terminal-title: 215.4 16.3% 46.9%;
+  --terminal-text: 215.4 16.3% 38%;
+  --terminal-text-muted: 215.4 16.3% 52%;
+  --terminal-active-bg: 229 91% 64% / 0.08;
+  --terminal-active-text: 229 57% 42%;
+  --terminal-progress-track: 214.3 31.8% 91.4%;
+  --terminal-scrollbar: 229 91% 64% / 0.28;
+  --terminal-scrollbar-hover: 229 91% 64% / 0.45;
+}
+
+.dark {
+  --terminal-bg: 240 10% 3.9%;
+  --terminal-header-bg: 240 6% 10%;
+  --terminal-border: 240 3.7% 15.9%;
+  --terminal-title: 240 5% 64.9%;
+  --terminal-text: 240 5% 72%;
+  --terminal-text-muted: 240 4% 56%;
+  --terminal-active-bg: 229 94% 68% / 0.12;
+  --terminal-active-text: 229 80% 76%;
+  --terminal-progress-track: 240 3.7% 15.9%;
+  --terminal-scrollbar: 229 94% 68% / 0.32;
+  --terminal-scrollbar-hover: 229 94% 68% / 0.5;
+}
+
+.activity-log-scroll::-webkit-scrollbar {
   width: 4px;
 }
-.font-mono::-webkit-scrollbar-track {
+.activity-log-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
-.font-mono::-webkit-scrollbar-thumb {
-  background: rgba(79, 110, 247, 0.3);
+.activity-log-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--terminal-scrollbar));
   border-radius: 2px;
 }
-.font-mono::-webkit-scrollbar-thumb:hover {
-  background: rgba(79, 110, 247, 0.5);
+.activity-log-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--terminal-scrollbar-hover));
 }
 
 /* ─── Global Scrollbar Styling ─── */
