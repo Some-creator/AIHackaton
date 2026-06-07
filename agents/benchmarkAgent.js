@@ -8,6 +8,7 @@ import {
 import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import { hasGooglePlaces, hasAnthropic, hasFirecrawl } from '../backend/config.js';
+import { sanitizeUserMessage } from '../backend/userFacing.js';
 
 const MAX_COMPETITORS = 5;
 const MIN_COMPETITORS = 2;
@@ -472,19 +473,19 @@ ${JSON.stringify(entries, null, 2)}`,
       : [];
 
     if (keep.length === 0) {
-      onLog?.('No candidates matched your domain after AI review');
+      onLog?.('AI reviewed everyone and said "nah" to all of them');
       return [];
     }
 
     const filtered = keep.map((i) => keywordFiltered[i]);
     const removed = keywordFiltered.length - filtered.length;
     if (removed > 0) {
-      onLog?.(`Removed ${removed} business${removed === 1 ? '' : 'es'} outside your domain (${searchPlan.primaryCategory})`);
+      onLog?.(`Yeeted ${removed} business${removed === 1 ? '' : 'es'} that weren't ${searchPlan.primaryCategory} enough`);
     }
     return filtered.slice(0, MAX_COMPETITORS);
   } catch (err) {
     console.warn(`[benchmarkAgent] Niche filter failed: ${err.message}`);
-    onLog?.('Niche filter unavailable — using domain keyword matching');
+    onLog?.('Niche filter took a coffee break — winging it');
     return keywordFiltered.slice(0, MAX_COMPETITORS);
   }
 }
@@ -737,11 +738,11 @@ function addCompetitorCandidate(collected, seen, place, business, searchPlan, do
   if (isOwnBusiness(place, business)) return false;
 
   if (shouldSkipForCompetitorScope(place, business, domainProfile)) {
-    onLog?.(`Skipping non-mobile competitor: ${getPlaceName(place)}`);
+    onLog?.(`Skipping ${getPlaceName(place)} — not mobile enough for this search`);
     return false;
   }
   if (!matchesDomain(place, domainProfile)) {
-    onLog?.(`Skipping outside your domain: ${getPlaceName(place)}`);
+    onLog?.(`Hard pass on ${getPlaceName(place)} — wrong vibe entirely`);
     return false;
   }
 
@@ -767,30 +768,29 @@ async function searchGooglePlacesForCandidates({
   if (!hasGooglePlaces) return 0;
 
   let added = 0;
-  const label = relaxed ? 'Google Places (broadened)' : 'Google Places';
 
   if (!relaxed) {
-    onLog?.('Searching Google Places...');
+    onLog?.('Creeping on local businesses...');
   } else {
-    onLog?.('Broadening Google Places search...');
+    onLog?.('First search was shy — casting a wider net...');
   }
 
   const searchPromises = queries.map(async (query, i) => {
     if (i > 0 || relaxed) {
-      onLog?.(`${label}: "${query}"...`);
+      onLog?.(`Asking the internet about "${query}"...`);
     }
     try {
       const result = await searchPlaces(query, location, {
         anchor,
         relaxed,
         onSkip: ({ name, address, reason }) => {
-          onLog?.(`Skipping distant result: ${name}${address ? ` (${address})` : ''} — ${reason}`);
+          onLog?.(`Too far away: ${name}${address ? ` (${address})` : ''} — ${reason}`);
         },
       });
       return { query, result };
     } catch (err) {
       console.warn(`[benchmarkAgent] Google Places search failed for "${query}": ${err.message}`);
-      onLog?.(`Places search failed for "${query}" — continuing`);
+      onLog?.(`Search hiccup — shrugging and continuing`);
       return { query, result: { places: [], rawCount: 0 } };
     }
   });
@@ -803,7 +803,7 @@ async function searchGooglePlacesForCandidates({
     const { places, rawCount } = result;
 
     if (rawCount > 0 && places.length === 0) {
-      onLog?.(`Google returned ${rawCount} result${rawCount === 1 ? '' : 's'} for "${query}" but all were filtered out`);
+      onLog?.(`Got ${rawCount} result${rawCount === 1 ? '' : 's'} but none passed the vibe check`);
     }
 
     for (const place of places || []) {
@@ -817,7 +817,7 @@ async function searchGooglePlacesForCandidates({
         onLog
       )) {
         added += 1;
-        onLog?.(`Found: ${getPlaceName(place)}`);
+        onLog?.(`Spotted a rival: ${getPlaceName(place)}`);
       }
     }
   }
@@ -833,26 +833,18 @@ async function findCompetitorCandidates(business, analysis, searchPlan, onLog) {
   const collected = [];
   const locationHints = parseLocationHints(location);
 
-  onLog?.(`AI summary: ${searchPlan.businessSummary}`);
-  onLog?.(`Niche: ${searchPlan.primaryCategory}`);
-  if (domainProfile.domainSignals?.length) {
-    onLog?.(`Domain signals: ${domainProfile.domainSignals.slice(0, 6).join(', ')}`);
-  }
-  onLog?.(`Service lines: ${searchPlan.serviceLines.join(', ')}`);
-  onLog?.(`Search queries: ${queries.slice(0, 5).join(', ')}`);
-  if (searchPlan.excludeTypes?.length) {
-    onLog?.(`Excluding: ${searchPlan.excludeTypes.slice(0, 6).join(', ')}`);
-  }
+  onLog?.(`The verdict: ${searchPlan.businessSummary}`);
+  onLog?.(`Your lane: ${searchPlan.primaryCategory}`);
 
   if (location === 'Unknown' || location === 'local area') {
-    onLog?.('Warning: business location is vague — competitor search works best with a city/state');
+    onLog?.('Your location is giving "somewhere on Earth" — city + state would help');
   }
 
   const anchor = await geocodeLocation(location);
   if (anchor) {
-    onLog?.(`Anchoring search to ${location}`);
+    onLog?.(`Zeroing in on ${location}`);
   } else {
-    onLog?.(`Could not geocode ${location} — using text-based local search`);
+    onLog?.(`Couldn't pin ${location} on a map — searching anyway like a optimist`);
   }
 
   // Strict local search first — tighter category match
@@ -885,17 +877,17 @@ async function findCompetitorCandidates(business, analysis, searchPlan, onLog) {
   }
 
   if (hasFirecrawl) {
-    onLog?.('Searching the web for local competitors...');
+    onLog?.('AI is googling your competition (metaphorically)...');
     const webPromises = queries.map(async (query) => {
       try {
         const { results } = await searchWeb(query, { location, limit: 8, scrape: false });
         if (!results.length) {
-          onLog?.(`Web search returned no business sites for "${query}"`);
+          onLog?.(`The internet shrugged at that one`);
         }
         return { query, results };
       } catch (err) {
         console.warn(`[benchmarkAgent] Web search failed for "${query}": ${err.message}`);
-        onLog?.(`Web search failed for "${query}" — continuing`);
+        onLog?.(`Online search glitched — moving on like nothing happened`);
         return { query, results: [] };
       }
     });
@@ -909,28 +901,28 @@ async function findCompetitorCandidates(business, analysis, searchPlan, onLog) {
         if (collected.length >= MAX_CANDIDATE_POOL) break;
         if (isDirectoryOrAggregatorUrl(result.url)) continue;
         if (!webResultMatchesRegion(result, locationHints)) {
-          onLog?.(`Skipping web result outside region: ${result.title}`);
+          onLog?.(`Not in your area: ${result.title}`);
           continue;
         }
 
         const candidate = webResultToCandidate(result);
         if (addCompetitorCandidate(collected, seen, candidate, business, searchPlan, domainProfile, onLog)) {
-          onLog?.(`Web result: ${getPlaceName(candidate)}`);
+          onLog?.(`Online lead: ${getPlaceName(candidate)}`);
         }
       }
     }
   }
 
   if (collected.length === 0) {
-    onLog?.('No competitors passed filters — check location, API keys, or search queries');
+    onLog?.('Nobody made the cut — maybe update your location or profile?');
     return { filtered: [], query: queries[0] || 'local business' };
   }
 
-  onLog?.('Checking competitors match your niche...');
+  onLog?.('Making sure these rivals are actually in your lane...');
   const filtered = await filterCandidatesByNiche(collected, business, analysis, searchPlan, domainProfile, onLog);
 
   if (filtered.length === 0) {
-    onLog?.('No same-niche competitors found after filtering');
+    onLog?.('Filtered down to zero. Tough crowd.');
   }
 
   return { filtered, query: queries[0] || 'local business' };
@@ -938,7 +930,7 @@ async function findCompetitorCandidates(business, analysis, searchPlan, onLog) {
 
 async function scrapeCompetitorsInParallel(places, onLog) {
   const canScrape = hasFirecrawl;
-  if (!canScrape) onLog?.('Website scraping unavailable — using Google listing data only');
+  if (!canScrape) onLog?.('No website peeking today — public listings only');
 
   return Promise.all(
     places.map(async (place) => {
@@ -948,16 +940,16 @@ async function scrapeCompetitorsInParallel(places, onLog) {
       let scrapedContent = place.preScrapedContent?.slice(0, 10000) || '';
 
       if (!scrapedContent && website && canScrape) {
-        onLog?.(`Scraping ${name} website...`);
+        onLog?.(`Snooping on ${name}'s website...`);
         try {
           const scraped = await scrapeWebsite(website);
           scrapedContent = scraped.content?.slice(0, 10000) || '';
         } catch (err) {
           console.warn(`[benchmarkAgent] Scrape failed for ${website}: ${err.message}`);
-          onLog?.(`Could not scrape ${name} — using listing data`);
+          onLog?.(`${name}'s site was shy — using listing info instead`);
         }
       } else if (scrapedContent) {
-        onLog?.(`Using web search content for ${name}`);
+        onLog?.(`Already got the tea on ${name}`);
       }
 
       return {
@@ -984,7 +976,7 @@ function validateScrapedCompetitors(competitorData, domainProfile, onLog) {
       scrapedContent: comp.scrapedContent,
     };
     if (matchesDomain(place, domainProfile, { strict: true })) return true;
-    onLog?.(`Removing ${comp.name} — doesn't match ${domainProfile.label}`);
+    onLog?.(`Booting ${comp.name} — wrong category`);
     return false;
   });
 }
@@ -1069,37 +1061,31 @@ export async function* streamBenchmark(context) {
   if (!analysis) throw new Error('Analysis required — run Agent 2 first');
 
   if (!hasGooglePlaces) {
-    yield { type: 'error', error: 'Competitor search unavailable — GOOGLE_PLACES_API_KEY not configured' };
+    yield { type: 'error', error: 'Competitor search is unavailable right now. Please try again later.' };
     return;
   }
   if (!hasAnthropic) {
-    yield { type: 'error', error: 'AI analysis unavailable — ANTHROPIC_API_KEY not configured' };
+    yield { type: 'error', error: 'AI analysis is unavailable right now. Please try again later.' };
     return;
   }
 
-  yield { type: 'log', message: 'Starting competitor benchmark...' };
+  yield { type: 'log', message: 'Competitor recon mission initiated...' };
   await delay(300);
-  yield { type: 'log', message: `Using business analysis (${analysis.strengths?.length || 0} strengths, ${analysis.missing?.length || 0} gaps identified)` };
+  yield { type: 'log', message: 'Re-reading your profile for drama...' };
 
-  yield { type: 'log', message: 'AI is determining what competitors to search for...' };
+  yield { type: 'log', message: 'AI is picking fights (research fights)...' };
   const searchPlan = await planCompetitorSearch(business, analysis);
-  yield { type: 'log', message: `Identified: ${searchPlan.businessSummary}` };
-  yield { type: 'log', message: `Niche: ${searchPlan.primaryCategory}` };
-  yield { type: 'log', message: `Service lines: ${searchPlan.serviceLines.join(', ')}` };
+  yield { type: 'log', message: `So you're basically: ${searchPlan.businessSummary}` };
+  yield { type: 'log', message: `Your lane: ${searchPlan.primaryCategory}` };
 
-  yield { type: 'log', message: 'Starting competitor search...' };
+  yield { type: 'log', message: 'Let the turf war analysis begin...' };
   await delay(300);
 
   try {
-    const sources = [
-      hasGooglePlaces ? 'Google Places' : null,
-      hasFirecrawl ? 'web search' : null,
-    ].filter(Boolean).join(' + ') || 'local directories';
-
-    yield { type: 'log', message: `Searching competitors near ${business.location} via ${sources}...` };
+    yield { type: 'log', message: `Creeping on competitors near ${business.location}...` };
 
     const pendingSearchLogs = [];
-    const { filtered, query } = await findCompetitorCandidates(business, analysis, searchPlan, (msg) => pendingSearchLogs.push(msg));
+    const { filtered } = await findCompetitorCandidates(business, analysis, searchPlan, (msg) => pendingSearchLogs.push(msg));
     for (const msg of pendingSearchLogs) {
       yield { type: 'log', message: msg };
     }
@@ -1114,7 +1100,7 @@ export async function* streamBenchmark(context) {
 
     yield {
       type: 'log',
-      message: `Found ${filtered.length} business${filtered.length > 1 ? 'es' : ''} (first query: "${query}")`,
+      message: `Found ${filtered.length} potential rival${filtered.length > 1 ? 's' : ''} worth watching`,
     };
 
     const pendingLogs = [];
@@ -1131,7 +1117,7 @@ export async function* streamBenchmark(context) {
       return;
     }
 
-    yield { type: 'log', message: 'AI is comparing competitors to your business profile...' };
+    yield { type: 'log', message: 'AI is doing side-by-side shade (professionally)...' };
 
     const competitorNameList = competitorData
       .map((comp, i) => `${i + 1}. ${comp.name}`)
@@ -1170,10 +1156,10 @@ ${JSON.stringify(competitorData, null, 2)}`,
       return;
     }
 
-    yield { type: 'log', message: `${result.competitors.length} competitors analyzed` };
+    yield { type: 'log', message: `${result.competitors.length} competitors analyzed. Tea collected.` };
     yield { type: 'complete', ...result };
   } catch (err) {
-    yield { type: 'error', error: err.message };
+    yield { type: 'error', error: sanitizeUserMessage(err.message) };
   }
 }
 

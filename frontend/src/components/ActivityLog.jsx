@@ -20,7 +20,7 @@ export default function ActivityLog({ logs, title = 'In progress', loading = tru
   }, [logs.length]);
 
   const isActive = loading && !finishing;
-  const displayLogs = logs.length > 0 ? logs : (loading ? ['Getting started...'] : []);
+  const displayLogs = logs.length > 0 ? logs : (loading ? ['Hold my coffee...'] : []);
 
   if (!displayLogs.length) return null;
   const logProgress = logs.length > 0

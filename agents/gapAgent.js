@@ -81,20 +81,20 @@ export async function* streamGaps(context) {
     throw new Error('Competitors required — run Agent 3 first');
   }
   if (!hasAnthropic) {
-    throw new Error('AI analysis unavailable — ANTHROPIC_API_KEY not configured');
+    throw new Error('AI analysis is unavailable right now. Please try again later.');
   }
 
   const { business, competitors } = context;
   const competitorCount = competitors.length;
 
-  yield { type: 'log', message: 'Starting market gap analysis...' };
+  yield { type: 'log', message: 'Looking for money you left on the table...' };
   await delay(300);
 
-  yield { type: 'log', message: `Reviewing ${competitorCount} competitor${competitorCount === 1 ? '' : 's'} for ${business.name}...` };
+  yield { type: 'log', message: `Side-eyeing ${competitorCount} competitor${competitorCount === 1 ? '' : 's'} on behalf of ${business.name}...` };
   await delay(400);
-  yield { type: 'log', message: `Analyzing local market in ${business.location || 'your area'}...` };
+  yield { type: 'log', message: `Sniffing around ${business.location || 'your area'} for openings...` };
   await delay(300);
-  yield { type: 'log', message: 'AI is identifying untapped niches and underserved segments...' };
+  yield { type: 'log', message: 'AI is brainstorming like a caffeinated consultant...' };
 
   const { content } = await callSonnet({
     system: GAP_SYSTEM,
@@ -106,14 +106,14 @@ export async function* streamGaps(context) {
     ],
   });
 
-  yield { type: 'log', message: 'Ranking opportunities by demand and competitive fit...' };
+  yield { type: 'log', message: 'Sorting opportunities from "maybe" to "do this yesterday"...' };
   const parsed = parseClaudeJson(content);
   const result = validateAndNormalize(parsed);
 
   const topGap = result.gaps[result.recommendedGap];
   yield {
     type: 'log',
-    message: `Gap analysis complete — ${result.gaps.length} opportunities found. Top pick: "${topGap.niche}"`,
+    message: `${result.gaps.length} gaps found. Top pick: "${topGap.niche}" — chef's kiss.`,
   };
   yield { type: 'complete', ...result };
 }

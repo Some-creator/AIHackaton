@@ -20,7 +20,7 @@ export async function scrapeWebsite(url) {
 
   const apiKey = process.env.FIRECRAWL_API_KEY;
   if (!apiKey) {
-    throw new Error('Website scraper unavailable — FIRECRAWL_API_KEY not configured');
+    throw new Error('Website reading is unavailable right now. Please try again later.');
   }
 
   const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
@@ -60,7 +60,7 @@ export async function scrapeWebsite(url) {
   const links = Array.isArray(data.data?.links) ? data.data.links : [];
 
   if (!content.trim()) {
-    throw new Error('Firecrawl returned empty content');
+    throw new Error('Could not read page content');
   }
 
   return { url, content, links, success: true, mock: false };

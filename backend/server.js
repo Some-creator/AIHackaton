@@ -239,7 +239,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
   }
 
   const stopHeartbeat = openSseStream(req, res);
-  safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Preparing analysis...' })}\n\n`);
+  safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Warming up the hamster wheel...' })}\n\n`);
 
   let companyId = null;
   const sessionOwner = {
@@ -258,9 +258,9 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
     companyId = initialSave.id;
 
     if (initialSave.saved) {
-      safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: `Database record created (${companyId})` })}\n\n`);
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Writing this down before we forget...' })}\n\n`);
     } else {
-      safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: `Warning: could not save to database — ${initialSave.error || 'Firebase not configured'}` })}\n\n`);
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Memory optional. Analysis continues.' })}\n\n`);
     }
 
     for await (const event of streamIngestion(session.url, session.socialProfiles)) {
@@ -272,7 +272,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
         safeWrite(res, req, `data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
         return;
       } else if (event.type === 'complete') {
-        safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
+        safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Locking in your profile (it\'s important)...' })}\n\n`);
 
         let saved = false;
         let saveError = null;
@@ -306,7 +306,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
         }
 
         if (!saved) {
-          safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: `Warning: profile not saved to database — ${saveError || 'unknown error'}` })}\n\n`);
+          safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Cloud save failed. You\'re fine — keep going.' })}\n\n`);
         }
 
         safeWrite(res, req, `data: ${JSON.stringify({

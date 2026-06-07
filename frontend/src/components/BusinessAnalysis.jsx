@@ -282,7 +282,7 @@ export default function BusinessAnalysis({
           {(loading || analysisFinishing) && (
             <ActivityLog
               logs={analysisLogs}
-              title="Analyzing your business"
+              title="Gentle roast in progress"
               loading={loading}
               finishing={analysisFinishing}
             />
@@ -318,7 +318,7 @@ export default function BusinessAnalysis({
           {(loading || benchmarkFinishing) && (
             <ActivityLog
               logs={benchmarkLogs}
-              title="Competitor benchmark"
+              title="Competitor recon"
               loading={loading}
               finishing={benchmarkFinishing}
             />

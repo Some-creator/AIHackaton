@@ -176,8 +176,8 @@ export default function App() {
       const health = await api.getHealth();
       if (health?.live === false) {
         setError(
-          'The server is running in demo mode without live API keys, so analysis can\'t run. ' +
-          'Add API keys to your hosting environment variables (e.g. Railway → Variables) and redeploy.'
+          "The server isn't fully configured yet, so this step can't run. " +
+          'Try again in a few minutes or contact support.'
         );
       } else {
         setError('Lost connection to the server. It may be redeploying or the request timed out — wait a few seconds and try again.');
