@@ -233,6 +233,42 @@
       animation: none;
       background-position: 0% center;
     }
+
+    .interactive-cta-gradient {
+      animation: none;
+    }
+
+    .animate-cta-float-a,
+    .animate-cta-float-b,
+    .animate-cta-float-c {
+      animation: none;
+    }
+  }
+
+  .interactive-cta-gradient {
+    background: linear-gradient(
+      125deg,
+      #0ea5e9 0%,
+      #2563eb 22%,
+      #4f46e5 44%,
+      #0284c7 66%,
+      #0369a1 88%,
+      #0ea5e9 100%
+    );
+    background-size: 300% 300%;
+    animation: cta-gradient-shift 14s ease infinite;
+  }
+
+  .animate-cta-float-a {
+    animation: cta-float-a 10s ease-in-out infinite;
+  }
+
+  .animate-cta-float-b {
+    animation: cta-float-b 12s ease-in-out infinite;
+  }
+
+  .animate-cta-float-c {
+    animation: cta-float-c 11s ease-in-out infinite;
   }
 }
 
@@ -253,6 +289,48 @@
 }
 .animate-drift { animation: drift 16s ease-in-out infinite; }
 .animate-drift-slow { animation: drift-slow 22s ease-in-out infinite; }
+
+@keyframes cta-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes cta-float-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(24px, 18px) scale(1.08);
+  }
+}
+
+@keyframes cta-float-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-20px, -16px) scale(1.06);
+  }
+}
+
+@keyframes cta-float-c {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(calc(-50% + 12px), calc(-50% - 10px)) scale(1.05);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-drift,

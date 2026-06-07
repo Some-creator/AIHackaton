@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { GlassAnalysisCard } from '@/components/ui/liquid-glass';
 import ServiceTags from './ServiceTags';
 import SocialProfileTags from './SocialProfileTags';
 import ActivityLog from './ActivityLog';
@@ -30,34 +31,6 @@ function FieldLabel({ children, required = false, isDark, hint }) {
         <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}> {hint}</span>
       )}
     </label>
-  );
-}
-
-function AnalysisSection({ title, items, color, isDark }) {
-  const colors = isDark ? {
-    green: 'bg-green-950/30 border-green-900/50 text-green-400',
-    yellow: 'bg-yellow-950/30 border-yellow-900/50 text-yellow-400',
-    blue: 'bg-blue-950/30 border-blue-900/50 text-blue-400',
-    red: 'bg-red-950/30 border-red-900/50 text-red-400',
-  } : {
-    green: 'bg-green-50 border-green-200 text-green-800',
-    yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    blue: 'bg-blue-50 border-blue-200 text-blue-800',
-    red: 'bg-red-50 border-red-200 text-red-800',
-  };
-
-  return (
-    <div className={`rounded-xl border p-5 ${colors[color]}`}>
-      <h3 className="font-semibold text-sm uppercase tracking-wide mb-3">{title}</h3>
-      <ul className="space-y-2">
-        {items.map((item, i) => (
-          <li key={i} className="text-sm flex gap-2">
-            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-current flex-shrink-0 opacity-60" />
-            {item}
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 
@@ -271,15 +244,19 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         <>
           <div className="mb-8 animate-rise">
             <p className="eyebrow mb-2">Step 2 · Analysis</p>
-            <h2 className={`font-section-title text-2xl sm:text-3xl mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Analysis</h2>
-            <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>AI-powered assessment of your strengths and opportunities.</p>
+            <h2 className={`font-section-title text-2xl sm:text-3xl mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Business Analysis
+            </h2>
+            <p className={`font-body-medium ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+              AI-powered assessment of your strengths and opportunities.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <AnalysisSection title="Strengths" items={analysis.strengths} color="green" isDark={isDark} />
-            <AnalysisSection title="Weaknesses" items={analysis.weaknesses} color="yellow" isDark={isDark} />
-            <AnalysisSection title="Improvements" items={analysis.improvements} color="blue" isDark={isDark} />
-            <AnalysisSection title="Missing" items={analysis.missing} color="red" isDark={isDark} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+            <GlassAnalysisCard title="Strengths" items={analysis.strengths} color="green" isDark={isDark} />
+            <GlassAnalysisCard title="Weaknesses" items={analysis.weaknesses} color="orange" isDark={isDark} />
+            <GlassAnalysisCard title="Improvements" items={analysis.improvements} color="blue" isDark={isDark} />
+            <GlassAnalysisCard title="Missing" items={analysis.missing} color="violet" isDark={isDark} />
           </div>
 
           <button

@@ -37,37 +37,37 @@ export function ContainerScroll({
     restDelta: 0.001,
   });
 
-  const headerY = useTransform(smoothProgress, [0, 0.8, 1], [0, 0, -30]);
-  const headerOpacity = useTransform(smoothProgress, [0, 0.8, 1], [1, 1, 0.7]);
+  const headerY = useTransform(smoothProgress, [0, 0.4, 1], [20, 0, -20]);
+  const headerOpacity = useTransform(smoothProgress, [0, 0.12, 0.88, 1], [0.85, 1, 1, 0.9]);
 
   const cardY = useTransform(
     smoothProgress,
-    [0, 0.8, 1],
-    isMobile ? [0, 0, -20] : [0, 0, -30],
+    [0, 0.35, 0.55, 1],
+    isMobile ? [36, 10, 0, -16] : [56, 14, 0, -20],
   );
   const cardScale = useTransform(
     smoothProgress,
-    [0, 0.8, 1],
-    isMobile ? [1, 1, 0.98] : [1, 1, 0.97],
+    [0, 0.35, 0.55, 1],
+    isMobile ? [0.92, 0.97, 1, 0.98] : [0.88, 0.95, 1, 0.97],
   );
   const cardRotate = useTransform(
     smoothProgress,
-    [0, 1],
-    [0, 0],
+    [0, 0.25, 0.45, 0.65, 1],
+    isMobile ? [12, 6, 0, 0, -4] : [20, 10, 0, 0, -6],
   );
-  const cardOpacity = useTransform(smoothProgress, [0, 0.8, 1], [1, 1, 0.9]);
+  const cardOpacity = useTransform(smoothProgress, [0, 0.1, 0.9, 1], [0.88, 1, 1, 0.92]);
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        'relative h-[110vh] sm:h-[115vh] md:h-[120vh]',
+        'relative h-[105vh] sm:h-[112vh] md:h-[118vh]',
         isDark ? 'bg-black' : 'bg-[#f5f5f7]',
         className,
       )}
     >
-      <div className="sticky top-16 md:top-20 flex flex-col items-center justify-center px-4 py-4 md:py-6 min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
-        <div className="w-full max-w-5xl mx-auto flex flex-col gap-4 md:gap-6">
+      <div className="sticky top-16 md:top-20 flex flex-col items-center justify-center px-4 py-6 md:py-8 min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
+        <div className="w-full max-w-5xl mx-auto flex flex-col gap-8 md:gap-10">
           <ScrollHeader translate={headerY} opacity={headerOpacity} titleComponent={titleComponent} />
           <ScrollCard
             translate={cardY}
@@ -80,15 +80,6 @@ export function ContainerScroll({
           </ScrollCard>
         </div>
       </div>
-
-      <div
-        className={cn(
-          'pointer-events-none absolute inset-x-0 bottom-0 h-24',
-          isDark
-            ? 'bg-gradient-to-b from-transparent to-zinc-950'
-            : 'bg-gradient-to-b from-transparent to-white',
-        )}
-      />
     </div>
   );
 }
@@ -144,7 +135,7 @@ function ScrollCard({
           transformOrigin: 'center bottom',
         }}
         className={cn(
-          'mx-auto w-full h-[20rem] sm:h-[26rem] md:h-[30rem] border-2 p-2 md:p-4 rounded-3xl shadow-2xl will-change-transform',
+          'mx-auto w-full h-[18rem] sm:h-[22rem] md:h-[26rem] border-2 p-2 md:p-3 rounded-3xl shadow-2xl will-change-transform',
           isDark
             ? 'border-zinc-700 bg-zinc-900 shadow-black/50'
             : 'border-gray-200 bg-white shadow-gray-400/40',
