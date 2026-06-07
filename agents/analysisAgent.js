@@ -14,7 +14,7 @@ Rules:
 - weaknesses: real gaps or shortcomings
 - improvements: concrete actions the owner can take right now
 - missing: things similar businesses have that this one lacks
-- niche: the precise business category (e.g. "coffee shop / café", "taco restaurant", "mobile coffee cart") — used by competitor and lead agents
+- niche: the precise business category customers would search for (e.g. "coffee shop / café", "taco restaurant", "mobile coffee cart", "dental clinic", "hair salon") — must be specific enough to distinguish from adjacent categories; used by competitor and lead agents
 
 Return ONLY valid JSON:
 {
