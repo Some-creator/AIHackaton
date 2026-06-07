@@ -27,7 +27,7 @@ export default function AuthPage({ onSuccess, onClose }) {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [loading, onClose]);
 
-  const inputClass = `w-full pl-11 pr-4 py-3.5 rounded-2xl border font-medium outline-none transition focus:ring-2 focus:ring-[#0071e3]/40 ${
+  const inputClass = `w-full pl-11 pr-4 py-3.5 rounded-2xl border font-medium outline-none transition focus:ring-2 focus:ring-hookline-500/40 focus:border-hookline-500 ${
     isDark
       ? 'bg-zinc-900 border-zinc-600 text-white placeholder:text-zinc-400'
       : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'
@@ -76,8 +76,8 @@ export default function AuthPage({ onSuccess, onClose }) {
         Firebase setup required
       </h1>
       <p className={`text-sm font-medium leading-relaxed mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-        Add your Firebase web app credentials to <code className="text-[#2997ff]">frontend/.env</code> using the
-        variables in <code className="text-[#2997ff]">frontend/.env.example</code>, then restart the dev server.
+        Add your Firebase web app credentials to <code className="text-hookline-400">frontend/.env</code> using the
+        variables in <code className="text-hookline-400">frontend/.env.example</code>, then restart the dev server.
       </p>
       <ol className={`text-sm space-y-2 list-decimal list-inside font-medium mb-6 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
         <li>Create a project at console.firebase.google.com</li>
@@ -87,7 +87,7 @@ export default function AuthPage({ onSuccess, onClose }) {
       <button
         type="button"
         onClick={handleMockBypass}
-        className="w-full py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold rounded-full transition flex items-center justify-center gap-2"
+        className="w-full py-3.5 bg-hookline-500 hover:bg-hookline-600 text-white font-bold rounded-full transition flex items-center justify-center gap-2"
       >
         Bypass Auth (Mock Mode)
       </button>
@@ -178,7 +178,7 @@ export default function AuthPage({ onSuccess, onClose }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold rounded-full transition disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-hookline-500 hover:bg-hookline-600 text-white font-bold rounded-full transition disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
           {mode === 'signin' ? 'Sign In' : 'Create Account'}
@@ -193,7 +193,7 @@ export default function AuthPage({ onSuccess, onClose }) {
             setMode(mode === 'signin' ? 'signup' : 'signin');
             setError(null);
           }}
-          className={`font-bold hover:underline ${isDark ? 'text-[#2997ff]' : 'text-[#0071e3]'}`}
+          className={`font-bold hover:underline ${isDark ? 'text-hookline-400' : 'text-hookline-600'}`}
         >
           {mode === 'signin' ? 'Sign up' : 'Sign in'}
         </button>

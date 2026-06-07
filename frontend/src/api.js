@@ -24,6 +24,30 @@ async function post(endpoint, body) {
   return res.json();
 }
 
+export async function getHealth() {
+  const res = await fetch(`${API_BASE}/health`);
+  if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
+  return res.json();
+}
+
+export async function listHistory() {
+  const res = await fetch(`${API_BASE}/history`, { headers: await authHeaders() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function getCompany(companyId) {
+  const res = await fetch(`${API_BASE}/companies/${companyId}`, { headers: await authHeaders() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function ingest(url, socialProfiles = []) {
   return post('/ingest', { url, socialProfiles });
 }

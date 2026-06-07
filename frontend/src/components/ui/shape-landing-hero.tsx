@@ -139,8 +139,8 @@ function HeroGeometric({
             className={cn(
               'inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 md:mb-10 border',
               isDark
-                ? 'bg-white/10 border-white/20 text-sky-300'
-                : 'bg-black/[0.04] border-black/[0.08] text-blue-600',
+                ? 'bg-white/10 border-white/20 text-hookline-300'
+                : 'bg-black/[0.04] border-black/[0.08] text-hookline-600',
             )}
           >
             <Sparkles className="h-3.5 w-3.5" />
@@ -160,7 +160,7 @@ function HeroGeometric({
               <span
                 className={cn(
                   'block mt-2',
-                  isDark ? 'text-[#2997ff]' : 'text-[#0071e3]',
+                  isDark ? 'text-hookline-400' : 'text-hookline-500',
                 )}
               >
                 {title2}

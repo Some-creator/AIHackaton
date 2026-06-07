@@ -12,7 +12,7 @@ export default function StepNextButton({ onNext, disabled = false, label = 'next
       onClick={onNext}
       disabled={disabled}
       className={`inline-flex items-center gap-2 text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${
-        isDark ? 'text-sky-400 hover:text-sky-300' : 'text-[#0071e3] hover:text-[#0077ed]'
+        isDark ? 'text-hookline-300 hover:text-hookline-200' : 'text-hookline-600 hover:text-hookline-700'
       } ${className}`}
     >
       Next: {label}

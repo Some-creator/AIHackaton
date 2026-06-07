@@ -19,9 +19,10 @@ export default function ActivityLog({ logs, title = 'Agent activity', loading = 
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs.length]);
 
-  if (!logs.length) return null;
-
   const isActive = loading && !finishing;
+  const displayLogs = logs.length > 0 ? logs : (loading ? ['Connecting to agent...'] : []);
+
+  if (!displayLogs.length) return null;
   const logProgress = logs.length > 0
     ? Math.min(Math.round((logs.length / expectedLogSteps) * 92), 92)
     : 8;
@@ -71,8 +72,8 @@ export default function ActivityLog({ logs, title = 'Agent activity', loading = 
 
       {/* Log lines */}
       <ul className="space-y-0 max-h-52 overflow-y-auto p-3 font-mono text-xs">
-        {logs.map((log, i) => {
-          const isLast = i === logs.length - 1;
+        {displayLogs.map((log, i) => {
+          const isLast = i === displayLogs.length - 1;
           return (
             <li key={i} className={`flex items-start gap-2.5 py-1 px-1 rounded transition-colors ${
               isLast && isActive ? 'bg-hookline-500/10' : ''

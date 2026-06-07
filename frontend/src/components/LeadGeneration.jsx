@@ -165,9 +165,10 @@ export default function LeadGeneration({
         backDisabled={navDisabled}
         nextDisabled={navDisabled}
       />
-      <div className="mb-8">
-        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Leads</h2>
-        <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+      <div className="mb-8 animate-rise">
+        <p className="eyebrow mb-2">Step 5 · Leads</p>
+        <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Leads</h2>
+        <p className={`mt-1.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           {streaming
             ? `Finding leads... ${leads.length} discovered so far`
             : streamComplete

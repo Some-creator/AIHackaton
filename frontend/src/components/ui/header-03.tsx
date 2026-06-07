@@ -12,6 +12,11 @@ const navLinks = [
   { name: 'Features', href: '#features' },
 ];
 
+function getInitial(user?: HeaderUser | null) {
+  const source = user?.displayName || user?.email || '';
+  return source.trim().charAt(0).toUpperCase() || 'U';
+}
+
 type HeaderUser = {
   email?: string | null;
   displayName?: string | null;
@@ -21,6 +26,7 @@ type HeaderProps = {
   onLogoClick?: () => void;
   onSignIn?: () => void;
   onGetStarted?: () => void;
+  onDashboard?: () => void;
   onSignOut?: () => void;
   user?: HeaderUser | null;
   showAuthButtons?: boolean;
@@ -32,6 +38,7 @@ export function Header({
   onLogoClick,
   onSignIn,
   onGetStarted,
+  onDashboard,
   onSignOut,
   user,
   showAuthButtons = false,
@@ -42,19 +49,19 @@ export function Header({
   const showHomeNav = !centerContent;
 
   return (
-    <header className="fixed top-0 left-0 z-50 w-full border-b border-border/50 bg-background/60 backdrop-blur-md">
+    <header className="fixed top-0 left-0 z-50 w-full border-b border-border/60 bg-background/70 shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-background/55">
       <div className="mx-auto max-w-6xl px-3 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-3 md:h-20">
           <button
             type="button"
             onClick={onLogoClick}
             aria-label="HookLine home"
-            className="flex h-12 items-center gap-2 rounded-lg border border-primary/20 bg-primary px-3 transition hover:opacity-90 md:h-14 md:px-4"
+            className="group flex h-11 items-center gap-2.5 rounded-xl bg-gradient-to-br from-hookline-400 to-hookline-600 px-3 shadow-glow-sm ring-1 ring-white/15 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glow md:h-12 md:px-4"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary-foreground/15 md:h-9 md:w-9">
-              <Zap className="h-4 w-4 text-primary-foreground md:h-5 md:w-5" aria-hidden="true" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 transition group-hover:bg-white/30 md:h-8 md:w-8">
+              <Zap className="h-4 w-4 text-white md:h-[18px] md:w-[18px]" aria-hidden="true" />
             </div>
-            <span className="hidden pr-1 font-heading text-lg font-bold text-primary-foreground sm:inline md:text-xl">
+            <span className="hidden pr-1 font-heading text-lg font-bold tracking-tight text-white sm:inline md:text-xl">
               HookLine
             </span>
           </button>
@@ -67,9 +74,10 @@ export function Header({
                 <a
                   key={item.name}
                   href={item.href}
-                  className="rounded-lg px-4 py-2 font-body text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                  className="group relative rounded-full px-4 py-2 font-body text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {item.name}
+                  <span className="pointer-events-none absolute inset-x-4 -bottom-0.5 h-0.5 origin-center scale-x-0 rounded-full bg-hookline-500 transition-transform duration-300 group-hover:scale-x-100" />
                 </a>
               ))}
             </nav>
@@ -79,13 +87,23 @@ export function Header({
             <ModeToggle />
             {user ? (
               <>
-                <span
-                  className="max-w-[140px] truncate font-body text-xs font-medium text-muted-foreground"
-                  title={user.email || user.displayName || undefined}
-                >
-                  {user.displayName || user.email}
-                </span>
-                <Button variant="outline" size="sm" onClick={onSignOut}>
+                {onDashboard && (
+                  <Button variant="ghost" size="sm" className="rounded-full hidden sm:inline-flex" onClick={onDashboard}>
+                    Dashboard
+                  </Button>
+                )}
+                <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/60 py-1 pl-1 pr-3">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-hookline-400 to-hookline-600 text-xs font-bold text-white ring-1 ring-white/15">
+                    {getInitial(user)}
+                  </span>
+                  <span
+                    className="max-w-[130px] truncate font-body text-xs font-semibold text-foreground"
+                    title={user.email || user.displayName || undefined}
+                  >
+                    {user.displayName || user.email}
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={onSignOut}>
                   Sign out
                 </Button>
               </>
@@ -149,6 +167,11 @@ export function Header({
                       <p className="truncate font-body text-sm font-medium text-muted-foreground">
                         {user.displayName || user.email}
                       </p>
+                      {onDashboard && (
+                        <Button variant="outline" className="w-full" onClick={() => { onDashboard(); setIsOpen(false); }}>
+                          Dashboard
+                        </Button>
+                      )}
                       <Button variant="outline" className="w-full" onClick={() => { onSignOut?.(); setIsOpen(false); }}>
                         Sign out
                       </Button>

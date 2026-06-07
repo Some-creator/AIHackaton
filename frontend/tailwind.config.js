@@ -49,16 +49,35 @@ export default {
         hookline: {
           50: '#f0f4ff',
           100: '#dbe4ff',
+          200: '#c2d0ff',
+          300: '#9db3fd',
+          400: '#7790fa',
           500: '#4f6ef7',
           600: '#3b57e0',
           700: '#2f46c4',
+          800: '#283a9c',
           900: '#1a2560',
+          950: '#11173a',
         },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        '2xl': 'calc(var(--radius) + 6px)',
+      },
+      boxShadow: {
+        'glow-sm': '0 2px 12px -2px rgba(79, 110, 247, 0.25)',
+        glow: '0 8px 30px -6px rgba(79, 110, 247, 0.35)',
+      },
+      keyframes: {
+        rise: {
+          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        rise: 'rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both',
       },
     },
   },

@@ -24,9 +24,10 @@ export default function MarketGap({ gaps, recommendedGap, onConfirm, loading, on
         backDisabled={navDisabled}
         nextDisabled={navDisabled}
       />
-      <div className="mb-8">
-        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Market Gap Analysis</h2>
-        <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+      <div className="mb-8 animate-rise">
+        <p className="eyebrow mb-2">Step 4 · Market Gaps</p>
+        <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Market Gap Analysis</h2>
+        <p className={`mt-1.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           Niches your competitors are ignoring — ranked by opportunity.
         </p>
       </div>
@@ -39,13 +40,14 @@ export default function MarketGap({ gaps, recommendedGap, onConfirm, loading, on
           return (
             <div
               key={i}
-              className={`rounded-2xl border-2 transition-all duration-300 overflow-hidden ${
+              className={`animate-rise rounded-2xl border-2 transition-all duration-300 overflow-hidden ${
                 isSelected
-                  ? 'border-hookline-500 shadow-lg ' + (isDark ? 'bg-zinc-900/60 backdrop-blur-md' : 'bg-white')
+                  ? 'border-hookline-500 shadow-glow ' + (isDark ? 'bg-zinc-900/60 backdrop-blur-md' : 'bg-white')
                   : isDark
                     ? 'border-zinc-800 bg-zinc-900/20 hover:border-zinc-700'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    : 'border-gray-200 bg-white hover:border-hookline-200'
               }`}
+              style={{ animationDelay: `${0.05 + i * 0.05}s` }}
             >
               <button
                 type="button"
@@ -104,7 +106,7 @@ export default function MarketGap({ gaps, recommendedGap, onConfirm, loading, on
         className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
           loading
             ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-            : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+            : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
         }`}
       >
         {loading ? (

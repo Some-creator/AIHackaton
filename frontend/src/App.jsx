@@ -6,12 +6,14 @@ import BusinessAnalysis from './components/BusinessAnalysis';
 import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
+import Dashboard from './components/Dashboard';
 import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import * as api from './api';
+import { appendMockHistory, buildMockHistoryEntry, getMockCompany } from './lib/mockHistory';
 
-const STEPS = ['home', 'auth', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+const STEPS = ['home', 'auth', 'dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
 
 const stepLabels = {
   onboarding: 'Start',
@@ -23,7 +25,8 @@ const stepLabels = {
 
 const PREVIOUS_STEP = {
   auth: 'home',
-  onboarding: 'home',
+  dashboard: 'home',
+  onboarding: 'dashboard',
   analysis: 'onboarding',
   competitors: 'analysis',
   gap: 'competitors',
@@ -32,6 +35,7 @@ const PREVIOUS_STEP = {
 
 const BACK_LABELS = {
   home: 'Home',
+  dashboard: 'Dashboard',
   onboarding: 'Start',
   analysis: 'Analysis',
   competitors: 'Competitors',
@@ -62,8 +66,119 @@ export default function App() {
   const [ingestLogs, setIngestLogs] = useState([]);
   const [ingestFinishing, setIngestFinishing] = useState(false);
   const [analysisLogs, setAnalysisLogs] = useState([]);
+  const [analysisFinishing, setAnalysisFinishing] = useState(false);
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
+  const [benchmarkFinishing, setBenchmarkFinishing] = useState(false);
   const [gapLogs, setGapLogs] = useState([]);
+  const [gapFinishing, setGapFinishing] = useState(false);
+
+  const reportError = useCallback(async (err) => {
+    const raw = err?.message || 'Something went wrong.';
+    const looksLikeConnection = /stream lost|Failed to fetch|NetworkError|load failed|Health check failed/i.test(raw);
+    if (!looksLikeConnection) {
+      setError(raw);
+      return;
+    }
+    try {
+      const health = await api.getHealth();
+      const s = health?.services || {};
+      const missing = [];
+      if (!s.anthropic) missing.push('Anthropic');
+      if (!s.firecrawl) missing.push('Firecrawl');
+      if (missing.length) {
+        setError(
+          `The server is missing API keys (${missing.join(', ')}), so the AI agents can't run. ` +
+          `Add them to your hosting environment variables (e.g. Railway → Variables) and redeploy.`
+        );
+      } else {
+        setError('Lost connection to the server. It may be redeploying or the request timed out — wait a few seconds and try again.');
+      }
+    } catch {
+      setError("Can't reach the server. It may be starting up or down — wait a moment and try again.");
+    }
+  }, []);
+
+  const stepFromCompanyRecord = (recordStep) => {
+    const map = {
+      ingesting: 'analysis',
+      ingested: 'analysis',
+      analyzed: 'competitors',
+      benchmarked: 'gap',
+      gap_analyzed: 'leads',
+      generating_leads: 'leads',
+      leads_generated: 'leads',
+    };
+    return map[recordStep] || 'analysis';
+  };
+
+  const loadCompanyIntoState = useCallback((company) => {
+    setContext({
+      business: company.business,
+      companyId: company.id,
+      saved: true,
+      analysis: company.analysis,
+      analysisMock: company.analysisMock ?? false,
+      competitors: company.competitors,
+      competitorsMock: company.competitorsMock ?? false,
+      competitorsMockReason: company.competitorsMockReason || null,
+      gaps: company.gaps,
+      recommendedGap: company.recommendedGap,
+      gapsMock: company.gapsMock ?? false,
+      socialScrapes: company.socialScrapes || [],
+    });
+    setLeads(company.leads || []);
+    setStreamComplete(Boolean(company.leads?.length));
+    setStreaming(false);
+    setStep(stepFromCompanyRecord(company.step));
+  }, []);
+
+  const saveMockSnapshot = useCallback((patch = {}) => {
+    if (!user || user.uid) return;
+    const merged = { ...context, ...patch };
+    if (!merged.business) return;
+    appendMockHistory(buildMockHistoryEntry({
+      companyId: merged.companyId,
+      url: merged.business?.website,
+      business: merged.business,
+      step: patch.step || 'ingested',
+      context: merged,
+      leads: patch.leads ?? leads,
+    }));
+  }, [user, context, leads]);
+
+  const handleOpenDashboard = useCallback(() => {
+    if (!user) {
+      setStep('auth');
+      return;
+    }
+    setError(null);
+    setStep('dashboard');
+  }, [user]);
+
+  const handleOpenRun = useCallback(async (companyId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const company = user?.uid
+        ? await api.getCompany(companyId)
+        : getMockCompany(companyId);
+      if (!company) throw new Error('That analysis was not found.');
+      loadCompanyIntoState(company);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid, loadCompanyIntoState]);
+
+  const handleNewAnalysis = useCallback(() => {
+    setError(null);
+    setContext({});
+    setLeads([]);
+    setStreaming(false);
+    setStreamComplete(false);
+    setStep('onboarding');
+  }, []);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
@@ -72,16 +187,36 @@ export default function App() {
     try {
       const { sessionId } = await api.createIngestSession(url, socialProfiles);
 
+      const INGEST_TIMEOUT_MS = 120000;
       const ingestResult = await new Promise((resolve, reject) => {
-        api.streamIngest(sessionId, {
+        let settled = false;
+        let eventSource;
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          eventSource?.close();
+          reject(new Error('Analysis timed out after 2 minutes. Try again, or remove long tracking links from the URL.'));
+        }, INGEST_TIMEOUT_MS);
+
+        eventSource = api.streamIngest(sessionId, {
           onLog: (message) => setIngestLogs((prev) => [...prev, message]),
-          onComplete: resolve,
-          onError: reject,
+          onComplete: (data) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            resolve(data);
+          },
+          onError: (err) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            reject(err);
+          },
         });
       });
 
       setIngestFinishing(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       setContext({
         business: ingestResult.business,
@@ -89,9 +224,15 @@ export default function App() {
         saved: ingestResult.saved,
         socialScrapes: ingestResult.socialScrapes || [],
       });
+      saveMockSnapshot({
+        step: 'ingested',
+        business: ingestResult.business,
+        companyId: ingestResult.companyId,
+        socialScrapes: ingestResult.socialScrapes || [],
+      });
       setStep('analysis');
     } catch (err) {
-      setError(err.message);
+      reportError(err);
     } finally {
       setIngestFinishing(false);
       setLoading(false);
@@ -117,15 +258,26 @@ export default function App() {
         });
       });
 
+      setAnalysisFinishing(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setContext((prev) => ({
         ...prev,
         business: updatedBusiness,
         analysis: analysisResult.analysis,
         analysisMock: analysisResult.mock ?? false,
       }));
+      saveMockSnapshot({
+        step: 'analyzed',
+        business: updatedBusiness,
+        analysis: analysisResult.analysis,
+        companyId: updatedContext.companyId,
+        socialScrapes: updatedContext.socialScrapes,
+      });
     } catch (err) {
-      setError(err.message);
+      reportError(err);
     } finally {
+      setAnalysisFinishing(false);
       setLoading(false);
       setAnalysisLogs([]);
     }
@@ -149,16 +301,27 @@ export default function App() {
         });
       });
 
+      setBenchmarkFinishing(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setContext((prev) => ({
         ...prev,
         competitors: benchmarkResult.competitors,
         competitorsMock: benchmarkResult.mock ?? false,
         competitorsMockReason: benchmarkResult.mockReason || null,
       }));
+      saveMockSnapshot({
+        step: 'benchmarked',
+        business: updatedBusiness,
+        analysis: updatedContext.analysis,
+        competitors: benchmarkResult.competitors,
+        companyId: updatedContext.companyId,
+      });
       setStep('competitors');
     } catch (err) {
-      setError(err.message);
+      reportError(err);
     } finally {
+      setBenchmarkFinishing(false);
       setLoading(false);
       setBenchmarkLogs([]);
     }
@@ -179,6 +342,9 @@ export default function App() {
         });
       });
 
+      setGapFinishing(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setContext((prev) => ({
         ...prev,
         gaps: gapResult.gaps,
@@ -186,10 +352,20 @@ export default function App() {
         gapsMock: gapResult.mock ?? false,
         gapsMockReason: gapResult.mockReason || null,
       }));
+      saveMockSnapshot({
+        step: 'gap_analyzed',
+        gaps: gapResult.gaps,
+        recommendedGap: gapResult.recommendedGap,
+        companyId: context.companyId,
+        business: context.business,
+        analysis: context.analysis,
+        competitors: context.competitors,
+      });
       setStep('gap');
     } catch (err) {
-      setError(err.message);
+      reportError(err);
     } finally {
+      setGapFinishing(false);
       setLoading(false);
       setGapLogs([]);
     }
@@ -222,12 +398,12 @@ export default function App() {
           setStreamComplete(true);
         },
         onError: (err) => {
-          setError(err.message);
+          reportError(err);
           setStreaming(false);
         },
       });
     } catch (err) {
-      setError(err.message);
+      reportError(err);
       setStreaming(false);
     } finally {
       setLoading(false);
@@ -247,7 +423,7 @@ export default function App() {
   }, [user]);
 
   const handleAuthSuccess = useCallback(() => {
-    setStep('onboarding');
+    setStep('dashboard');
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -331,7 +507,7 @@ export default function App() {
   const navDisabled = loading || (streaming && step !== 'leads');
 
   useEffect(() => {
-    const protectedSteps = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+    const protectedSteps = ['dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
     if (!authLoading && !user && protectedSteps.includes(step)) {
       setStep('auth');
     }
@@ -341,10 +517,10 @@ const currentStepIndex = STEPS.indexOf(step);
   const isHomeOrAuth = step === 'home' || step === 'auth';
 
   const stepNav =
-    step !== 'home' && step !== 'auth' && step !== 'onboarding' ? (
+    step !== 'home' && step !== 'auth' && step !== 'dashboard' && step !== 'onboarding' ? (
       <nav className="flex items-center gap-1">
-        {STEPS.slice(3).map((s, i) => {
-          const stepIndex = i + 3;
+        {STEPS.slice(4).map((s, i) => {
+          const stepIndex = i + 4;
           const isActive = currentStepIndex === stepIndex;
           const isBehind = currentStepIndex > stepIndex;
           const isAheadComplete = currentStepIndex < stepIndex && canNavigateToStep(s);
@@ -364,8 +540,8 @@ const currentStepIndex = STEPS.indexOf(step);
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : isDark
-                        ? 'bg-blue-500/20 text-sky-400'
-                        : 'bg-blue-50 text-[#0071e3]'
+                        ? 'bg-hookline-500/20 text-hookline-300'
+                        : 'bg-hookline-50 text-hookline-600'
                   }`}
                 >
                   {stepLabels[s]}
@@ -377,8 +553,8 @@ const currentStepIndex = STEPS.indexOf(step);
                       ? 'bg-primary text-primary-foreground'
                       : isBehind || isAheadComplete
                         ? isDark
-                          ? 'bg-blue-500/20 text-sky-400'
-                          : 'bg-blue-50 text-[#0071e3]'
+                          ? 'bg-hookline-500/20 text-hookline-300'
+                          : 'bg-hookline-50 text-hookline-600'
                         : isDark
                           ? 'bg-zinc-800 text-zinc-500'
                           : 'bg-gray-100 text-gray-400'
@@ -394,11 +570,12 @@ const currentStepIndex = STEPS.indexOf(step);
     ) : null;
 
   return (
-    <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isDark ? 'bg-black' : 'bg-[#f5f5f7]'}`}>
+    <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isHomeOrAuth ? (isDark ? 'bg-black' : 'bg-[#f5f5f7]') : 'app-atmosphere'}`}>
       <Header
         onLogoClick={() => setStep('home')}
         onSignIn={() => setStep('auth')}
         onGetStarted={requireAuth}
+        onDashboard={handleOpenDashboard}
         onSignOut={handleLogout}
         user={user}
         showAuthButtons={step === 'home' && !user}
@@ -451,6 +628,15 @@ const currentStepIndex = STEPS.indexOf(step);
           <AuthPage onSuccess={handleAuthSuccess} onClose={handleBack} />
         )}
 
+        {step === 'dashboard' && user && (
+          <Dashboard
+            user={user}
+            onOpenRun={handleOpenRun}
+            onNewAnalysis={handleNewAnalysis}
+            onBack={() => setStep('home')}
+          />
+        )}
+
         {step === 'onboarding' && user && (
           <Onboarding
             onSubmit={handleIngest}
@@ -476,6 +662,8 @@ const currentStepIndex = STEPS.indexOf(step);
             loading={loading}
             analysisLogs={analysisLogs}
             benchmarkLogs={benchmarkLogs}
+            analysisFinishing={analysisFinishing}
+            benchmarkFinishing={benchmarkFinishing}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.analysis]}
             onNext={nextStep ? handleNext : null}
@@ -492,6 +680,7 @@ const currentStepIndex = STEPS.indexOf(step);
             onContinue={handleFindGaps}
             loading={loading}
             gapLogs={gapLogs}
+            gapFinishing={gapFinishing}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.competitors]}
             onNext={nextStep ? handleNext : null}

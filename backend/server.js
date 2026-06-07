@@ -10,7 +10,8 @@ import { benchmarkAgent, streamBenchmark } from '../agents/benchmarkAgent.js';
 import { gapAgent, streamGaps } from '../agents/gapAgent.js';
 import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
-import { createCompany, updateCompany, getCompany, initFirebase, getFirebaseStatus } from './firebase.js';
+import { createCompany, updateCompany, getCompany, getCompanyForUser, listCompaniesForUser, initFirebase, getFirebaseStatus } from './firebase.js';
+import { optionalAuth, requireAuth } from './auth.js';
 import {
   hasAnthropic,
   hasGooglePlaces,
@@ -37,8 +38,42 @@ const analysisSessions = new Map();
 
 app.use(cors());
 app.use(express.json());
+app.use('/api', optionalAuth);
 
 initFirebase();
+
+function ownerFields(req) {
+  return req.user?.uid ? { userId: req.user.uid, userEmail: req.user.email || null } : {};
+}
+
+// Opens an SSE response and keeps it alive with periodic heartbeat comments so
+// that proxies (e.g. Railway/nginx) don't drop the connection during long,
+// silent agent steps. Returns a cleanup function to stop the heartbeat.
+function openSseStream(req, res) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+    'Access-Control-Allow-Origin': '*',
+  });
+  res.write(': connected\n\n');
+
+  const heartbeat = setInterval(() => {
+    if (!res.writableEnded) res.write(': ping\n\n');
+  }, 15000);
+
+  let stopped = false;
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    clearInterval(heartbeat);
+  };
+
+  req.on('close', stop);
+  res.on('close', stop);
+  return stop;
+}
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -69,6 +104,7 @@ app.post('/api/ingest', async (req, res) => {
       socialScrapes: result.socialScrapes || [],
       step: 'ingested',
       mock: result.mock ?? false,
+      ...ownerFields(req),
     });
 
     res.json({ ...result, companyId, saved, saveError });
@@ -83,7 +119,7 @@ app.post('/api/ingest/session', (req, res) => {
     if (!url) return res.status(400).json({ error: 'Website URL is required' });
 
     const sessionId = `ingest-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    ingestSessions.set(sessionId, { url, socialProfiles });
+    ingestSessions.set(sessionId, { url, socialProfiles, ...ownerFields(req) });
 
     setTimeout(() => ingestSessions.delete(sessionId), 10 * 60 * 1000);
 
@@ -101,14 +137,14 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
     return res.status(404).json({ error: 'Session not found or expired' });
   }
 
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-  });
+  const stopHeartbeat = openSseStream(req, res);
+  res.write(`data: ${JSON.stringify({ type: 'log', message: 'Agent connected — preparing analysis...' })}\n\n`);
 
   let companyId = null;
+  const sessionOwner = {
+    userId: session.userId || null,
+    userEmail: session.userEmail || null,
+  };
 
   try {
     const initialSave = await createCompany({
@@ -116,6 +152,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
       socialProfiles: session.socialProfiles,
       step: 'ingesting',
       ingestStartedAt: new Date().toISOString(),
+      ...sessionOwner,
     });
     companyId = initialSave.id;
 
@@ -158,6 +195,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
             step: 'ingested',
             mock: event.mock ?? false,
             ingestCompletedAt: new Date().toISOString(),
+            ...sessionOwner,
           });
           companyId = created.id;
           saved = created.saved;
@@ -182,6 +220,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
   } finally {
+    stopHeartbeat();
     ingestSessions.delete(sessionId);
     res.end();
   }
@@ -231,12 +270,7 @@ app.get('/api/analyze/stream/:sessionId', async (req, res) => {
     return res.status(404).json({ error: 'Session not found or expired' });
   }
 
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-  });
+  const stopHeartbeat = openSseStream(req, res);
 
   try {
     for await (const event of streamAnalysis(context)) {
@@ -263,6 +297,7 @@ app.get('/api/analyze/stream/:sessionId', async (req, res) => {
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
   } finally {
+    stopHeartbeat();
     analysisSessions.delete(sessionId);
     res.end();
   }
@@ -316,12 +351,7 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
     return res.status(404).json({ error: 'Session not found or expired' });
   }
 
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-  });
+  const stopHeartbeat = openSseStream(req, res);
 
   try {
     for await (const event of streamBenchmark(context)) {
@@ -349,6 +379,7 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
   } finally {
+    stopHeartbeat();
     benchmarkSessions.delete(sessionId);
     res.end();
   }
@@ -404,12 +435,7 @@ app.get('/api/gap/stream/:sessionId', async (req, res) => {
     return res.status(404).json({ error: 'Session not found or expired' });
   }
 
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-  });
+  const stopHeartbeat = openSseStream(req, res);
 
   try {
     for await (const event of streamGaps(context)) {
@@ -439,14 +465,24 @@ app.get('/api/gap/stream/:sessionId', async (req, res) => {
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
   } finally {
+    stopHeartbeat();
     gapSessions.delete(sessionId);
     res.end();
   }
 });
 
-app.get('/api/companies/:companyId', async (req, res) => {
+app.get('/api/history', requireAuth, async (req, res) => {
   try {
-    const company = await getCompany(req.params.companyId);
+    const items = await listCompaniesForUser(req.user.uid);
+    res.json({ items });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/companies/:companyId', requireAuth, async (req, res) => {
+  try {
+    const company = await getCompanyForUser(req.params.companyId, req.user.uid);
     if (!company) return res.status(404).json({ error: 'Company not found' });
     res.json(company);
   } catch (err) {
@@ -491,12 +527,7 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
     return res.status(404).json({ error: 'Session not found or expired' });
   }
 
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-  });
+  const stopHeartbeat = openSseStream(req, res);
 
   res.write(`data: ${JSON.stringify({ type: 'start', message: 'Lead generation started' })}\n\n`);
 
@@ -517,6 +548,7 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
   } finally {
+    stopHeartbeat();
     leadSessions.delete(sessionId);
     res.end();
   }

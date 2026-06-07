@@ -13,6 +13,26 @@ import {
 
 const BUSINESS_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 
+function RequiredMark() {
+  return (
+    <span className="text-red-500 ml-0.5" aria-hidden="true">
+      *
+    </span>
+  );
+}
+
+function FieldLabel({ children, required = false, isDark, hint }) {
+  return (
+    <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
+      {children}
+      {required && <RequiredMark />}
+      {hint && (
+        <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}> {hint}</span>
+      )}
+    </label>
+  );
+}
+
 function AnalysisSection({ title, items, color, isDark }) {
   const colors = isDark ? {
     green: 'bg-green-950/30 border-green-900/50 text-green-400',
@@ -41,7 +61,7 @@ function AnalysisSection({ title, items, color, isDark }) {
   );
 }
 
-export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
+export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], analysisFinishing = false, benchmarkFinishing = false, onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [profile, setProfile] = useState(() => initialProfileFromBusiness(business));
@@ -78,9 +98,10 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         backDisabled={navDisabled}
         nextDisabled={navDisabled}
       />
-      <div className="mb-8">
-        <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Profile</h2>
-        <p className={`mt-1 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+      <div className="mb-8 animate-rise">
+        <p className="eyebrow mb-2">Step 2 · Profile</p>
+        <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Profile</h2>
+        <p className={`mt-1.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
           {hasAnalysis
 
             ? 'Review your profile and analysis below.'
@@ -105,9 +126,12 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
       </div>
 
       <div className={`rounded-2xl border p-6 mb-8 space-y-5 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
+        <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+          <span className="text-red-500">*</span> Required fields
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Business Name</label>
+            <FieldLabel required isDark={isDark}>Business Name</FieldLabel>
             <input
               value={profile.name}
               onChange={(e) => updateField('name', e.target.value)}
@@ -116,7 +140,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             />
           </div>
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>City</label>
+            <FieldLabel required isDark={isDark}>City</FieldLabel>
             <input
               value={profile.city || ''}
               onChange={(e) => updateField('city', e.target.value)}
@@ -126,7 +150,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             />
           </div>
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>State</label>
+            <FieldLabel required isDark={isDark}>State</FieldLabel>
             <select
               value={profile.state || ''}
               onChange={(e) => updateField('state', e.target.value)}
@@ -142,14 +166,13 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             </select>
           </div>
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
-              ZIP code <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>(recommended)</span>
-            </label>
+            <FieldLabel isDark={isDark} hint="(recommended)">ZIP code</FieldLabel>
             <input
               value={profile.zipCode || ''}
               onChange={(e) => updateField('zipCode', e.target.value)}
               placeholder="77469"
               inputMode="numeric"
+              maxLength={5}
               disabled={loading}
               className={`mt-1 w-full px-3 py-2 rounded-lg border outline-none transition focus:ring-2 focus:ring-hookline-500 ${isDark ? 'bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 disabled:bg-gray-50'}`}
             />
@@ -162,7 +185,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             </div>
           )}
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Business Type</label>
+            <FieldLabel required isDark={isDark}>Business Type</FieldLabel>
             <select
               value={profile.type}
               onChange={(e) => updateField('type', e.target.value)}
@@ -175,7 +198,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             </select>
           </div>
           <div>
-            <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Website</label>
+            <FieldLabel required isDark={isDark}>Website</FieldLabel>
             <input
               value={profile.website}
               onChange={(e) => updateField('website', e.target.value)}
@@ -186,7 +209,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         </div>
 
         <div>
-          <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Target Market</label>
+          <FieldLabel isDark={isDark} hint="(optional)">Target Market</FieldLabel>
           <textarea
             value={profile.targetMarket}
             onChange={(e) => updateField('targetMarket', e.target.value)}
@@ -198,6 +221,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
 
         <ServiceTags
           label="Services"
+          optional
           items={profile.services}
           onChange={(services) => updateField('services', services)}
           placeholder="e.g. Mobile beverage catering"
@@ -218,7 +242,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
               loading || needsLocation
                 ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
             }`}
           >
             {loading ? (
@@ -234,14 +258,20 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             )}
           </button>
 
-          {loading && (
-            <ActivityLog logs={analysisLogs} title="Agent 2 — Analyzing your business" />
+          {(loading || analysisFinishing) && (
+            <ActivityLog
+              logs={analysisLogs}
+              title="Agent 2 — Analyzing your business"
+              loading={loading}
+              finishing={analysisFinishing}
+            />
           )}
         </>
       ) : (
         <>
-          <div className="mb-8">
-            <h2 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Analysis</h2>
+          <div className="mb-8 animate-rise">
+            <p className="eyebrow mb-2">Step 2 · Analysis</p>
+            <h2 className={`font-section-title text-2xl sm:text-3xl mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Business Analysis</h2>
             <p className={isDark ? 'text-zinc-400' : 'text-gray-600'}>AI-powered assessment of your strengths and opportunities.</p>
           </div>
 
@@ -258,7 +288,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
               loading || needsLocation
                 ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-lg hover:shadow-hookline-500/30'
+                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
             }`}
           >
             {loading ? (
@@ -274,7 +304,14 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             )}
           </button>
 
-          <ActivityLog logs={benchmarkLogs} title="Competitor benchmark" loading={loading} />
+          {(loading || benchmarkFinishing) && (
+            <ActivityLog
+              logs={benchmarkLogs}
+              title="Competitor benchmark"
+              loading={loading}
+              finishing={benchmarkFinishing}
+            />
+          )}
         </>
       )}
     </div>
