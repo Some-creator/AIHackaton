@@ -115,7 +115,6 @@ export default function LeadGeneration({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const listRef = useRef(null);
-  const cardRefs = useRef({});
   const markerRefs = useRef({});
   const [selectedLeadName, setSelectedLeadName] = useState(null);
   const [resetToken, setResetToken] = useState(0);
@@ -127,15 +126,40 @@ export default function LeadGeneration({
   }, [leads.length]);
 
   const sortedLeads = [...leads].sort((a, b) => b.priorityScore - a.priorityScore);
+  const visibleLeads = sortedLeads.filter((lead) => !skippedLeads.has(lead.name));
   const mapLeads = sortedLeads.filter((l) => {
     const lat = parseFloat(l.lat);
     const lng = parseFloat(l.lng);
     return !isNaN(lat) && !isNaN(lng);
   });
 
+  const activeLeadIndex = (() => {
+    if (!visibleLeads.length) return -1;
+    if (selectedLeadName) {
+      const idx = visibleLeads.findIndex((lead) => lead.name === selectedLeadName);
+      if (idx >= 0) return idx;
+    }
+    return 0;
+  })();
+
+  const activeLead = activeLeadIndex >= 0 ? visibleLeads[activeLeadIndex] : null;
+
   const selectLead = useCallback((lead) => {
     setSelectedLeadName(lead.name);
   }, []);
+
+  const goToLead = useCallback((index) => {
+    const lead = visibleLeads[index];
+    if (lead) setSelectedLeadName(lead.name);
+  }, [visibleLeads]);
+
+  const goToPreviousLead = () => {
+    if (activeLeadIndex > 0) goToLead(activeLeadIndex - 1);
+  };
+
+  const goToNextLead = () => {
+    if (activeLeadIndex < visibleLeads.length - 1) goToLead(activeLeadIndex + 1);
+  };
 
   const handleResetMap = () => {
     setSelectedLeadName(null);
@@ -145,15 +169,21 @@ export default function LeadGeneration({
 
   useEffect(() => {
     if (!selectedLeadName) return;
-    const cardEl = cardRefs.current[selectedLeadName];
-    if (cardEl) {
-      cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
     const marker = markerRefs.current[selectedLeadName];
     if (marker) {
       marker.openPopup();
     }
   }, [selectedLeadName]);
+
+  useEffect(() => {
+    if (!visibleLeads.length) {
+      setSelectedLeadName(null);
+      return;
+    }
+    if (!selectedLeadName || !visibleLeads.some((lead) => lead.name === selectedLeadName)) {
+      setSelectedLeadName(visibleLeads[0].name);
+    }
+  }, [visibleLeads, selectedLeadName]);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -228,46 +258,91 @@ export default function LeadGeneration({
           </MapContainer>
         </div>
 
-        <div ref={listRef} className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-          {sortedLeads.length === 0 && streaming && (
-            <div className={`flex items-center justify-center h-40 rounded-2xl border transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'}`}>
-              <div className="text-center">
-                <svg className="animate-spin h-8 w-8 text-hookline-500 mx-auto mb-3" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Scanning West Houston for leads...</p>
+        <div ref={listRef} className="flex flex-col h-[500px]">
+          {visibleLeads.length > 1 && (
+            <div className={`flex items-center justify-between gap-3 mb-3 shrink-0 rounded-xl border px-3 py-2 ${
+              isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'
+            }`}>
+              <button
+                type="button"
+                onClick={goToPreviousLead}
+                disabled={activeLeadIndex <= 0}
+                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition ${
+                  activeLeadIndex <= 0
+                    ? 'opacity-40 cursor-not-allowed'
+                    : isDark
+                      ? 'text-zinc-300 hover:bg-zinc-800'
+                      : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Previous
+              </button>
+              <div className="text-center min-w-0 flex-1">
+                <p className={`text-xs font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {activeLead?.name}
+                </p>
+                <p className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+                  Lead {activeLeadIndex + 1} of {visibleLeads.length}
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={goToNextLead}
+                disabled={activeLeadIndex >= visibleLeads.length - 1}
+                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition ${
+                  activeLeadIndex >= visibleLeads.length - 1
+                    ? 'opacity-40 cursor-not-allowed'
+                    : isDark
+                      ? 'text-zinc-300 hover:bg-zinc-800'
+                      : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Next
+              </button>
             </div>
           )}
 
-          {sortedLeads.map((lead, i) => (
-            <div
-              key={`${lead.name}-${i}`}
-              ref={(el) => {
-                if (el) cardRefs.current[lead.name] = el;
-              }}
-            >
+          <div className="flex-1 min-h-0">
+            {sortedLeads.length === 0 && streaming && (
+              <div className={`flex items-center justify-center h-full rounded-2xl border transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'}`}>
+                <div className="text-center">
+                  <svg className="animate-spin h-8 w-8 text-hookline-500 mx-auto mb-3" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Scanning for leads...</p>
+                </div>
+              </div>
+            )}
+
+            {activeLead && (
               <LeadCard
-                lead={lead}
+                lead={activeLead}
                 business={business}
                 analysis={analysis}
                 marketGap={marketGap}
                 onSkip={onSkip}
-                skipped={skippedLeads.has(lead.name)}
-                selected={selectedLeadName === lead.name}
-                onSelect={() => selectLead(lead)}
+                skipped={false}
+                selected
+                onSelect={() => selectLead(activeLead)}
+                compact
               />
-            </div>
-          ))}
+            )}
+
+            {!activeLead && !streaming && (
+              <div className={`flex items-center justify-center h-full rounded-2xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800 text-zinc-400' : 'bg-white border-gray-200 text-gray-500'}`}>
+                <p className="text-sm">No leads to show.</p>
+              </div>
+            )}
+          </div>
 
           {streaming && sortedLeads.length > 0 && (
-            <div className="flex items-center justify-center py-4">
-              <svg className="animate-spin h-5 w-5 text-hookline-500 mr-2" viewBox="0 0 24 24">
+            <div className="flex items-center justify-center py-2 shrink-0">
+              <svg className="animate-spin h-4 w-4 text-hookline-500 mr-2" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              <span className={`text-sm ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Loading more leads...</span>
+              <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Loading more leads...</span>
             </div>
           )}
         </div>
