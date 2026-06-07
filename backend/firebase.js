@@ -152,3 +152,43 @@ export async function getCompany(companyId) {
   if (!doc.exists) return null;
   return { id: doc.id, ...doc.data() };
 }
+
+export async function getCompanyForUser(companyId, userId) {
+  const company = await getCompany(companyId);
+  if (!company) return null;
+  if (company.userId && company.userId !== userId) return null;
+  return company;
+}
+
+export async function listCompaniesForUser(userId, limit = 50) {
+  const firestore = initFirebase();
+  if (!firestore || !userId) return [];
+
+  try {
+    const snap = await firestore
+      .collection('companies')
+      .where('userId', '==', userId)
+      .limit(limit * 2)
+      .get();
+
+    return snap.docs
+      .map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          url: data.url || '',
+          step: data.step || 'unknown',
+          businessName: data.business?.name || null,
+          location: data.business?.location || null,
+          leadCount: Array.isArray(data.leads) ? data.leads.length : 0,
+          createdAt: data.createdAt || null,
+          updatedAt: data.updatedAt || null,
+        };
+      })
+      .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))
+      .slice(0, limit);
+  } catch (err) {
+    console.error(`[firebase] listCompaniesForUser failed: ${err.message}`);
+    return [];
+  }
+}

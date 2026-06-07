@@ -6,12 +6,14 @@ import BusinessAnalysis from './components/BusinessAnalysis';
 import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
+import Dashboard from './components/Dashboard';
 import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import * as api from './api';
+import { appendMockHistory, buildMockHistoryEntry, getMockCompany } from './lib/mockHistory';
 
-const STEPS = ['home', 'auth', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+const STEPS = ['home', 'auth', 'dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
 
 const stepLabels = {
   onboarding: 'Start',
@@ -23,7 +25,8 @@ const stepLabels = {
 
 const PREVIOUS_STEP = {
   auth: 'home',
-  onboarding: 'home',
+  dashboard: 'home',
+  onboarding: 'dashboard',
   analysis: 'onboarding',
   competitors: 'analysis',
   gap: 'competitors',
@@ -32,6 +35,7 @@ const PREVIOUS_STEP = {
 
 const BACK_LABELS = {
   home: 'Home',
+  dashboard: 'Dashboard',
   onboarding: 'Start',
   analysis: 'Analysis',
   competitors: 'Competitors',
@@ -91,6 +95,88 @@ export default function App() {
     }
   }, []);
 
+  const stepFromCompanyRecord = (recordStep) => {
+    const map = {
+      ingesting: 'analysis',
+      ingested: 'analysis',
+      analyzed: 'competitors',
+      benchmarked: 'gap',
+      gap_analyzed: 'leads',
+      generating_leads: 'leads',
+      leads_generated: 'leads',
+    };
+    return map[recordStep] || 'analysis';
+  };
+
+  const loadCompanyIntoState = useCallback((company) => {
+    setContext({
+      business: company.business,
+      companyId: company.id,
+      saved: true,
+      analysis: company.analysis,
+      analysisMock: company.analysisMock ?? false,
+      competitors: company.competitors,
+      competitorsMock: company.competitorsMock ?? false,
+      competitorsMockReason: company.competitorsMockReason || null,
+      gaps: company.gaps,
+      recommendedGap: company.recommendedGap,
+      gapsMock: company.gapsMock ?? false,
+      socialScrapes: company.socialScrapes || [],
+    });
+    setLeads(company.leads || []);
+    setStreamComplete(Boolean(company.leads?.length));
+    setStreaming(false);
+    setStep(stepFromCompanyRecord(company.step));
+  }, []);
+
+  const saveMockSnapshot = useCallback((patch = {}) => {
+    if (!user || user.uid) return;
+    const merged = { ...context, ...patch };
+    if (!merged.business) return;
+    appendMockHistory(buildMockHistoryEntry({
+      companyId: merged.companyId,
+      url: merged.business?.website,
+      business: merged.business,
+      step: patch.step || 'ingested',
+      context: merged,
+      leads: patch.leads ?? leads,
+    }));
+  }, [user, context, leads]);
+
+  const handleOpenDashboard = useCallback(() => {
+    if (!user) {
+      setStep('auth');
+      return;
+    }
+    setError(null);
+    setStep('dashboard');
+  }, [user]);
+
+  const handleOpenRun = useCallback(async (companyId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const company = user?.uid
+        ? await api.getCompany(companyId)
+        : getMockCompany(companyId);
+      if (!company) throw new Error('That analysis was not found.');
+      loadCompanyIntoState(company);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid, loadCompanyIntoState]);
+
+  const handleNewAnalysis = useCallback(() => {
+    setError(null);
+    setContext({});
+    setLeads([]);
+    setStreaming(false);
+    setStreamComplete(false);
+    setStep('onboarding');
+  }, []);
+
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
     setError(null);
@@ -135,6 +221,12 @@ export default function App() {
         saved: ingestResult.saved,
         socialScrapes: ingestResult.socialScrapes || [],
       });
+      saveMockSnapshot({
+        step: 'ingested',
+        business: ingestResult.business,
+        companyId: ingestResult.companyId,
+        socialScrapes: ingestResult.socialScrapes || [],
+      });
       setStep('analysis');
     } catch (err) {
       reportError(err);
@@ -169,6 +261,13 @@ export default function App() {
         analysis: analysisResult.analysis,
         analysisMock: analysisResult.mock ?? false,
       }));
+      saveMockSnapshot({
+        step: 'analyzed',
+        business: updatedBusiness,
+        analysis: analysisResult.analysis,
+        companyId: updatedContext.companyId,
+        socialScrapes: updatedContext.socialScrapes,
+      });
     } catch (err) {
       reportError(err);
     } finally {
@@ -201,6 +300,13 @@ export default function App() {
         competitorsMock: benchmarkResult.mock ?? false,
         competitorsMockReason: benchmarkResult.mockReason || null,
       }));
+      saveMockSnapshot({
+        step: 'benchmarked',
+        business: updatedBusiness,
+        analysis: updatedContext.analysis,
+        competitors: benchmarkResult.competitors,
+        companyId: updatedContext.companyId,
+      });
       setStep('competitors');
     } catch (err) {
       reportError(err);
@@ -232,6 +338,15 @@ export default function App() {
         gapsMock: gapResult.mock ?? false,
         gapsMockReason: gapResult.mockReason || null,
       }));
+      saveMockSnapshot({
+        step: 'gap_analyzed',
+        gaps: gapResult.gaps,
+        recommendedGap: gapResult.recommendedGap,
+        companyId: context.companyId,
+        business: context.business,
+        analysis: context.analysis,
+        competitors: context.competitors,
+      });
       setStep('gap');
     } catch (err) {
       reportError(err);
@@ -293,7 +408,7 @@ export default function App() {
   }, [user]);
 
   const handleAuthSuccess = useCallback(() => {
-    setStep('onboarding');
+    setStep('dashboard');
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -377,7 +492,7 @@ export default function App() {
   const navDisabled = loading || (streaming && step !== 'leads');
 
   useEffect(() => {
-    const protectedSteps = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+    const protectedSteps = ['dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
     if (!authLoading && !user && protectedSteps.includes(step)) {
       setStep('auth');
     }
@@ -387,10 +502,10 @@ const currentStepIndex = STEPS.indexOf(step);
   const isHomeOrAuth = step === 'home' || step === 'auth';
 
   const stepNav =
-    step !== 'home' && step !== 'auth' && step !== 'onboarding' ? (
+    step !== 'home' && step !== 'auth' && step !== 'dashboard' && step !== 'onboarding' ? (
       <nav className="flex items-center gap-1">
-        {STEPS.slice(3).map((s, i) => {
-          const stepIndex = i + 3;
+        {STEPS.slice(4).map((s, i) => {
+          const stepIndex = i + 4;
           const isActive = currentStepIndex === stepIndex;
           const isBehind = currentStepIndex > stepIndex;
           const isAheadComplete = currentStepIndex < stepIndex && canNavigateToStep(s);
@@ -445,6 +560,7 @@ const currentStepIndex = STEPS.indexOf(step);
         onLogoClick={() => setStep('home')}
         onSignIn={() => setStep('auth')}
         onGetStarted={requireAuth}
+        onDashboard={handleOpenDashboard}
         onSignOut={handleLogout}
         user={user}
         showAuthButtons={step === 'home' && !user}
@@ -495,6 +611,15 @@ const currentStepIndex = STEPS.indexOf(step);
 
         {step === 'auth' && (
           <AuthPage onSuccess={handleAuthSuccess} onClose={handleBack} />
+        )}
+
+        {step === 'dashboard' && user && (
+          <Dashboard
+            user={user}
+            onOpenRun={handleOpenRun}
+            onNewAnalysis={handleNewAnalysis}
+            onBack={() => setStep('home')}
+          />
         )}
 
         {step === 'onboarding' && user && (

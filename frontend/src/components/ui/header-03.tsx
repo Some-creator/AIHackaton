@@ -26,6 +26,7 @@ type HeaderProps = {
   onLogoClick?: () => void;
   onSignIn?: () => void;
   onGetStarted?: () => void;
+  onDashboard?: () => void;
   onSignOut?: () => void;
   user?: HeaderUser | null;
   showAuthButtons?: boolean;
@@ -37,6 +38,7 @@ export function Header({
   onLogoClick,
   onSignIn,
   onGetStarted,
+  onDashboard,
   onSignOut,
   user,
   showAuthButtons = false,
@@ -85,6 +87,11 @@ export function Header({
             <ModeToggle />
             {user ? (
               <>
+                {onDashboard && (
+                  <Button variant="ghost" size="sm" className="rounded-full hidden sm:inline-flex" onClick={onDashboard}>
+                    Dashboard
+                  </Button>
+                )}
                 <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/60 py-1 pl-1 pr-3">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-hookline-400 to-hookline-600 text-xs font-bold text-white ring-1 ring-white/15">
                     {getInitial(user)}
@@ -160,6 +167,11 @@ export function Header({
                       <p className="truncate font-body text-sm font-medium text-muted-foreground">
                         {user.displayName || user.email}
                       </p>
+                      {onDashboard && (
+                        <Button variant="outline" className="w-full" onClick={() => { onDashboard(); setIsOpen(false); }}>
+                          Dashboard
+                        </Button>
+                      )}
                       <Button variant="outline" className="w-full" onClick={() => { onSignOut?.(); setIsOpen(false); }}>
                         Sign out
                       </Button>
