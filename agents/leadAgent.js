@@ -7,6 +7,13 @@ import { parseClaudeJson } from '../backend/parseJson.js';
 
 const MAX_LEADS = 8;
 const MAX_CANDIDATES = 24;
+const MIN_LEAD_RATING = 5;
+
+function meetsRatingThreshold(lead) {
+  const rating = Number(lead?.rating);
+  if (!Number.isFinite(rating)) return true;
+  return rating >= MIN_LEAD_RATING;
+}
 
 const FRANCHISE_INDICATORS = [
   'franchise', 'franchising', 'franchisee', 'franchise opportunities',
@@ -409,6 +416,10 @@ Lead data: ${JSON.stringify({ place, scraped, yelpData })}`,
   return lead;
 }
 
+function sortLeadsByPriority(leads) {
+  return [...leads].sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0));
+}
+
 export async function* streamLeads(context) {
   if (!hasGooglePlaces) {
     throw new Error('Google Places API key is missing. Cannot search for leads without it.');
@@ -423,42 +434,73 @@ export async function* streamLeads(context) {
   if (!business) throw new Error('Business profile required');
   if (!selectedGap) throw new Error('Market gap required — run Agent 4 first');
 
+  yield { type: 'log', message: 'Starting lead generation...' };
+  yield { type: 'log', message: `Target niche: "${selectedGap.niche}"` };
+  yield { type: 'log', message: 'AI is planning lead search queries...' };
+
   const searchPlan = await planLeadSearch(business, selectedGap, analysis);
   console.log(`[leadAgent] Gap: "${selectedGap.niche}"`);
   console.log(`[leadAgent] Target: ${searchPlan.targetSummary}`);
   console.log(`[leadAgent] Queries: ${searchPlan.searchQueries.join(', ')}`);
 
+  yield { type: 'log', message: `Target: ${searchPlan.targetSummary}` };
+  yield { type: 'log', message: `Search queries: ${searchPlan.searchQueries.join(', ')}` };
+  yield { type: 'log', message: `Searching Google Places near ${business.location || 'your area'}...` };
+
   const candidates = await findLeadPlaces(business, searchPlan, competitors);
   console.log(`[leadAgent] Found ${candidates.length} local candidates near ${business.location}`);
+
+  yield { type: 'log', message: `Found ${candidates.length} candidate businesses` };
 
   if (candidates.length === 0) {
     throw new Error(`No local candidates found near ${business.location} matching queries: ${searchPlan.searchQueries.slice(0, 3).join(', ')}`);
   }
 
-  let leadCount = 0;
+  yield { type: 'log', message: 'Qualifying leads (filtering franchises, scoring fit)...' };
+
+  const leads = [];
   for (const place of candidates) {
-    if (leadCount >= MAX_LEADS) break;
+    if (leads.length >= MAX_LEADS) break;
 
+    const name = getPlaceName(place);
     try {
+      yield { type: 'log', message: `Analyzing: ${name}...` };
       const lead = await buildLeadFromPlace(place, business, selectedGap, searchPlan);
-      if (!lead) continue;
+      if (!lead) {
+        yield { type: 'log', message: `Skipped: ${name} (filtered out)` };
+        continue;
+      }
 
-      leadCount += 1;
-      yield lead;
+      if (!meetsRatingThreshold(lead)) {
+        yield { type: 'log', message: `Skipped: ${name} (rating ${Number(lead.rating).toFixed(1)} below ${MIN_LEAD_RATING}.0)` };
+        continue;
+      }
+
+      leads.push(lead);
+      yield { type: 'log', message: `Qualified: ${name} (priority ${lead.priorityScore})` };
     } catch (err) {
-      console.warn(`[leadAgent] Failed to process ${getPlaceName(place)}: ${err.message}`);
+      console.warn(`[leadAgent] Failed to process ${name}: ${err.message}`);
+      yield { type: 'log', message: `Failed: ${name} — ${err.message}` };
     }
   }
 
-  if (leadCount === 0) {
+  if (leads.length === 0) {
     throw new Error('All discovered candidates were filtered out (franchises/chains) or failed qualification analysis.');
   }
+
+  const sortedLeads = sortLeadsByPriority(leads);
+  yield { type: 'log', message: `Sorting ${sortedLeads.length} leads by priority (highest first)...` };
+  yield {
+    type: 'log',
+    message: `Lead generation complete — ${sortedLeads.length} leads ready. Top: ${sortedLeads[0].name} (${sortedLeads[0].priorityScore})`,
+  };
+  yield { type: 'complete', leads: sortedLeads };
 }
 
 export async function leadAgent(context) {
-  const leads = [];
-  for await (const lead of streamLeads(context)) {
-    leads.push(lead);
+  let leads = [];
+  for await (const event of streamLeads(context)) {
+    if (event.type === 'complete') leads = event.leads || [];
   }
-  return { leads: leads.sort((a, b) => b.priorityScore - a.priorityScore) };
+  return { leads };
 }

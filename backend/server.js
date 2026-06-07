@@ -562,22 +562,22 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
   safeWrite(res, req, `data: ${JSON.stringify({ type: 'start', message: 'Lead generation started' })}\n\n`);
 
   try {
-    const leads = [];
-    for await (const lead of streamLeads(context)) {
+    for await (const event of streamLeads(context)) {
       if (req.destroyed || res.writableEnded) break;
-      leads.push(lead);
-      const ok = safeWrite(res, req, `data: ${JSON.stringify({ type: 'lead', lead })}\n\n`);
-      if (!ok) break;
-    }
-    if (!req.destroyed && !res.writableEnded) {
-      safeWrite(res, req, `data: ${JSON.stringify({ type: 'complete', message: 'All leads processed' })}\n\n`);
-    }
+      if (event.type === 'log') {
+        safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'complete') {
+        const leads = event.leads || [];
 
-    if (context.companyId) {
-      await updateCompany(context.companyId, {
-        leads,
-        step: 'leads_generated',
-      });
+        if (context.companyId) {
+          await updateCompany(context.companyId, {
+            leads,
+            step: 'leads_generated',
+          });
+        }
+
+        safeWrite(res, req, `data: ${JSON.stringify({ type: 'complete', leads, message: 'All leads processed' })}\n\n`);
+      }
     }
   } catch (err) {
     if (!req.destroyed && !res.writableEnded) {

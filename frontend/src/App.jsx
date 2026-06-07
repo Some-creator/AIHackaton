@@ -13,6 +13,7 @@ import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import * as api from './api';
+import { sortLeadsByPriority } from './lib/leadUtils';
 import { appendMockHistory, buildMockHistoryEntry, getMockCompany } from './lib/mockHistory';
 
 const STEPS = ['home', 'auth', 'dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
@@ -73,6 +74,8 @@ export default function App() {
   const [benchmarkFinishing, setBenchmarkFinishing] = useState(false);
   const [gapLogs, setGapLogs] = useState([]);
   const [gapFinishing, setGapFinishing] = useState(false);
+  const [leadLogs, setLeadLogs] = useState([]);
+  const [leadFinishing, setLeadFinishing] = useState(false);
 
   const reportError = useCallback(async (err) => {
     const raw = err?.message || 'Something went wrong.';
@@ -128,8 +131,9 @@ export default function App() {
       gapsMock: company.gapsMock ?? false,
       socialScrapes: company.socialScrapes || [],
     });
-    setLeads(company.leads || []);
-    setStreamComplete(Boolean(company.leads?.length));
+    const ratedLeads = sortLeadsByPriority(company.leads || []);
+    setLeads(ratedLeads);
+    setStreamComplete(ratedLeads.length > 0);
     setStreaming(false);
     setStep(stepFromCompanyRecord(company.step));
   }, []);
@@ -377,6 +381,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     setLeads([]);
+    setLeadLogs([]);
     setStreaming(true);
     setStreamComplete(false);
     setStep('leads');
@@ -387,28 +392,28 @@ export default function App() {
 
       const { sessionId } = await api.createLeadSession(updatedContext);
 
-      api.streamLeads(sessionId, {
-        onLead: (lead) => {
-          setLeads((prev) => {
-            const exists = prev.some((l) => l.name === lead.name);
-            if (exists) return prev;
-            return [...prev, lead];
-          });
-        },
-        onComplete: () => {
-          setStreaming(false);
-          setStreamComplete(true);
-        },
-        onError: (err) => {
-          reportError(err);
-          setStreaming(false);
-        },
+      await new Promise((resolve, reject) => {
+        api.streamLeads(sessionId, {
+          onLog: (message) => setLeadLogs((prev) => [...prev, message]),
+          onComplete: async (data) => {
+            setLeadFinishing(true);
+            await new Promise((r) => setTimeout(r, 1000));
+
+            setLeads(sortLeadsByPriority(data.leads || []));
+            setStreaming(false);
+            setStreamComplete(true);
+            resolve();
+          },
+          onError: reject,
+        });
       });
     } catch (err) {
       reportError(err);
       setStreaming(false);
     } finally {
+      setLeadFinishing(false);
       setLoading(false);
+      setLeadLogs([]);
     }
   };
 
@@ -724,6 +729,8 @@ const currentStepIndex = STEPS.indexOf(step);
                   marketGap={context.gaps?.[context.recommendedGap]}
                   streaming={streaming}
                   streamComplete={streamComplete}
+                  leadLogs={leadLogs}
+                  leadFinishing={leadFinishing}
                   onSkip={handleSkip}
                   skippedLeads={skippedLeads}
                   onBack={handleBack}

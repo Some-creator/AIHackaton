@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../context/ThemeContext';
+import { sortLeadsByPriority } from '../lib/leadUtils';
+import ActivityLog from './ActivityLog';
 import LeadCard from './LeadCard';
 import StepNavigation from './StepNavigation';
 
@@ -104,6 +106,8 @@ export default function LeadGeneration({
   marketGap,
   streaming,
   streamComplete,
+  leadLogs = [],
+  leadFinishing = false,
   onSkip,
   skippedLeads,
   onBack,
@@ -125,9 +129,9 @@ export default function LeadGeneration({
     }
   }, [leads.length]);
 
-  const sortedLeads = [...leads].sort((a, b) => b.priorityScore - a.priorityScore);
+  const sortedLeads = sortLeadsByPriority(leads);
   const visibleLeads = sortedLeads.filter((lead) => !skippedLeads.has(lead.name));
-  const mapLeads = sortedLeads.filter((l) => {
+  const mapLeads = visibleLeads.filter((l) => {
     const lat = parseFloat(l.lat);
     const lng = parseFloat(l.lng);
     return !isNaN(lat) && !isNaN(lng);
@@ -147,6 +151,11 @@ export default function LeadGeneration({
   const selectLead = useCallback((lead) => {
     setSelectedLeadName(lead.name);
   }, []);
+
+  const handleDismissLead = useCallback((lead) => {
+    delete markerRefs.current[lead.name];
+    onSkip(lead);
+  }, [onSkip]);
 
   const goToLead = useCallback((index) => {
     const lead = visibleLeads[index];
@@ -199,14 +208,26 @@ export default function LeadGeneration({
         <p className="eyebrow mb-2">Step 5 · Leads</p>
         <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Leads</h2>
         <p className={`mt-1.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
-          {streaming
-            ? `Finding leads... ${leads.length} discovered so far`
+          {streaming || leadFinishing
+            ? 'Generating and qualifying leads — results appear when complete'
             : streamComplete
-              ? `${leads.length} qualified leads with contact info — sorted by priority`
+              ? `${leads.length} qualified leads with contact info — sorted by priority (highest first)`
               : 'Preparing lead generation...'}
         </p>
       </div>
 
+      {(streaming || leadFinishing) && (
+        <div className="mb-8">
+          <ActivityLog
+            logs={leadLogs}
+            title="Agent 5 — Generating leads"
+            loading={streaming}
+            finishing={leadFinishing}
+          />
+        </div>
+      )}
+
+      {!streaming && !leadFinishing && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className={`relative h-[500px] rounded-2xl overflow-hidden border shadow-sm ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
           <button
@@ -303,18 +324,6 @@ export default function LeadGeneration({
           )}
 
           <div className="flex-1 min-h-0">
-            {sortedLeads.length === 0 && streaming && (
-              <div className={`flex items-center justify-center h-full rounded-2xl border transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'}`}>
-                <div className="text-center">
-                  <svg className="animate-spin h-8 w-8 text-hookline-500 mx-auto mb-3" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <p className={isDark ? 'text-zinc-400' : 'text-gray-500'}>Scanning for leads...</p>
-                </div>
-              </div>
-            )}
-
             {activeLead && (
               <div className="h-full min-h-0">
                 <LeadCard
@@ -322,7 +331,7 @@ export default function LeadGeneration({
                   business={business}
                   analysis={analysis}
                   marketGap={marketGap}
-                  onSkip={onSkip}
+                  onSkip={handleDismissLead}
                   skipped={false}
                   selected
                   onSelect={() => selectLead(activeLead)}
@@ -331,24 +340,15 @@ export default function LeadGeneration({
               </div>
             )}
 
-            {!activeLead && !streaming && (
+            {!activeLead && (
               <div className={`flex items-center justify-center h-full rounded-2xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800 text-zinc-400' : 'bg-white border-gray-200 text-gray-500'}`}>
                 <p className="text-sm">No leads to show.</p>
               </div>
             )}
           </div>
-
-          {streaming && sortedLeads.length > 0 && (
-            <div className="flex items-center justify-center py-2 shrink-0">
-              <svg className="animate-spin h-4 w-4 text-hookline-500 mr-2" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <span className={`text-xs ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Loading more leads...</span>
-            </div>
-          )}
         </div>
       </div>
+      )}
     </div>
   );
 }
