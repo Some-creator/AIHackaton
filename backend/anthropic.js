@@ -15,6 +15,9 @@ async function requestAnthropic({ model, system, messages, maxTokens }) {
   validateModel(model);
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('AI analysis unavailable — ANTHROPIC_API_KEY not configured');
+  }
 
   const response = await fetch(ANTHROPIC_URL, {
     method: 'POST',

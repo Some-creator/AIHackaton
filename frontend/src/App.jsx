@@ -174,14 +174,10 @@ export default function App() {
     }
     try {
       const health = await api.getHealth();
-      const s = health?.services || {};
-      const missing = [];
-      if (!s.anthropic) missing.push('Anthropic');
-      if (!s.firecrawl) missing.push('Firecrawl');
-      if (missing.length) {
+      if (health?.live === false) {
         setError(
-          `The server is missing API keys (${missing.join(', ')}), so analysis can't run. ` +
-          `Add them to your hosting environment variables (e.g. Railway → Variables) and redeploy.`
+          'The server is running in demo mode without live API keys, so analysis can\'t run. ' +
+          'Add API keys to your hosting environment variables (e.g. Railway → Variables) and redeploy.'
         );
       } else {
         setError('Lost connection to the server. It may be redeploying or the request timed out — wait a few seconds and try again.');

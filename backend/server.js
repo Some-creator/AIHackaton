@@ -74,6 +74,32 @@ app.use('/api', optionalAuth);
 const agentRateLimit = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 40 });
 const emailRateLimit = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 20 });
 
+const hasLiveServices = hasAnthropic || hasFirecrawl || hasApify || hasGooglePlaces;
+
+function requireAuthUnlessMock(req, res, next) {
+  if (hasLiveServices) return requireAuth(req, res, next);
+  return next();
+}
+
+async function consumeScanForUser(req, res) {
+  if (!req.user?.uid) {
+    res.status(401).json({ error: 'Sign in required' });
+    return null;
+  }
+
+  const spent = await consumeScan(req.user.uid);
+  if (!spent.ok) {
+    res.status(402).json({
+      error: spent.error,
+      scansRemaining: spent.scansRemaining ?? 0,
+      code: 'NO_SCANS',
+    });
+    return null;
+  }
+
+  return spent.scansRemaining;
+}
+
 async function guardCompanyWrite(req, companyId) {
   const check = await assertCompanyWritable(companyId, req.user?.uid || null);
   if (!check.ok) {
@@ -141,18 +167,11 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     service: 'hookline-backend',
     firebase: getFirebaseStatus(),
-    services: {
-      useMock: false,
-      anthropic: hasAnthropic,
-      googlePlaces: hasGooglePlaces,
-      firecrawl: hasFirecrawl,
-      apify: hasApify,
-      agent3Live: hasAnthropic && hasGooglePlaces,
-    },
+    live: hasLiveServices,
   });
 });
 
-app.post('/api/ingest', agentRateLimit, async (req, res) => {
+app.post('/api/ingest', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const { url, socialProfiles = [] } = req.body;
     if (!url) return res.status(400).json({ error: 'Website URL is required' });
@@ -175,14 +194,17 @@ app.post('/api/ingest', agentRateLimit, async (req, res) => {
   }
 });
 
-app.post('/api/ingest/session', agentRateLimit, async (req, res) => {
+app.post('/api/ingest/session', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const { url, socialProfiles = [] } = req.body;
     if (!url) return res.status(400).json({ error: 'Website URL is required' });
     assertPublicHttpUrl(url, 'Website URL');
 
     let scansRemaining = null;
-    if (req.user?.uid) {
+    if (hasLiveServices) {
+      scansRemaining = await consumeScanForUser(req, res);
+      if (scansRemaining === null) return;
+    } else if (req.user?.uid) {
       const spent = await consumeScan(req.user.uid);
       if (!spent.ok) {
         return res.status(402).json({
@@ -309,7 +331,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
   }
 });
 
-app.post('/api/analyze', agentRateLimit, async (req, res) => {
+app.post('/api/analyze', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business) return res.status(400).json({ error: 'Business profile required' });
@@ -330,7 +352,7 @@ app.post('/api/analyze', agentRateLimit, async (req, res) => {
   }
 });
 
-app.post('/api/analyze/session', agentRateLimit, async (req, res) => {
+app.post('/api/analyze/session', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business) return res.status(400).json({ error: 'Business profile required' });
@@ -392,7 +414,7 @@ app.get('/api/analyze/stream/:sessionId', async (req, res) => {
   }
 });
 
-app.post('/api/benchmark', agentRateLimit, async (req, res) => {
+app.post('/api/benchmark', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.analysis) {
@@ -415,7 +437,7 @@ app.post('/api/benchmark', agentRateLimit, async (req, res) => {
   }
 });
 
-app.post('/api/benchmark/session', agentRateLimit, async (req, res) => {
+app.post('/api/benchmark/session', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.analysis) {
@@ -480,7 +502,7 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
   }
 });
 
-app.post('/api/gap', agentRateLimit, async (req, res) => {
+app.post('/api/gap', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.competitors) {
@@ -505,7 +527,7 @@ app.post('/api/gap', agentRateLimit, async (req, res) => {
   }
 });
 
-app.post('/api/gap/session', agentRateLimit, async (req, res) => {
+app.post('/api/gap/session', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.competitors) {
@@ -624,7 +646,7 @@ app.post('/api/credits/purchase', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/leads/session', agentRateLimit, async (req, res) => {
+app.post('/api/leads/session', agentRateLimit, requireAuthUnlessMock, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.gaps) {
