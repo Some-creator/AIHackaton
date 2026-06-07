@@ -215,65 +215,75 @@ export default function LeadCard({
       ? 'bg-zinc-900/60 border border-zinc-800 backdrop-blur-md hover:shadow-md hover:border-zinc-700'
       : 'bg-white border border-gray-200 shadow-sm hover:shadow-md';
 
-  const headerBlock = (
-    <>
-      <div className={`flex items-start justify-between gap-3 shrink-0 ${compact ? 'mb-2' : 'mb-4'}`}>
-        <h3 className={`font-bold min-w-0 ${compact ? 'text-base' : 'text-lg'} ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          {lead.name}
-        </h3>
-        {(Number.isFinite(Number(lead.rating)) || formatReviewCount(lead.reviewCount)) && (
-          <div className={`text-right shrink-0 rounded-lg border px-2.5 py-1.5 ${
-            isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-gray-50 border-gray-200'
-          }`}>
-            {Number.isFinite(Number(lead.rating)) && (
-              <div className="flex items-center justify-end gap-1.5">
-                <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {Number(lead.rating).toFixed(1)}
-                </span>
-                <StarRating rating={lead.rating} isDark={isDark} />
-              </div>
-            )}
-            {formatReviewCount(lead.reviewCount) && (
-              <p className={`text-[11px] mt-0.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
-                {formatReviewCount(lead.reviewCount)} reviews
-                {lead.reviewSource === 'google' ? ' · Google' : lead.reviewSource === 'yelp' ? ' · Yelp' : ''}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className={`grid grid-cols-4 gap-1.5 shrink-0 ${compact ? 'mb-2' : 'mb-4 gap-2'}`}>
-        <ScoreBadge label="Fit" score={lead.fitScore} isDark={isDark} compact={compact} />
-        <ScoreBadge label="Budget" score={lead.budgetScore} isDark={isDark} compact={compact} />
-        <ScoreBadge label="Response" score={lead.responseScore} isDark={isDark} compact={compact} />
-        <ScoreBadge label="Priority" score={lead.priorityScore} highlight isDark={isDark} compact={compact} />
-      </div>
-
-      <div
-        className={`rounded-lg border shrink-0 ${compact ? 'p-2.5 mb-2' : 'p-4 mb-4'} ${
-          isDark ? 'bg-hookline-950/20 border-hookline-900/40 text-hookline-300' : 'bg-hookline-50 border-hookline-100 text-hookline-900'
-        }`}
-      >
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <h4 className={`text-[10px] font-bold uppercase tracking-wide ${isDark ? 'text-hookline-400' : 'text-hookline-600'}`}>
-            Why reach out
-          </h4>
-          {compact && lead.hook?.length > 140 && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setHookExpanded((prev) => !prev);
-              }}
-              className={`text-[10px] font-semibold ${isDark ? 'text-hookline-400 hover:text-hookline-300' : 'text-hookline-600 hover:text-hookline-700'}`}
-            >
-              {hookExpanded ? 'Less' : 'More'}
-            </button>
+  const titleRow = (
+    <div className={`flex items-start justify-between gap-3 shrink-0 ${compact ? 'mb-2' : 'mb-4'}`}>
+      <h3 className={`font-bold min-w-0 ${compact ? 'text-base' : 'text-lg'} ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        {lead.name}
+      </h3>
+      {(Number.isFinite(Number(lead.rating)) || formatReviewCount(lead.reviewCount)) && (
+        <div className={`text-right shrink-0 rounded-lg border px-2.5 py-1.5 ${
+          isDark ? 'bg-zinc-950/60 border-zinc-800' : 'bg-gray-50 border-gray-200'
+        }`}>
+          {Number.isFinite(Number(lead.rating)) && (
+            <div className="flex items-center justify-end gap-1.5">
+              <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {Number(lead.rating).toFixed(1)}
+              </span>
+              <StarRating rating={lead.rating} isDark={isDark} />
+            </div>
+          )}
+          {formatReviewCount(lead.reviewCount) && (
+            <p className={`text-[11px] mt-0.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+              {formatReviewCount(lead.reviewCount)} reviews
+              {lead.reviewSource === 'google' ? ' · Google' : lead.reviewSource === 'yelp' ? ' · Yelp' : ''}
+            </p>
           )}
         </div>
-        <p className={`leading-snug ${compact ? 'text-xs' : 'text-sm'} ${compact && !hookExpanded ? 'line-clamp-2' : ''}`}>{lead.hook}</p>
+      )}
+    </div>
+  );
+
+  const scoresRow = (
+    <div className={`grid grid-cols-4 gap-1.5 shrink-0 ${compact ? 'mb-2' : 'mb-4 gap-2'}`}>
+      <ScoreBadge label="Fit" score={lead.fitScore} isDark={isDark} compact={compact} />
+      <ScoreBadge label="Budget" score={lead.budgetScore} isDark={isDark} compact={compact} />
+      <ScoreBadge label="Response" score={lead.responseScore} isDark={isDark} compact={compact} />
+      <ScoreBadge label="Priority" score={lead.priorityScore} highlight isDark={isDark} compact={compact} />
+    </div>
+  );
+
+  const hookBlock = (
+    <div
+      className={`rounded-lg border shrink-0 ${compact ? 'p-2.5 mb-2' : 'p-4 mb-4'} ${
+        isDark ? 'bg-hookline-950/20 border-hookline-900/40 text-hookline-300' : 'bg-hookline-50 border-hookline-100 text-hookline-900'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <h4 className={`text-[10px] font-bold uppercase tracking-wide ${isDark ? 'text-hookline-400' : 'text-hookline-600'}`}>
+          Why reach out
+        </h4>
+        {compact && lead.hook?.length > 140 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setHookExpanded((prev) => !prev);
+            }}
+            className={`text-[10px] font-semibold ${isDark ? 'text-hookline-400 hover:text-hookline-300' : 'text-hookline-600 hover:text-hookline-700'}`}
+          >
+            {hookExpanded ? 'Less' : 'More'}
+          </button>
+        )}
       </div>
+      <p className={`leading-snug ${compact ? 'text-xs' : 'text-sm'} ${compact && !hookExpanded ? 'line-clamp-2' : ''}`}>{lead.hook}</p>
+    </div>
+  );
+
+  const headerBlock = (
+    <>
+      {titleRow}
+      {scoresRow}
+      {hookBlock}
     </>
   );
 
@@ -322,8 +332,8 @@ export default function LeadCard({
 
         {showEmail && emailTemplate && (
           <div
-            className={`rounded-xl space-y-2 border max-h-36 overflow-y-auto ${
-              compact ? 'p-3' : 'p-4 mb-4'
+            className={`rounded-xl space-y-2 border ${
+              compact ? 'p-3' : 'p-4 mb-4 max-h-36 overflow-y-auto'
             } ${
               isDark
                 ? 'bg-hookline-500/10 border-hookline-500/30'
@@ -406,11 +416,15 @@ export default function LeadCard({
     >
       {compact ? (
         <>
-          <div className="shrink-0">{headerBlock}</div>
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-1 px-1 space-y-2">
-            {bodyBlock}
+          <div className="shrink-0">
+            {titleRow}
+            {scoresRow}
           </div>
-          {footerBlock}
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain activity-log-scroll -mx-1 px-1 space-y-2">
+            {hookBlock}
+            {bodyBlock}
+            {footerBlock}
+          </div>
         </>
       ) : (
         <>

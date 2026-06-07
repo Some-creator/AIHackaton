@@ -203,7 +203,7 @@ export default function LeadGeneration({
   }, [visibleLeads, selectedLeadName, mapOverview]);
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <StepNavigation
         onBack={onBack}
         backLabel={backLabel}
@@ -212,32 +212,109 @@ export default function LeadGeneration({
         backDisabled={navDisabled}
         nextDisabled={navDisabled}
       />
-      <div className="mb-8 animate-rise">
-        <p className="eyebrow mb-2">Step 5 · Leads</p>
-        <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Leads</h2>
-        <p className={`mt-1.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
-          {streaming || leadFinishing
-            ? 'Generating and qualifying leads — results appear when complete'
-            : streamComplete
-              ? `${leads.length} qualified leads with contact info — sorted by priority (highest first)`
-              : 'Preparing lead generation...'}
-        </p>
-      </div>
 
       {(streaming || leadFinishing) && (
-        <div className="mb-8">
-          <ActivityLog
-            logs={leadLogs}
-            title="Lead hunt"
-            loading={streaming}
-            finishing={leadFinishing}
-          />
-        </div>
+        <>
+          <div className="mb-8 animate-rise">
+            <p className="eyebrow mb-2">Step 5 · Leads</p>
+            <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Leads</h2>
+            <p className={`mt-1.5 ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+              Generating and qualifying leads — results appear when complete
+            </p>
+          </div>
+          <div className="mb-8">
+            <ActivityLog
+              logs={leadLogs}
+              title="Lead hunt"
+              loading={streaming}
+              finishing={leadFinishing}
+            />
+          </div>
+        </>
       )}
 
       {!streaming && !leadFinishing && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={`relative h-[500px] rounded-2xl overflow-hidden border shadow-sm ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(380px,42%)_1fr] gap-6 lg:gap-8 items-stretch">
+        <div ref={listRef} className="flex flex-col min-h-0 order-1">
+          <div className="mb-4 animate-rise shrink-0">
+            <p className="eyebrow mb-2">Step 5 · Leads</p>
+            <h2 className={`font-section-title text-2xl sm:text-3xl ${isDark ? 'text-white' : 'text-gray-900'}`}>Your Leads</h2>
+            <p className={`mt-1.5 text-sm ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
+              {streamComplete
+                ? `${leads.length} qualified leads with contact info — sorted by priority (highest first)`
+                : 'Preparing lead generation...'}
+            </p>
+          </div>
+
+          {visibleLeads.length > 1 && (
+            <div className={`flex items-center justify-between gap-3 mb-3 shrink-0 rounded-xl border px-3 py-2 ${
+              isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'
+            }`}>
+              <button
+                type="button"
+                onClick={goToPreviousLead}
+                disabled={activeLeadIndex <= 0}
+                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition ${
+                  activeLeadIndex <= 0
+                    ? 'opacity-40 cursor-not-allowed'
+                    : isDark
+                      ? 'text-zinc-300 hover:bg-zinc-800'
+                      : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Previous
+              </button>
+              <div className="text-center min-w-0 flex-1">
+                <p className={`text-xs font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {activeLead?.name}
+                </p>
+                <p className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+                  Lead {activeLeadIndex + 1} of {visibleLeads.length}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={goToNextLead}
+                disabled={activeLeadIndex >= visibleLeads.length - 1}
+                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition ${
+                  activeLeadIndex >= visibleLeads.length - 1
+                    ? 'opacity-40 cursor-not-allowed'
+                    : isDark
+                      ? 'text-zinc-300 hover:bg-zinc-800'
+                      : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          <div className="flex-1 min-h-0 h-[560px] lg:h-[640px]">
+            {activeLead && (
+              <div className="h-full min-h-0">
+                <LeadCard
+                  lead={activeLead}
+                  business={business}
+                  analysis={analysis}
+                  marketGap={marketGap}
+                  onSkip={handleDismissLead}
+                  skipped={false}
+                  selected
+                  onSelect={() => selectLead(activeLead)}
+                  compact
+                />
+              </div>
+            )}
+
+            {!activeLead && (
+              <div className={`flex items-center justify-center h-full rounded-2xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800 text-zinc-400' : 'bg-white border-gray-200 text-gray-500'}`}>
+                <p className="text-sm">No leads to show.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className={`relative order-2 h-[420px] sm:h-[480px] lg:h-[640px] min-h-0 rounded-2xl overflow-hidden border shadow-sm ${isDark ? 'border-zinc-700' : 'border-gray-200'}`}>
           <button
             type="button"
             onClick={handleResetMap}
@@ -285,75 +362,6 @@ export default function LeadGeneration({
               );
             })}
           </MapContainer>
-        </div>
-
-        <div ref={listRef} className="flex flex-col h-[500px]">
-          {visibleLeads.length > 1 && (
-            <div className={`flex items-center justify-between gap-3 mb-3 shrink-0 rounded-xl border px-3 py-2 ${
-              isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'
-            }`}>
-              <button
-                type="button"
-                onClick={goToPreviousLead}
-                disabled={activeLeadIndex <= 0}
-                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition ${
-                  activeLeadIndex <= 0
-                    ? 'opacity-40 cursor-not-allowed'
-                    : isDark
-                      ? 'text-zinc-300 hover:bg-zinc-800'
-                      : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Previous
-              </button>
-              <div className="text-center min-w-0 flex-1">
-                <p className={`text-xs font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {activeLead?.name}
-                </p>
-                <p className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
-                  Lead {activeLeadIndex + 1} of {visibleLeads.length}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={goToNextLead}
-                disabled={activeLeadIndex >= visibleLeads.length - 1}
-                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition ${
-                  activeLeadIndex >= visibleLeads.length - 1
-                    ? 'opacity-40 cursor-not-allowed'
-                    : isDark
-                      ? 'text-zinc-300 hover:bg-zinc-800'
-                      : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Next
-              </button>
-            </div>
-          )}
-
-          <div className="flex-1 min-h-0">
-            {activeLead && (
-              <div className="h-full min-h-0">
-                <LeadCard
-                  lead={activeLead}
-                  business={business}
-                  analysis={analysis}
-                  marketGap={marketGap}
-                  onSkip={handleDismissLead}
-                  skipped={false}
-                  selected
-                  onSelect={() => selectLead(activeLead)}
-                  compact
-                />
-              </div>
-            )}
-
-            {!activeLead && (
-              <div className={`flex items-center justify-center h-full rounded-2xl border ${isDark ? 'bg-zinc-900/60 border-zinc-800 text-zinc-400' : 'bg-white border-gray-200 text-gray-500'}`}>
-                <p className="text-sm">No leads to show.</p>
-              </div>
-            )}
-          </div>
         </div>
       </div>
       )}
