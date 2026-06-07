@@ -126,6 +126,9 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
       </div>
 
       <div className={`rounded-2xl border p-6 mb-8 space-y-5 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
+        <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
+          <span className="text-red-500">*</span> Required fields
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <FieldLabel required isDark={isDark}>Business Name</FieldLabel>
@@ -206,7 +209,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         </div>
 
         <div>
-          <FieldLabel isDark={isDark}>Target Market</FieldLabel>
+          <FieldLabel isDark={isDark} hint="(optional)">Target Market</FieldLabel>
           <textarea
             value={profile.targetMarket}
             onChange={(e) => updateField('targetMarket', e.target.value)}
@@ -218,6 +221,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
 
         <ServiceTags
           label="Services"
+          optional
           items={profile.services}
           onChange={(services) => updateField('services', services)}
           placeholder="e.g. Mobile beverage catering"
@@ -228,10 +232,6 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
           socialScrapes={socialScrapes}
           onChange={(socialProfiles) => updateField('socialProfiles', socialProfiles)}
         />
-
-        <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
-          <span className="text-red-500">*</span> Required
-        </p>
       </div>
 
       {!hasAnalysis ? (

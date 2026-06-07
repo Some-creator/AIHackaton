@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function ServiceTags({ label, items, onChange, placeholder = 'Add item...' }) {
+export default function ServiceTags({ label, items, onChange, placeholder = 'Add item...', optional = false }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [input, setInput] = useState('');
@@ -26,7 +26,12 @@ export default function ServiceTags({ label, items, onChange, placeholder = 'Add
 
   return (
     <div>
-      <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>{label}</label>
+      <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
+        {label}
+        {optional && (
+          <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}> (optional)</span>
+        )}
+      </label>
       <div className={`mt-2 flex flex-wrap gap-2 min-h-[2.5rem] p-3 rounded-lg border transition-all duration-300 ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-gray-50 border-gray-300'}`}>
         {items.length === 0 && (
           <span className="text-sm text-gray-400 italic">No items yet — add one below</span>

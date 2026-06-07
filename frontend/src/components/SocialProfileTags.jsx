@@ -138,7 +138,10 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
 
   return (
     <div>
-      <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>Social Profiles</label>
+      <label className={`text-sm font-semibold ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
+        Social Profiles
+        <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}> (optional)</span>
+      </label>
       <p className={`text-xs mt-0.5 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>Hover a profile to preview scraped data</p>
 
       <div className={`mt-2 flex flex-wrap gap-2 min-h-[2.5rem] p-3 rounded-lg border transition-all duration-300 overflow-visible ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-gray-50 border-gray-300'}`}>
