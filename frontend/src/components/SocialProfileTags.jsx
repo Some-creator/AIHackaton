@@ -146,7 +146,7 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
 
       <div className={`mt-2 flex flex-wrap gap-2 min-h-[2.5rem] p-3 rounded-lg border transition-all duration-300 overflow-visible ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-gray-50 border-gray-300'}`}>
         {items.length === 0 && (
-          <span className="text-sm text-gray-400 italic">No profiles yet — add one below</span>
+          <span className={`text-sm italic ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>No profiles yet — add one below</span>
         )}
         {items.map((item, i) => {
           const scrape = findScrape(item, socialScrapes);

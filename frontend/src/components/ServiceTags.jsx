@@ -34,7 +34,7 @@ export default function ServiceTags({ label, items, onChange, placeholder = 'Add
       </label>
       <div className={`mt-2 flex flex-wrap gap-2 min-h-[2.5rem] p-3 rounded-lg border transition-all duration-300 ${isDark ? 'bg-zinc-950 border-zinc-800' : 'bg-gray-50 border-gray-300'}`}>
         {items.length === 0 && (
-          <span className="text-sm text-gray-400 italic">No items yet — add one below</span>
+          <span className={`text-sm italic ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>No items yet — add one below</span>
         )}
         {items.map((item, i) => (
           <span
