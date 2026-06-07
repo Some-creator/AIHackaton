@@ -20,7 +20,18 @@ function ScoreBadge({ label, score, highlight, isDark, compact }) {
   );
 }
 
-function ContactItem({ label, children, isDark }) {
+function ContactItem({ label, children, isDark, compact }) {
+  if (compact) {
+    return (
+      <div className={`flex gap-2 min-w-0 py-1 border-b last:border-b-0 ${isDark ? 'border-zinc-800' : 'border-gray-200'}`}>
+        <span className={`text-[10px] font-bold uppercase tracking-wide shrink-0 w-14 pt-0.5 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+          {label}
+        </span>
+        <div className={`text-xs leading-snug min-w-0 ${isDark ? 'text-zinc-200' : 'text-gray-800'}`}>{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-w-0">
       <div className={`text-[10px] font-bold uppercase tracking-wide mb-0.5 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
@@ -79,7 +90,7 @@ function LeadReviewExcerpt({ lead, isDark, compact }) {
   return (
     <div
       className={`rounded-lg border shrink-0 ${
-        compact ? 'p-3 mb-3' : 'p-4 mb-4'
+        compact ? 'p-2.5' : 'p-4 mb-4'
       } ${isDark ? 'bg-zinc-950/40 border-zinc-800' : 'bg-gray-50 border-gray-200'}`}
     >
       <p className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
@@ -196,30 +207,17 @@ export default function LeadCard({
     },
   ].filter(Boolean);
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={handleCardClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect?.();
-        }
-      }}
-      className={`rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col ${
-        compact ? 'h-full p-4' : 'p-6'
-      } ${
-        selected
-          ? isDark
-            ? 'bg-zinc-900 border-hookline-500 ring-2 ring-hookline-500/60 shadow-lg shadow-hookline-500/10'
-            : 'bg-white border-hookline-500 ring-2 ring-hookline-500/40 shadow-lg'
-          : isDark
-            ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md hover:shadow-md hover:border-zinc-700'
-            : 'bg-white border-gray-200 shadow-sm hover:shadow-md'
-      }`}
-    >
-      <div className={`flex items-start justify-between gap-3 shrink-0 ${compact ? 'mb-3' : 'mb-4'}`}>
+  const cardClass = selected
+    ? isDark
+      ? 'bg-zinc-900 border-2 border-hookline-500 shadow-lg shadow-hookline-500/10'
+      : 'bg-white border-2 border-hookline-500 shadow-lg'
+    : isDark
+      ? 'bg-zinc-900/60 border border-zinc-800 backdrop-blur-md hover:shadow-md hover:border-zinc-700'
+      : 'bg-white border border-gray-200 shadow-sm hover:shadow-md';
+
+  const headerBlock = (
+    <>
+      <div className={`flex items-start justify-between gap-3 shrink-0 ${compact ? 'mb-2' : 'mb-4'}`}>
         <h3 className={`font-bold min-w-0 ${compact ? 'text-base' : 'text-lg'} ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {lead.name}
         </h3>
@@ -245,7 +243,7 @@ export default function LeadCard({
         )}
       </div>
 
-      <div className={`grid grid-cols-4 gap-1.5 shrink-0 ${compact ? 'mb-3' : 'mb-4 gap-2'}`}>
+      <div className={`grid grid-cols-4 gap-1.5 shrink-0 ${compact ? 'mb-2' : 'mb-4 gap-2'}`}>
         <ScoreBadge label="Fit" score={lead.fitScore} isDark={isDark} compact={compact} />
         <ScoreBadge label="Budget" score={lead.budgetScore} isDark={isDark} compact={compact} />
         <ScoreBadge label="Response" score={lead.responseScore} isDark={isDark} compact={compact} />
@@ -253,7 +251,7 @@ export default function LeadCard({
       </div>
 
       <div
-        className={`rounded-lg border shrink-0 ${compact ? 'p-3 mb-3' : 'p-4 mb-4'} ${
+        className={`rounded-lg border shrink-0 ${compact ? 'p-2.5 mb-2' : 'p-4 mb-4'} ${
           isDark ? 'bg-hookline-950/20 border-hookline-900/40 text-hookline-300' : 'bg-hookline-50 border-hookline-100 text-hookline-900'
         }`}
       >
@@ -274,31 +272,38 @@ export default function LeadCard({
             </button>
           )}
         </div>
-        <p className={`text-sm leading-snug ${compact && !hookExpanded ? 'line-clamp-3' : ''}`}>{lead.hook}</p>
+        <p className={`leading-snug ${compact ? 'text-xs' : 'text-sm'} ${compact && !hookExpanded ? 'line-clamp-2' : ''}`}>{lead.hook}</p>
       </div>
+    </>
+  );
 
+  const bodyBlock = (
+    <>
       <LeadReviewExcerpt lead={lead} isDark={isDark} compact={compact} />
 
       {contactItems.length > 0 && (
         <div
-          className={`rounded-lg border shrink-0 ${compact ? 'p-3 mb-3' : 'p-4 mb-4'} ${
+          className={`rounded-lg border ${compact ? 'p-2.5' : 'p-4 mb-4'} ${
             isDark ? 'bg-zinc-950/40 border-zinc-800' : 'bg-gray-50 border-gray-200'
           }`}
         >
-          <h4 className={`text-[10px] font-bold uppercase tracking-wide mb-2 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+          <h4 className={`text-[10px] font-bold uppercase tracking-wide mb-1.5 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
             Contact information
           </h4>
-          <div className={`grid gap-3 ${compact ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+          <div className={compact ? 'space-y-0' : 'grid gap-3 grid-cols-1'}>
             {contactItems.map((item) => (
-              <ContactItem key={item.label} label={item.label} isDark={isDark}>
+              <ContactItem key={item.label} label={item.label} isDark={isDark} compact={compact}>
                 {item.node}
               </ContactItem>
             ))}
           </div>
         </div>
       )}
+    </>
+  );
 
-      <div className={`mt-auto shrink-0 flex flex-col gap-2 ${compact ? '' : ''}`}>
+  const footerBlock = (
+    <div className={`shrink-0 flex flex-col gap-2 ${compact ? `pt-2 border-t ${isDark ? 'border-zinc-800' : 'border-gray-200'}` : ''}`}>
         <button
           type="button"
           onClick={handleGenerateEmail}
@@ -382,6 +387,38 @@ export default function LeadCard({
           </button>
         </div>
       </div>
+  );
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect?.();
+        }
+      }}
+      className={`rounded-2xl transition-all duration-300 cursor-pointer flex flex-col overflow-hidden ${
+        compact ? 'h-full min-h-0 p-4' : 'p-6'
+      } ${cardClass}`}
+    >
+      {compact ? (
+        <>
+          <div className="shrink-0">{headerBlock}</div>
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-1 px-1 space-y-2">
+            {bodyBlock}
+          </div>
+          {footerBlock}
+        </>
+      ) : (
+        <>
+          {headerBlock}
+          {bodyBlock}
+          {footerBlock}
+        </>
+      )}
     </div>
   );
 }

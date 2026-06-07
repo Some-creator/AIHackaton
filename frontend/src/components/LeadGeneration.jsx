@@ -316,17 +316,19 @@ export default function LeadGeneration({
             )}
 
             {activeLead && (
-              <LeadCard
-                lead={activeLead}
-                business={business}
-                analysis={analysis}
-                marketGap={marketGap}
-                onSkip={onSkip}
-                skipped={false}
-                selected
-                onSelect={() => selectLead(activeLead)}
-                compact
-              />
+              <div className="h-full min-h-0">
+                <LeadCard
+                  lead={activeLead}
+                  business={business}
+                  analysis={analysis}
+                  marketGap={marketGap}
+                  onSkip={onSkip}
+                  skipped={false}
+                  selected
+                  onSelect={() => selectLead(activeLead)}
+                  compact
+                />
+              </div>
             )}
 
             {!activeLead && !streaming && (
