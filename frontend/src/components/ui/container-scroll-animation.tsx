@@ -18,7 +18,7 @@ export function ContainerScroll({
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ['start start', 'end end'],
+    offset: ['start end', 'center center'],
   });
   const [isMobile, setIsMobile] = useState(false);
   const isDark = theme === 'dark';
@@ -31,54 +31,36 @@ export function ContainerScroll({
   }, []);
 
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 24,
-    mass: 0.3,
+    stiffness: 90,
+    damping: 26,
+    mass: 0.35,
     restDelta: 0.001,
   });
 
-  const headerY = useTransform(smoothProgress, [0, 0.4, 1], [20, 0, -20]);
-  const headerOpacity = useTransform(smoothProgress, [0, 0.12, 0.88, 1], [0.85, 1, 1, 0.9]);
+  const headerY = useTransform(smoothProgress, [0, 1], [24, 0]);
+  const headerOpacity = useTransform(smoothProgress, [0, 0.5, 1], [0.4, 0.85, 1]);
 
   const cardY = useTransform(
     smoothProgress,
-    [0, 0.35, 0.55, 1],
-    isMobile ? [36, 10, 0, -16] : [56, 14, 0, -20],
+    [0, 1],
+    isMobile ? [48, 0] : [64, 0],
   );
-  const cardScale = useTransform(
-    smoothProgress,
-    [0, 0.35, 0.55, 1],
-    isMobile ? [0.92, 0.97, 1, 0.98] : [0.88, 0.95, 1, 0.97],
-  );
-  const cardRotate = useTransform(
-    smoothProgress,
-    [0, 0.25, 0.45, 0.65, 1],
-    isMobile ? [12, 6, 0, 0, -4] : [20, 10, 0, 0, -6],
-  );
-  const cardOpacity = useTransform(smoothProgress, [0, 0.1, 0.9, 1], [0.88, 1, 1, 0.92]);
+  const cardOpacity = useTransform(smoothProgress, [0, 0.35, 1], [0, 0.9, 1]);
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        'relative h-[105vh] sm:h-[112vh] md:h-[118vh]',
-        isDark ? 'bg-black' : 'bg-[#f5f5f7]',
+        'relative py-16 md:py-24',
+        isDark ? 'bg-background' : 'bg-[#f5f5f7]',
         className,
       )}
     >
-      <div className="sticky top-16 md:top-20 flex flex-col items-center justify-center px-4 py-6 md:py-8 min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
-        <div className="w-full max-w-5xl mx-auto flex flex-col gap-8 md:gap-10">
-          <ScrollHeader translate={headerY} opacity={headerOpacity} titleComponent={titleComponent} />
-          <ScrollCard
-            translate={cardY}
-            scale={cardScale}
-            rotate={cardRotate}
-            opacity={cardOpacity}
-            theme={theme}
-          >
-            {children}
-          </ScrollCard>
-        </div>
+      <div className="mx-auto flex max-w-5xl flex-col items-center gap-8 px-4 md:gap-10 md:px-6">
+        <ScrollHeader translate={headerY} opacity={headerOpacity} titleComponent={titleComponent} />
+        <ScrollCard translate={cardY} opacity={cardOpacity} theme={theme}>
+          {children}
+        </ScrollCard>
       </div>
     </div>
   );
@@ -96,7 +78,7 @@ function ScrollHeader({
   return (
     <motion.div
       style={{ y: translate, opacity }}
-      className="relative z-20 text-center px-2 will-change-transform"
+      className="relative z-20 w-full text-center px-2 will-change-transform"
     >
       {titleComponent}
     </motion.div>
@@ -105,15 +87,11 @@ function ScrollHeader({
 
 function ScrollCard({
   translate,
-  scale,
-  rotate,
   opacity,
   theme,
   children,
 }: {
   translate: MotionValue<number>;
-  scale: MotionValue<number>;
-  rotate: MotionValue<number>;
   opacity: MotionValue<number>;
   theme?: 'dark' | 'light';
   children: ReactNode;
@@ -121,35 +99,17 @@ function ScrollCard({
   const isDark = theme === 'dark';
 
   return (
-    <div
-      className="relative z-10 w-full"
-      style={{ perspective: 1400, perspectiveOrigin: '50% 100%' }}
+    <motion.div
+      style={{ y: translate, opacity }}
+      className={cn(
+        'relative z-10 mx-auto w-full max-w-4xl overflow-hidden rounded-2xl border shadow-lg will-change-transform',
+        'h-[22rem] sm:h-[26rem] md:h-[30rem]',
+        isDark
+          ? 'border-zinc-800 bg-zinc-900/80 shadow-black/40'
+          : 'border-gray-200 bg-white shadow-gray-300/30',
+      )}
     >
-      <motion.div
-        style={{
-          y: translate,
-          scale,
-          rotateX: rotate,
-          opacity,
-          transformPerspective: 1400,
-          transformOrigin: 'center bottom',
-        }}
-        className={cn(
-          'mx-auto w-full h-[18rem] sm:h-[22rem] md:h-[26rem] border-2 p-2 md:p-3 rounded-3xl shadow-2xl will-change-transform',
-          isDark
-            ? 'border-zinc-700 bg-zinc-900 shadow-black/50'
-            : 'border-gray-200 bg-white shadow-gray-400/40',
-        )}
-      >
-        <div
-          className={cn(
-            'h-full w-full overflow-hidden rounded-2xl',
-            isDark ? 'bg-zinc-950' : 'bg-gray-50',
-          )}
-        >
-          {children}
-        </div>
-      </motion.div>
-    </div>
+      {children}
+    </motion.div>
   );
 }

@@ -65,34 +65,38 @@ const createDotIcon = (lead, selected = false) => {
   });
 };
 
-function MapController({ leads, selectedLeadName, resetToken }) {
+function MapController({ leads, selectedLeadName, mapOverview }) {
   const map = useMap();
 
   const fitAllLeads = useCallback(() => {
     if (leads.length === 0) return;
+    if (leads.length === 1) {
+      const lat = parseFloat(leads[0].lat);
+      const lng = parseFloat(leads[0].lng);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        map.setView([lat, lng], 13, { animate: true });
+      }
+      return;
+    }
     const bounds = L.latLngBounds(leads.map((l) => [parseFloat(l.lat), parseFloat(l.lng)]));
-    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+    map.fitBounds(bounds, { padding: [72, 72], maxZoom: 14, animate: true });
   }, [leads, map]);
 
   useEffect(() => {
-    if (selectedLeadName) return;
-    fitAllLeads();
-  }, [leads.length, fitAllLeads, selectedLeadName]);
-
-  useEffect(() => {
-    if (resetToken === 0) return;
-    fitAllLeads();
-  }, [resetToken, fitAllLeads]);
-
-  useEffect(() => {
-    if (!selectedLeadName) return;
+    if (mapOverview || !selectedLeadName) {
+      fitAllLeads();
+      return;
+    }
     const lead = leads.find((l) => l.name === selectedLeadName);
-    if (!lead) return;
+    if (!lead) {
+      fitAllLeads();
+      return;
+    }
     const lat = parseFloat(lead.lat);
     const lng = parseFloat(lead.lng);
     if (isNaN(lat) || isNaN(lng)) return;
     map.flyTo([lat, lng], 14, { duration: 0.6 });
-  }, [selectedLeadName, leads, map]);
+  }, [mapOverview, selectedLeadName, leads, map, fitAllLeads]);
 
   return null;
 }
@@ -121,7 +125,7 @@ export default function LeadGeneration({
   const listRef = useRef(null);
   const markerRefs = useRef({});
   const [selectedLeadName, setSelectedLeadName] = useState(null);
-  const [resetToken, setResetToken] = useState(0);
+  const [mapOverview, setMapOverview] = useState(true);
 
   useEffect(() => {
     if (listRef.current && leads.length > 0) {
@@ -149,6 +153,7 @@ export default function LeadGeneration({
   const activeLead = activeLeadIndex >= 0 ? visibleLeads[activeLeadIndex] : null;
 
   const selectLead = useCallback((lead) => {
+    setMapOverview(false);
     setSelectedLeadName(lead.name);
   }, []);
 
@@ -159,7 +164,10 @@ export default function LeadGeneration({
 
   const goToLead = useCallback((index) => {
     const lead = visibleLeads[index];
-    if (lead) setSelectedLeadName(lead.name);
+    if (lead) {
+      setMapOverview(false);
+      setSelectedLeadName(lead.name);
+    }
   }, [visibleLeads]);
 
   const goToPreviousLead = () => {
@@ -171,8 +179,7 @@ export default function LeadGeneration({
   };
 
   const handleResetMap = () => {
-    setSelectedLeadName(null);
-    setResetToken((t) => t + 1);
+    setMapOverview(true);
     Object.values(markerRefs.current).forEach((marker) => marker.closePopup?.());
   };
 
@@ -187,12 +194,14 @@ export default function LeadGeneration({
   useEffect(() => {
     if (!visibleLeads.length) {
       setSelectedLeadName(null);
+      setMapOverview(true);
       return;
     }
+    if (mapOverview) return;
     if (!selectedLeadName || !visibleLeads.some((lead) => lead.name === selectedLeadName)) {
       setSelectedLeadName(visibleLeads[0].name);
     }
-  }, [visibleLeads, selectedLeadName]);
+  }, [visibleLeads, selectedLeadName, mapOverview]);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -220,7 +229,7 @@ export default function LeadGeneration({
         <div className="mb-8">
           <ActivityLog
             logs={leadLogs}
-            title="Agent 5 — Generating leads"
+            title="Generating leads"
             loading={streaming}
             finishing={leadFinishing}
           />
@@ -246,7 +255,7 @@ export default function LeadGeneration({
               attribution="Map data &copy; Google"
               url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
             />
-            <MapController leads={mapLeads} selectedLeadName={selectedLeadName} resetToken={resetToken} />
+            <MapController leads={mapLeads} selectedLeadName={selectedLeadName} mapOverview={mapOverview} />
             {mapLeads.map((lead) => {
               const isSelected = selectedLeadName === lead.name;
               return (

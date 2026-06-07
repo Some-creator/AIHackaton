@@ -13,6 +13,13 @@ import { sendEmail } from './sendgrid.js';
 import { createCompany, updateCompany, getCompany, getCompanyForUser, listCompaniesForUser, initFirebase, getFirebaseStatus } from './firebase.js';
 import { optionalAuth, requireAuth } from './auth.js';
 import {
+  FREE_SCAN_COUNT,
+  SCAN_PACKS,
+  getOrCreateUserCredits,
+  purchaseScanPack,
+  consumeScan,
+} from './credits.js';
+import {
   hasAnthropic,
   hasGooglePlaces,
   hasFirecrawl,
@@ -127,17 +134,33 @@ app.post('/api/ingest', async (req, res) => {
   }
 });
 
-app.post('/api/ingest/session', (req, res) => {
+app.post('/api/ingest/session', async (req, res) => {
   try {
     const { url, socialProfiles = [] } = req.body;
     if (!url) return res.status(400).json({ error: 'Website URL is required' });
+
+    let scansRemaining = null;
+    if (req.user?.uid) {
+      const spent = await consumeScan(req.user.uid);
+      if (!spent.ok) {
+        return res.status(402).json({
+          error: spent.error,
+          scansRemaining: spent.scansRemaining ?? 0,
+          code: 'NO_SCANS',
+        });
+      }
+      scansRemaining = spent.scansRemaining;
+    }
 
     const sessionId = `ingest-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     ingestSessions.set(sessionId, { url, socialProfiles, ...ownerFields(req) });
 
     setTimeout(() => ingestSessions.delete(sessionId), 10 * 60 * 1000);
 
-    res.json({ sessionId });
+    res.json({
+      sessionId,
+      ...(scansRemaining !== null ? { scansRemaining } : {}),
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -152,7 +175,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
   }
 
   const stopHeartbeat = openSseStream(req, res);
-  safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Agent connected — preparing analysis...' })}\n\n`);
+  safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Preparing analysis...' })}\n\n`);
 
   let companyId = null;
   const sessionOwner = {
@@ -515,6 +538,39 @@ app.get('/api/companies/:companyId', requireAuth, async (req, res) => {
     const company = await getCompanyForUser(req.params.companyId, req.user.uid);
     if (!company) return res.status(404).json({ error: 'Company not found' });
     res.json(company);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/credits', requireAuth, async (req, res) => {
+  try {
+    const credits = await getOrCreateUserCredits(req.user.uid, req.user.email);
+    res.json({
+      ...credits,
+      freeScanCount: FREE_SCAN_COUNT,
+      packs: SCAN_PACKS,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/credits/purchase', requireAuth, async (req, res) => {
+  try {
+    const { packId } = req.body;
+    if (!packId) return res.status(400).json({ error: 'packId is required' });
+
+    const result = await purchaseScanPack(req.user.uid, packId, req.user.email);
+    if (!result.ok) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    res.json({
+      ...result,
+      demo: true,
+      message: 'Scans added to your account. Connect Stripe for live payments.',
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

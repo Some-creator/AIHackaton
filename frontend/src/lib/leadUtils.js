@@ -1,13 +1,13 @@
-export const MIN_LEAD_RATING = 5;
+export const MIN_PRIORITY_SCORE = 5;
 
-export function meetsRatingThreshold(lead) {
-  const rating = Number(lead?.rating);
-  if (!Number.isFinite(rating)) return true;
-  return rating >= MIN_LEAD_RATING;
+export function meetsPriorityThreshold(lead) {
+  const priority = Number(lead?.priorityScore);
+  if (!Number.isFinite(priority)) return true;
+  return priority >= MIN_PRIORITY_SCORE;
 }
 
 export function sortLeadsByPriority(leads) {
   return [...leads]
-    .filter(meetsRatingThreshold)
+    .filter(meetsPriorityThreshold)
     .sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0));
 }

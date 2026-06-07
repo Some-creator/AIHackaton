@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function ActivityLog({ logs, title = 'Agent activity', loading = true, finishing = false }) {
+export default function ActivityLog({ logs, title = 'In progress', loading = true, finishing = false }) {
   const endRef = useRef(null);
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -20,7 +20,7 @@ export default function ActivityLog({ logs, title = 'Agent activity', loading = 
   }, [logs.length]);
 
   const isActive = loading && !finishing;
-  const displayLogs = logs.length > 0 ? logs : (loading ? ['Connecting to agent...'] : []);
+  const displayLogs = logs.length > 0 ? logs : (loading ? ['Getting started...'] : []);
 
   if (!displayLogs.length) return null;
   const logProgress = logs.length > 0

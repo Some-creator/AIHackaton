@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 const navLinks = [
   { name: 'How it works', href: '#how-it-works' },
   { name: 'Features', href: '#features' },
+  { name: 'Pricing', href: '#pricing', route: true },
 ];
 
 function getInitial(user?: HeaderUser | null) {
@@ -28,6 +29,8 @@ type HeaderProps = {
   onGetStarted?: () => void;
   onDashboard?: () => void;
   onSignOut?: () => void;
+  onNavSection?: (sectionId: string) => void;
+  onPricing?: () => void;
   user?: HeaderUser | null;
   showAuthButtons?: boolean;
   showGetStarted?: boolean;
@@ -40,6 +43,8 @@ export function Header({
   onGetStarted,
   onDashboard,
   onSignOut,
+  onNavSection,
+  onPricing,
   user,
   showAuthButtons = false,
   showGetStarted = false,
@@ -47,6 +52,22 @@ export function Header({
 }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const showHomeNav = !centerContent;
+
+  const handleNavClick = (item: (typeof navLinks)[number]) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    if (item.route) {
+      onPricing?.();
+      setIsOpen(false);
+      return;
+    }
+    const sectionId = item.href.replace(/^#/, '');
+    if (onNavSection) {
+      onNavSection(sectionId);
+    } else {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setIsOpen(false);
+  };
 
   return (
     <header className="fixed top-0 left-0 z-50 w-full border-b border-border/60 bg-white/90 shadow-sm backdrop-blur-xl dark:bg-background/70 dark:supports-[backdrop-filter]:bg-background/55 supports-[backdrop-filter]:bg-white/80">
@@ -72,6 +93,7 @@ export function Header({
                 <a
                   key={item.name}
                   href={item.href}
+                  onClick={handleNavClick(item)}
                   className="group relative rounded-full px-4 py-2 font-body text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {item.name}
@@ -143,8 +165,8 @@ export function Header({
                       <a
                         key={item.name}
                         href={item.href}
+                        onClick={handleNavClick(item)}
                         className="rounded-lg px-3 py-3 font-body text-base font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
-                        onClick={() => setIsOpen(false)}
                       >
                         {item.name}
                       </a>

@@ -28,25 +28,28 @@
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   }
 
+  /* GREY DARK THEME (revertible): lifted charcoal instead of pure black.
+     Original pure-black values are kept in the trailing comments — to revert,
+     restore each variable to the commented value. */
   .dark {
-    --background: 0 0% 0%;
+    --background: 240 6% 9%;            /* was 0 0% 0% */
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 240 6% 12%;                 /* was 240 10% 3.9% */
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 240 6% 12%;              /* was 240 10% 3.9% */
     --popover-foreground: 0 0% 98%;
     --primary: 252 88% 68%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 240 5% 17%;            /* was 240 3.7% 15.9% */
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
+    --muted: 240 5% 17%;                /* was 240 3.7% 15.9% */
     --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --accent: 240 5% 17%;               /* was 240 3.7% 15.9% */
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
+    --border: 240 5% 18%;               /* was 240 3.7% 15.9% */
+    --input: 240 5% 18%;                /* was 240 3.7% 15.9% */
     --ring: 252 88% 68%;
   }
 
@@ -161,7 +164,8 @@
   }
 
   .dark .app-atmosphere {
-    background-color: #000000;
+    /* GREY DARK THEME (revertible): tracks --background (charcoal). Was #000000. */
+    background-color: hsl(var(--background));
     background-image:
       radial-gradient(64rem 44rem at 10% -10%, rgba(79, 110, 247, 0.16), transparent 60%),
       radial-gradient(52rem 40rem at 100% 0%, rgba(125, 144, 250, 0.10), transparent 55%);
@@ -478,9 +482,11 @@
 }
 
 .dark {
-  --terminal-bg: 240 10% 3.9%;
-  --terminal-header-bg: 240 6% 10%;
-  --terminal-border: 240 3.7% 15.9%;
+  /* GREY DARK THEME (revertible): terminal surfaces lifted to match cards.
+     Originals: bg 240 10% 3.9%, header 240 6% 10%, border 240 3.7% 15.9%. */
+  --terminal-bg: 240 6% 12%;
+  --terminal-header-bg: 240 6% 15%;
+  --terminal-border: 240 5% 18%;
   --terminal-title: 240 5% 64.9%;
   --terminal-text: 240 5% 72%;
   --terminal-text-muted: 240 4% 56%;

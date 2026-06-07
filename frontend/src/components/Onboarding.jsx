@@ -137,7 +137,7 @@ export default function Onboarding({ onSubmit, loading, ingestFinishing = false,
             {(loading || ingestFinishing) && (
               <ActivityLog
                 logs={logs}
-                title="Agent 1 — Reading your website"
+                title="Reading your website"
                 loading={loading}
                 finishing={ingestFinishing}
               />

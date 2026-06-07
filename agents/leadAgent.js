@@ -7,12 +7,12 @@ import { parseClaudeJson } from '../backend/parseJson.js';
 
 const MAX_LEADS = 8;
 const MAX_CANDIDATES = 24;
-const MIN_LEAD_RATING = 5;
+const MIN_PRIORITY_SCORE = 5;
 
-function meetsRatingThreshold(lead) {
-  const rating = Number(lead?.rating);
-  if (!Number.isFinite(rating)) return true;
-  return rating >= MIN_LEAD_RATING;
+function meetsPriorityThreshold(lead) {
+  const priority = Number(lead?.priorityScore);
+  if (!Number.isFinite(priority)) return true;
+  return priority >= MIN_PRIORITY_SCORE;
 }
 
 const FRANCHISE_INDICATORS = [
@@ -471,8 +471,8 @@ export async function* streamLeads(context) {
         continue;
       }
 
-      if (!meetsRatingThreshold(lead)) {
-        yield { type: 'log', message: `Skipped: ${name} (rating ${Number(lead.rating).toFixed(1)} below ${MIN_LEAD_RATING}.0)` };
+      if (!meetsPriorityThreshold(lead)) {
+        yield { type: 'log', message: `Skipped: ${name} (priority ${Number(lead.priorityScore).toFixed(1)} below ${MIN_PRIORITY_SCORE}.0)` };
         continue;
       }
 

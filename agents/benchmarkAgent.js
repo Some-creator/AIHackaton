@@ -643,7 +643,7 @@ export async function* streamBenchmark(context) {
 
   yield { type: 'log', message: 'Starting competitor benchmark...' };
   await delay(300);
-  yield { type: 'log', message: `Using Agent 2 analysis (${analysis.strengths?.length || 0} strengths, ${analysis.missing?.length || 0} gaps identified)` };
+  yield { type: 'log', message: `Using business analysis (${analysis.strengths?.length || 0} strengths, ${analysis.missing?.length || 0} gaps identified)` };
 
   yield { type: 'log', message: 'AI is determining what competitors to search for...' };
   const searchPlan = await planCompetitorSearch(business, analysis);

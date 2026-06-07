@@ -8,15 +8,17 @@ import CompetitorBenchmark from './components/CompetitorBenchmark';
 import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
 import Dashboard from './components/Dashboard';
+import PricingPage from './components/PricingPage';
 import AmbientBackground from './components/ui/AmbientBackground';
 import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
+import { useCredits } from './context/CreditsContext';
 import * as api from './api';
 import { sortLeadsByPriority } from './lib/leadUtils';
 import { appendMockHistory, buildMockHistoryEntry, getMockCompany } from './lib/mockHistory';
 
-const STEPS = ['home', 'auth', 'dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
+const STEPS = ['home', 'auth', 'pricing', 'dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
 
 const stepLabels = {
   onboarding: 'Start',
@@ -54,13 +56,26 @@ const NEXT_LABELS = {
 
 const FLOW_STEPS = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
 
+const HOME_SECTIONS = new Set(['how-it-works', 'features']);
+
+function scrollToHomeSection(sectionId) {
+  const el = document.getElementById(sectionId);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
 export default function App() {
   const { theme } = useTheme();
   const { user, loading: authLoading, logout } = useAuth();
+  const { scansRemaining, applyLocalScanSpend, refreshCredits, purchasePack } = useCredits();
   const isDark = theme === 'dark';
   const [step, setStep] = useState('home');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [authIntent, setAuthIntent] = useState(null);
+  const [pendingPurchasePackId, setPendingPurchasePackId] = useState(null);
+  const [purchaseNotice, setPurchaseNotice] = useState(null);
   const [context, setContext] = useState({});
   const [leads, setLeads] = useState([]);
   const [streaming, setStreaming] = useState(false);
@@ -76,6 +91,84 @@ export default function App() {
   const [gapFinishing, setGapFinishing] = useState(false);
   const [leadLogs, setLeadLogs] = useState([]);
   const [leadFinishing, setLeadFinishing] = useState(false);
+  const [pendingHomeSection, setPendingHomeSection] = useState(null);
+
+  const handleHomeSectionNav = useCallback((sectionId) => {
+    if (!HOME_SECTIONS.has(sectionId)) return;
+
+    if (step === 'home') {
+      scrollToHomeSection(sectionId);
+      return;
+    }
+
+    setPendingHomeSection(sectionId);
+    setStep('home');
+  }, [step]);
+
+  useEffect(() => {
+    if (!pendingHomeSection || step !== 'home') return undefined;
+
+    const sectionId = pendingHomeSection;
+    const timer = window.setTimeout(() => {
+      scrollToHomeSection(sectionId);
+      setPendingHomeSection(null);
+    }, 50);
+
+    return () => window.clearTimeout(timer);
+  }, [pendingHomeSection, step]);
+
+  const handleLogoClick = useCallback(() => {
+    setPendingHomeSection(null);
+
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    if (step === 'home') {
+      scrollToTop();
+      return;
+    }
+
+    setStep('home');
+    window.setTimeout(scrollToTop, 50);
+  }, [step]);
+
+  const handleOpenPricing = useCallback(() => {
+    setError(null);
+    setStep('pricing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleSignInForPricing = useCallback((packId) => {
+    if (packId) {
+      setAuthIntent({ type: 'purchase', packId });
+    } else {
+      setAuthIntent({ type: 'pricing' });
+    }
+    setStep('auth');
+  }, []);
+
+  useEffect(() => {
+    if (step !== 'pricing' || !pendingPurchasePackId || !user) return undefined;
+
+    const packId = pendingPurchasePackId;
+    setPendingPurchasePackId(null);
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await purchasePack(packId);
+        if (!cancelled) {
+          setPurchaseNotice(`${result.scansAdded} scan${result.scansAdded === 1 ? '' : 's'} added — you're ready to go.`);
+          await refreshCredits();
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Purchase failed');
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [step, pendingPurchasePackId, user, purchasePack, refreshCredits]);
 
   const reportError = useCallback(async (err) => {
     const raw = err?.message || 'Something went wrong.';
@@ -92,7 +185,7 @@ export default function App() {
       if (!s.firecrawl) missing.push('Firecrawl');
       if (missing.length) {
         setError(
-          `The server is missing API keys (${missing.join(', ')}), so the AI agents can't run. ` +
+          `The server is missing API keys (${missing.join(', ')}), so analysis can't run. ` +
           `Add them to your hosting environment variables (e.g. Railway → Variables) and redeploy.`
         );
       } else {
@@ -179,19 +272,41 @@ export default function App() {
 
   const handleNewAnalysis = useCallback(() => {
     setError(null);
+    if (!user) {
+      setAuthIntent({ type: 'scan' });
+      setStep('auth');
+      return;
+    }
+    if (scansRemaining !== null && scansRemaining < 1) {
+      setStep('pricing');
+      return;
+    }
     setContext({});
     setLeads([]);
     setStreaming(false);
     setStreamComplete(false);
     setStep('onboarding');
-  }, []);
+  }, [user, scansRemaining]);
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
     setError(null);
     setIngestLogs([]);
     try {
-      const { sessionId } = await api.createIngestSession(url, socialProfiles);
+      if (user && !user.uid && scansRemaining !== null && scansRemaining < 1) {
+        setStep('pricing');
+        setError('You are out of scans — pick a pack on Pricing to continue.');
+        return;
+      }
+
+      const { sessionId, scansRemaining: remaining } = await api.createIngestSession(url, socialProfiles);
+      if (typeof remaining === 'number') {
+        applyLocalScanSpend(remaining);
+      } else if (user && !user.uid) {
+        applyLocalScanSpend();
+      } else {
+        await refreshCredits();
+      }
 
       const INGEST_TIMEOUT_MS = 120000;
       const ingestResult = await new Promise((resolve, reject) => {
@@ -238,7 +353,12 @@ export default function App() {
       });
       setStep('analysis');
     } catch (err) {
-      reportError(err);
+      if (err.code === 'NO_SCANS') {
+        setStep('pricing');
+        setError('You are out of scans — pick a pack on Pricing to continue.');
+      } else {
+        reportError(err);
+      }
     } finally {
       setIngestFinishing(false);
       setLoading(false);
@@ -422,16 +542,31 @@ export default function App() {
   }, []);
 
   const requireAuth = useCallback(() => {
-    if (user) {
-      setStep('onboarding');
-    } else {
+    if (!user) {
+      setAuthIntent({ type: 'scan' });
       setStep('auth');
+      return;
     }
-  }, [user]);
+    if (scansRemaining !== null && scansRemaining < 1) {
+      setStep('pricing');
+      return;
+    }
+    setStep('onboarding');
+  }, [user, scansRemaining]);
 
   const handleAuthSuccess = useCallback(() => {
-    setStep('dashboard');
-  }, []);
+    if (authIntent?.type === 'purchase' && authIntent.packId) {
+      setPendingPurchasePackId(authIntent.packId);
+      setStep('pricing');
+    } else if (authIntent?.type === 'scan') {
+      setStep('onboarding');
+    } else if (authIntent?.type === 'pricing') {
+      setStep('pricing');
+    } else {
+      setStep('dashboard');
+    }
+    setAuthIntent(null);
+  }, [authIntent]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -519,9 +654,24 @@ export default function App() {
       setStep('auth');
     }
   }, [authLoading, user, step]);
-const currentStepIndex = STEPS.indexOf(step);
 
-  const isHomeOrAuth = step === 'home' || step === 'auth';
+  useEffect(() => {
+    const scrollTopSteps = new Set([
+      'dashboard',
+      'onboarding',
+      'analysis',
+      'competitors',
+      'gap',
+      'leads',
+      'pricing',
+    ]);
+    if (!scrollTopSteps.has(step)) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [step]);
+
+  const currentStepIndex = STEPS.indexOf(step);
+
+  const isHomeOrAuth = step === 'home' || step === 'auth' || step === 'pricing';
 
   const stepNav =
     step !== 'home' && step !== 'auth' && step !== 'dashboard' && step !== 'onboarding' ? (
@@ -585,16 +735,18 @@ const currentStepIndex = STEPS.indexOf(step);
     ) : null;
 
   return (
-    <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isHomeOrAuth ? (isDark ? 'bg-black' : 'bg-[#f5f5f7]') : 'app-atmosphere'}`}>
+    <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isHomeOrAuth ? (isDark ? 'bg-background' : 'bg-[#f5f5f7]') : 'app-atmosphere'}`}>
       <Header
-        onLogoClick={() => setStep('home')}
+        onLogoClick={handleLogoClick}
         onSignIn={() => setStep('auth')}
         onGetStarted={requireAuth}
         onDashboard={handleOpenDashboard}
         onSignOut={handleLogout}
+        onNavSection={handleHomeSectionNav}
+        onPricing={handleOpenPricing}
         user={user}
-        showAuthButtons={step === 'home' && !user}
-        showGetStarted={step === 'home' || step === 'auth'}
+        showAuthButtons={(step === 'home' || step === 'pricing') && !user}
+        showGetStarted={step === 'home' || step === 'auth' || step === 'pricing'}
         centerContent={stepNav}
       />
 
@@ -619,7 +771,7 @@ const currentStepIndex = STEPS.indexOf(step);
               </svg>
               <span className={`text-sm font-bold ${
                 isDark ? 'text-red-400' : 'text-red-700'
-              }`}>Agent failed — no data loaded</span>
+              }`}>Analysis failed — no data loaded</span>
               <button
                 onClick={() => setError(null)}
                 className={`ml-auto text-xs px-3 py-1 rounded-full border font-semibold transition ${
@@ -638,7 +790,18 @@ const currentStepIndex = STEPS.indexOf(step);
         )}
 
         {(step === 'home' || step === 'auth') && (
-          <HomePage onGetStarted={requireAuth} />
+          <HomePage onGetStarted={requireAuth} onScrollToSection={handleHomeSectionNav} />
+        )}
+
+        {step === 'pricing' && (
+          <PricingPage
+            user={user}
+            onSignIn={handleSignInForPricing}
+            onGetStarted={requireAuth}
+            onBack={() => setStep('home')}
+            purchaseNotice={purchaseNotice}
+            onClearPurchaseNotice={() => setPurchaseNotice(null)}
+          />
         )}
 
         {step === 'auth' && (

@@ -99,7 +99,7 @@ function HeroGeometric({
     <div
       className={cn(
         'relative min-h-[78vh] md:min-h-[82vh] w-full flex items-center justify-center overflow-hidden transition-colors duration-500',
-        isDark ? 'bg-black' : 'bg-[#f5f5f7]',
+        isDark ? 'bg-background' : 'bg-[#f5f5f7]',
       )}
     >
       <div

@@ -13,7 +13,7 @@ export default function AmbientBackground() {
       <div className="absolute -bottom-40 left-1/4 h-[30rem] w-[30rem] rounded-full bg-indigo-500/[0.07] dark:bg-indigo-500/[0.10] blur-[130px] animate-aurora-c" />
 
       {/* Top fade so the grid melts cleanly into the header */}
-      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#f5f5f7] to-transparent dark:from-black" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#f5f5f7] to-transparent dark:from-background" />
     </div>
   );
 }

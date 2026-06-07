@@ -50,7 +50,7 @@ const features = [
   },
 ];
 
-export default function HomePage({ onGetStarted }) {
+export default function HomePage({ onGetStarted, onScrollToSection }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -74,6 +74,10 @@ export default function HomePage({ onGetStarted }) {
           </button>
           <a
             href="#how-it-works"
+            onClick={(e) => {
+              e.preventDefault();
+              onScrollToSection?.('how-it-works');
+            }}
             className={`w-full sm:w-auto px-8 py-3.5 font-button rounded-full transition text-center ${
               isDark
                 ? 'bg-white/10 hover:bg-white/15 text-white border border-white/25 backdrop-blur-sm'
@@ -84,7 +88,7 @@ export default function HomePage({ onGetStarted }) {
           </a>
         </div>
         <p className={`mt-6 text-sm font-body-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          No credit card required · Works in demo mode instantly
+          1 free scan when you sign up · No subscription · Pay only when you need more
         </p>
       </HeroGeometric>
 
@@ -99,7 +103,7 @@ export default function HomePage({ onGetStarted }) {
             >
               Your business intelligence,
               <span className={`block mt-1.5 ${isDark ? 'text-hookline-400' : 'text-hookline-500'}`}>
-                in one dashboard
+                from analysis to leads
               </span>
             </h2>
           </div>
@@ -110,8 +114,8 @@ export default function HomePage({ onGetStarted }) {
 
       <section
         id="how-it-works"
-        className={`scroll-mt-16 transition-colors duration-300 relative z-10 ${
-          isDark ? 'bg-black' : 'bg-white'
+        className={`scroll-mt-20 md:scroll-mt-24 transition-colors duration-300 relative z-10 ${
+          isDark ? 'bg-background' : 'bg-white'
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 md:py-16">
@@ -160,8 +164,8 @@ export default function HomePage({ onGetStarted }) {
 
       <section
         id="features"
-        className={`transition-colors duration-300 ${
-          isDark ? 'bg-black' : 'bg-[#f5f5f7]'
+        className={`scroll-mt-20 md:scroll-mt-24 transition-colors duration-300 ${
+          isDark ? 'bg-background' : 'bg-[#f5f5f7]'
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 md:py-16">
@@ -203,7 +207,7 @@ export default function HomePage({ onGetStarted }) {
         </div>
       </section>
 
-      <section className={isDark ? 'bg-black' : 'bg-white'}>
+      <section className={isDark ? 'bg-background' : 'bg-white'}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-14 md:pb-16">
           <InteractiveGradientCta>
             <div className="max-w-2xl mx-auto text-center">

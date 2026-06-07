@@ -46,6 +46,15 @@ export default {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
         },
+        // GREY DARK THEME (revertible): the darkest zinc surface shades are
+        // lifted off pure black to a soft charcoal. Only 800/900/950 are
+        // overridden (used as dark-mode surfaces); 50–700 keep Tailwind defaults.
+        // To revert, delete this `zinc` block (originals: 800 #27272a, 900 #18181b, 950 #09090b).
+        zinc: {
+          800: '#2b2b31',
+          900: '#202024',
+          950: '#161619',
+        },
         hookline: {
           50: '#f0f4ff',
           100: '#dbe4ff',
