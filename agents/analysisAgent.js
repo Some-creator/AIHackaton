@@ -2,7 +2,7 @@ import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import { hasAnthropic } from '../backend/config.js';
 
-const ANALYSIS_FIELDS = ['strengths', 'weaknesses', 'improvements', 'missing'];
+const ANALYSIS_FIELDS = ['niche', 'strengths', 'weaknesses', 'improvements', 'missing'];
 
 const ANALYSIS_SYSTEM = `You are a business consultant. Analyze the business profile and give a direct, honest assessment.
 
@@ -14,10 +14,12 @@ Rules:
 - weaknesses: real gaps or shortcomings
 - improvements: concrete actions the owner can take right now
 - missing: things similar businesses have that this one lacks
+- niche: the precise business category (e.g. "coffee shop / café", "taco restaurant", "mobile coffee cart") — used by competitor and lead agents
 
 Return ONLY valid JSON:
 {
   "analysis": {
+    "niche": "string",
     "strengths": ["string"],
     "weaknesses": ["string"],
     "improvements": ["string"],
@@ -39,6 +41,12 @@ function validateAndNormalize(parsed) {
   if (!analysis || typeof analysis !== 'object') throw new Error('Missing analysis object in response');
   const normalized = {};
   for (const field of ANALYSIS_FIELDS) {
+    if (field === 'niche') {
+      const value = String(analysis[field] || '').trim();
+      if (!value) throw new Error('analysis.niche is required');
+      normalized[field] = value;
+      continue;
+    }
     normalized[field] = normalizeStringArray(analysis[field], field);
   }
   return { analysis: normalized, mock: false };

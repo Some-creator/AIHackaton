@@ -11,6 +11,7 @@ import { hasGooglePlaces, hasAnthropic, hasFirecrawl } from '../backend/config.j
 
 const MAX_COMPETITORS = 5;
 const MIN_COMPETITORS = 2;
+const MAX_CANDIDATE_POOL = 15;
 
 const COMPETITOR_FIELDS = ['name', 'website', 'strengths', 'weaknesses', 'targetMarket', 'theyHaveYouDont'];
 const ARRAY_FIELDS = ['strengths', 'weaknesses', 'theyHaveYouDont'];
@@ -18,6 +19,11 @@ const ARRAY_FIELDS = ['strengths', 'weaknesses', 'theyHaveYouDont'];
 const SEARCH_PLAN_SYSTEM = `You plan competitor discovery searches for a local business. Results will be gathered from Google Places and web search.
 
 Read the business profile (Agent 1) and consultant analysis (Agent 2). Infer what the business ACTUALLY does — including every distinct concept (e.g. a hookah lounge that also serves coffee is BOTH a hookah lounge and a café, not just "café" because the name contains cafe).
+
+CRITICAL — competitors must be in the SAME niche/category:
+- A café/coffee shop competes with other cafés and coffee shops — NOT taco shops, pizza places, burger joints, or generic restaurants unless they are clearly the same concept.
+- A taco shop competes with taquerias/mexican restaurants — NOT cafés or bakeries.
+- Match the user's exact food/service niche, not broad "restaurant" or "food" categories.
 
 CRITICAL — use business.type to decide WHO counts as a competitor:
 - "mobile vendor": competitors are OTHER mobile/roving vendors (food trucks, catering trucks, mobile bars, mobile coffee carts, event vendors, pop-up operators). Search for mobile-specific terms. Do NOT search for brick-and-mortar restaurants, cafés, diners, or retail stores as competitors unless they explicitly operate a mobile unit.
@@ -27,6 +33,7 @@ CRITICAL — use business.type to decide WHO counts as a competitor:
 Return ONLY valid JSON:
 {
   "businessSummary": "one sentence describing what this business really is",
+  "primaryCategory": "exact niche label, e.g. coffee shop / café, taco restaurant, hair salon, mobile coffee cart",
   "serviceLines": ["string"],
   "searchQueries": ["string"],
   "excludeTypes": ["string"],
@@ -34,7 +41,8 @@ Return ONLY valid JSON:
 }
 
 Rules for searchQueries:
-- 5-8 plain-English queries a customer would type into Google Maps
+- 5-8 plain-English queries a customer would type into Google Maps to find THIS EXACT type of business
+- Use niche-specific terms (e.g. "coffee shop", "café", "espresso bar" for a café — NOT generic "restaurant" alone)
 - Cover EVERY distinct service line with dedicated queries
 - Use specific terms from services, target market, and analysis — not generic labels alone
 - Short queries only (2-5 words); never include city, state, or country — location is applied separately
@@ -42,16 +50,28 @@ Rules for searchQueries:
 - For mobile vendors: prefer queries like "food truck", "mobile catering", "catering truck", "mobile bar", "coffee cart", "event catering" — never generic "restaurant" or "coffee shop" alone
 
 Rules for excludeTypes:
-- Business types that are clearly NOT competitors for this specific business
-- 3-6 items (e.g. "print shop" for a café, but NOT "hookah lounge" for a dual café+hookah venue)
+- Adjacent but DIFFERENT business categories that should never appear as competitors
+- 5-10 items — be aggressive (e.g. for a café: "taco", "taqueria", "mexican restaurant", "pizza", "burger", "sushi", "bbq", "steakhouse", "bar", "nightclub", "fast food")
 - For mobile vendors: always exclude brick-and-mortar types like "restaurant", "diner", "cafe", "coffee shop", "retail store", "grocery" unless the user also runs a fixed location`;
+
+const NICHE_FILTER_SYSTEM = `You filter local business search results to keep ONLY direct competitors in the SAME niche as the user's business.
+
+Rules:
+- Same niche means a customer choosing between them for the same need (café vs café, taco shop vs taqueria, salon vs salon)
+- Exclude adjacent categories (café vs taco shop, coffee shop vs bar, nail salon vs barbershop)
+- Use the user's services, primary category, and Agent 2 analysis — not just business names
+- When unsure, exclude — quality over quantity
+
+Return ONLY valid JSON: { "keep": [0, 2] } — array of candidate index integers to keep. Empty array if none match.`;
 
 const BENCHMARK_SYSTEM = `You are a competitive analysis consultant. Compare local competitors directly to the user's business.
 
 Rules:
 - Base every point on the provided competitor data (Google listing + scraped website content)
 - Do not invent services, pricing, or features not supported by the data
+- All competitors are pre-filtered to the SAME niche/category as the user's business — treat them as true direct competitors
 - Match competitor type to the user's business.type: mobile vendors compete with other mobile vendors; fixed locations with storefronts; service providers with similar service businesses
+- Use the SEARCH PLAN primaryCategory and service lines — compare within that niche only
 - Use the SEARCH PLAN to understand ALL service lines the user operates — compare across the full offering, not just one label
 - strengths: 2-4 specific things each competitor does well
 - weaknesses: 2-4 honest gaps or shortcomings for each competitor
@@ -148,13 +168,181 @@ function namesMatch(a, b) {
 }
 
 function isExcludedPlace(place, excludeTypes) {
-  const placeText = `${getPlaceName(place)} ${place.formattedAddress || ''}`.toLowerCase();
+  const placeText = getPlaceText(place);
   return (excludeTypes || []).some((excluded) => {
     const term = String(excluded).toLowerCase().trim();
     if (term.length <= 2) return false;
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return new RegExp(`\\b${escaped}\\b`, 'i').test(placeText);
   });
+}
+
+function getPlaceText(place) {
+  return `${getPlaceName(place)} ${place.formattedAddress || ''} ${place.preScrapedContent || ''}`.toLowerCase();
+}
+
+function businessContextText(business, analysis) {
+  return [
+    business.name,
+    business.type,
+    business.targetMarket,
+    ...(business.services || []),
+    ...(analysis?.strengths || []),
+    ...(analysis?.missing || []),
+  ].join(' ').toLowerCase();
+}
+
+function inferPrimaryCategory(business, analysis) {
+  if (analysis?.niche?.trim()) {
+    return analysis.niche.trim();
+  }
+
+  const text = businessContextText(business, analysis);
+
+  if (/\b(coffee|espresso|cafe|café|latte|cappuccino|roaster|roastery|bakery|pastry|tea house)\b/.test(text)) {
+    return 'coffee shop / café';
+  }
+  if (/\b(taco|taqueria|mexican|burrito|quesadilla)\b/.test(text)) {
+    return 'mexican restaurant / taco shop';
+  }
+  if (/\b(pizza|pizzeria)\b/.test(text)) {
+    return 'pizza restaurant';
+  }
+  if (/\b(burger|hamburger)\b/.test(text)) {
+    return 'burger restaurant';
+  }
+  if (/\b(sushi|japanese|ramen)\b/.test(text)) {
+    return 'japanese restaurant';
+  }
+  if (/\b(bbq|barbecue|smokehouse|brisket)\b/.test(text)) {
+    return 'bbq restaurant';
+  }
+  if (/\b(hookah|shisha|lounge)\b/.test(text)) {
+    return 'hookah lounge';
+  }
+  if (/\b(salon|barber|haircut|hairstyl)\b/.test(text)) {
+    return 'hair salon / barbershop';
+  }
+  if (/\b(nail|manicure|pedicure)\b/.test(text)) {
+    return 'nail salon';
+  }
+  if (isMobileVendor(business)) {
+    return 'mobile food/beverage vendor';
+  }
+  if (business.type === 'fixed location') {
+    return business.services?.[0] || 'local storefront business';
+  }
+  return business.type || 'local business';
+}
+
+function defaultExcludesForCategory(primaryCategory) {
+  const cat = String(primaryCategory || '').toLowerCase();
+
+  if (cat.includes('coffee') || cat.includes('café') || cat.includes('cafe') || cat.includes('bakery')) {
+    return [
+      'taco', 'taqueria', 'mexican', 'pizza', 'pizzeria', 'burger', 'sushi', 'bbq', 'barbecue',
+      'steakhouse', 'fast food', 'bar', 'nightclub', 'pub', 'brewery', 'liquor',
+    ];
+  }
+  if (cat.includes('taco') || cat.includes('mexican')) {
+    return ['coffee shop', 'café', 'cafe', 'bakery', 'pizza', 'sushi', 'salon', 'barbershop'];
+  }
+  if (cat.includes('pizza')) {
+    return ['taco', 'taqueria', 'coffee shop', 'café', 'cafe', 'sushi', 'burger', 'bbq'];
+  }
+  if (cat.includes('salon') || cat.includes('barber')) {
+    return ['nail salon', 'spa', 'restaurant', 'cafe', 'taco', 'pizza'];
+  }
+  return ['print shop', 'shipping store', 'post office', 'gas station'];
+}
+
+function buildCategorySearchQueries(business, primaryCategory) {
+  const cat = String(primaryCategory || '').toLowerCase();
+  const services = business.services?.filter(Boolean) || [];
+
+  if (cat.includes('coffee') || cat.includes('café') || cat.includes('cafe')) {
+    return [...new Set([
+      'coffee shop',
+      'café',
+      'espresso bar',
+      'coffee house',
+      'bakery cafe',
+      ...services.slice(0, 2).map((s) => s.split(/\s+/).slice(0, 2).join(' ')),
+    ].filter(Boolean))].slice(0, 8);
+  }
+
+  return [...new Set([
+    primaryCategory,
+    ...services.slice(0, 3),
+    business.type,
+  ].filter(Boolean))].slice(0, 8);
+}
+
+function keywordFilterCandidates(candidates, searchPlan) {
+  const excludeTypes = searchPlan.excludeTypes || [];
+  return candidates.filter((place) => !isExcludedPlace(place, excludeTypes));
+}
+
+async function filterCandidatesByNiche(candidates, business, analysis, searchPlan, onLog) {
+  const keywordFiltered = keywordFilterCandidates(candidates, searchPlan);
+  if (keywordFiltered.length === 0) return [];
+
+  if (!hasAnthropic || keywordFiltered.length <= 1) {
+    return keywordFiltered.slice(0, MAX_COMPETITORS);
+  }
+
+  const entries = keywordFiltered.map((place, index) => ({
+    index,
+    name: getPlaceName(place),
+    address: place.formattedAddress || '',
+    website: place.websiteUri || '',
+    snippet: (place.preScrapedContent || '').slice(0, 400),
+  }));
+
+  try {
+    const { content } = await callHaiku({
+      system: NICHE_FILTER_SYSTEM,
+      messages: [
+        {
+          role: 'user',
+          content: `User business: ${business.name}
+Primary category: ${searchPlan.primaryCategory}
+Business type: ${business.type}
+Services: ${(business.services || []).join(', ') || 'unknown'}
+Service lines: ${(searchPlan.serviceLines || []).join(', ')}
+Exclude categories: ${(searchPlan.excludeTypes || []).join(', ')}
+
+Agent 2 analysis:
+${JSON.stringify(analysis, null, 2)}
+
+Candidates (return index numbers of SAME-NICHE direct competitors only):
+${JSON.stringify(entries, null, 2)}`,
+        },
+      ],
+      maxTokens: 256,
+    });
+
+    const parsed = parseClaudeJson(content);
+    const keep = Array.isArray(parsed?.keep)
+      ? parsed.keep.filter((i) => Number.isInteger(i) && i >= 0 && i < keywordFiltered.length)
+      : [];
+
+    if (keep.length === 0) {
+      onLog?.('AI niche filter found no same-category matches — using keyword-filtered results');
+      return keywordFiltered.slice(0, MAX_COMPETITORS);
+    }
+
+    const filtered = keep.map((i) => keywordFiltered[i]);
+    const removed = keywordFiltered.length - filtered.length;
+    if (removed > 0) {
+      onLog?.(`Removed ${removed} business${removed === 1 ? '' : 'es'} outside your niche (${searchPlan.primaryCategory})`);
+    }
+    return filtered.slice(0, MAX_COMPETITORS);
+  } catch (err) {
+    console.warn(`[benchmarkAgent] Niche filter failed: ${err.message}`);
+    onLog?.('Niche filter unavailable — using keyword matching');
+    return keywordFiltered.slice(0, MAX_COMPETITORS);
+  }
 }
 
 function getPlaceName(place) {
@@ -221,27 +409,27 @@ function isFixedStorefrontOnly(place) {
 function fallbackSearchPlan(business, analysis) {
   const services = business.services?.filter(Boolean) || [];
   const mobile = isMobileVendor(business);
+  const primaryCategory = inferPrimaryCategory(business, analysis);
+  const categoryExcludes = defaultExcludesForCategory(primaryCategory);
 
   if (mobile) {
     return {
       businessSummary: `${business.name} — mobile vendor`,
+      primaryCategory,
       serviceLines: services.length ? services.slice(0, 4) : ['mobile vendor'],
       searchQueries: buildMobileVendorQueries(services),
-      excludeTypes: MOBILE_VENDOR_EXCLUDES,
+      excludeTypes: [...new Set([...MOBILE_VENDOR_EXCLUDES, ...categoryExcludes])],
       comparisonNotes: 'Compare other mobile and event-based vendors — not brick-and-mortar restaurants or shops.',
     };
   }
 
   return {
-    businessSummary: `${business.name} — ${business.type || 'local business'}`,
-    serviceLines: services.length ? services.slice(0, 4) : [business.type || 'local business'],
-    searchQueries: [...new Set([
-      ...services.slice(0, 3),
-      business.type,
-      business.targetMarket?.split(/[,;]/)[0]?.trim(),
-    ].filter(Boolean))].slice(0, 6),
-    excludeTypes: ['print shop', 'shipping store', 'post office'],
-    comparisonNotes: 'Compare based on listed services and target market.',
+    businessSummary: `${business.name} — ${primaryCategory}`,
+    primaryCategory,
+    serviceLines: services.length ? services.slice(0, 4) : [primaryCategory],
+    searchQueries: buildCategorySearchQueries(business, primaryCategory),
+    excludeTypes: categoryExcludes,
+    comparisonNotes: `Compare other ${primaryCategory} businesses in the same niche — not adjacent categories.`,
   };
 }
 
@@ -275,21 +463,27 @@ function normalizeSearchPlan(raw, business, analysis) {
   const searchQueries = (Array.isArray(plan.searchQueries) ? plan.searchQueries : [])
     .map((q) => String(q).trim())
     .filter(Boolean)
+    .filter((q) => !/\brestaurant\b/i.test(q) || /\b(cafe|café|coffee|taco|pizza|sushi|bbq|mexican|burger)\b/i.test(q))
     .slice(0, 8);
 
   const serviceLines = (Array.isArray(plan.serviceLines) ? plan.serviceLines : [])
     .map((s) => String(s).trim())
     .filter(Boolean);
 
-  const excludeTypes = (Array.isArray(plan.excludeTypes) ? plan.excludeTypes : [])
-    .map((s) => String(s).trim())
-    .filter(Boolean);
+  const excludeTypes = [...new Set([
+    ...defaultExcludesForCategory(plan.primaryCategory || fallback.primaryCategory),
+    ...(Array.isArray(plan.excludeTypes) ? plan.excludeTypes : []).map((s) => String(s).trim()).filter(Boolean),
+    ...fallback.excludeTypes,
+  ])];
+
+  const primaryCategory = String(plan.primaryCategory || fallback.primaryCategory).trim();
 
   const normalized = {
     businessSummary: String(plan.businessSummary || fallback.businessSummary).trim(),
+    primaryCategory,
     serviceLines: serviceLines.length ? serviceLines : fallback.serviceLines,
     searchQueries: searchQueries.length ? searchQueries : fallback.searchQueries,
-    excludeTypes: excludeTypes.length ? excludeTypes : fallback.excludeTypes,
+    excludeTypes,
     comparisonNotes: String(plan.comparisonNotes || fallback.comparisonNotes).trim(),
   };
 
@@ -313,8 +507,11 @@ Business type: ${business.type || 'unknown'}
 ${isMobileVendor(business)
   ? 'This is a MOBILE VENDOR — find other mobile vendors, food trucks, catering trucks, and event operators. Exclude brick-and-mortar-only restaurants and shops.'
   : business.type === 'fixed location'
-    ? 'This is a FIXED LOCATION business — find brick-and-mortar competitors with storefronts in the area.'
+    ? 'This is a FIXED LOCATION business — find brick-and-mortar competitors in the EXACT SAME niche/category (café with cafés, taco shop with taquerias). Never use broad "restaurant" queries alone.'
     : 'This is a SERVICE PROVIDER — find other businesses offering the same services.'}
+
+Set primaryCategory to the precise niche (e.g. "coffee shop / café", not just "restaurant").
+Set excludeTypes to all adjacent categories that are NOT competitors.
 
 --- BUSINESS PROFILE (Agent 1) ---
 ${JSON.stringify(business, null, 2)}
@@ -333,8 +530,8 @@ ${JSON.stringify(analysis, null, 2)}`,
   }
 }
 
-function addCompetitorCandidate(collected, seen, place, business, searchPlan, onLog) {
-  if (collected.length >= MAX_COMPETITORS) return false;
+function addCompetitorCandidate(collected, seen, place, business, searchPlan, onLog, maxPool = MAX_CANDIDATE_POOL) {
+  if (collected.length >= maxPool) return false;
   if (isOwnBusiness(place, business)) return false;
   if (isMobileVendor(business) && isFixedStorefrontOnly(place)) {
     onLog?.(`Skipping brick-and-mortar business: ${getPlaceName(place)}`);
@@ -397,7 +594,7 @@ async function searchGooglePlacesForCandidates({
   const searchResults = await Promise.all(searchPromises);
 
   for (const { query, result } of searchResults) {
-    if (collected.length >= MAX_COMPETITORS) break;
+    if (collected.length >= MAX_CANDIDATE_POOL) break;
 
     const { places, rawCount } = result;
 
@@ -423,7 +620,7 @@ async function searchGooglePlacesForCandidates({
   return added;
 }
 
-async function findCompetitorCandidates(business, searchPlan, onLog) {
+async function findCompetitorCandidates(business, analysis, searchPlan, onLog) {
   const location = business.location || 'local area';
   const queries = searchPlan.searchQueries;
   const seen = new Set();
@@ -431,8 +628,12 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
   const locationHints = parseLocationHints(location);
 
   onLog?.(`AI summary: ${searchPlan.businessSummary}`);
+  onLog?.(`Niche: ${searchPlan.primaryCategory}`);
   onLog?.(`Service lines: ${searchPlan.serviceLines.join(', ')}`);
   onLog?.(`Search queries: ${queries.slice(0, 5).join(', ')}`);
+  if (searchPlan.excludeTypes?.length) {
+    onLog?.(`Excluding: ${searchPlan.excludeTypes.slice(0, 6).join(', ')}`);
+  }
 
   if (location === 'Unknown' || location === 'local area') {
     onLog?.('Warning: business location is vague — competitor search works best with a city/state');
@@ -445,7 +646,7 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
     onLog?.(`Could not geocode ${location} — using text-based local search`);
   }
 
-  // Location-in-query search first — returns businesses in the target city, not just the metro box
+  // Strict local search first — tighter category match
   await searchGooglePlacesForCandidates({
     business,
     searchPlan,
@@ -455,10 +656,10 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
     collected,
     seen,
     onLog,
-    relaxed: true,
+    relaxed: false,
   });
 
-  if (collected.length === 0) {
+  if (collected.length < MIN_COMPETITORS) {
     await searchGooglePlacesForCandidates({
       business,
       searchPlan,
@@ -468,7 +669,7 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
       collected,
       seen,
       onLog,
-      relaxed: false,
+      relaxed: true,
     });
   }
 
@@ -490,11 +691,11 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
 
     const webResults = await Promise.all(webPromises);
 
-    for (const { query, results } of webResults) {
-      if (collected.length >= MAX_COMPETITORS) break;
+    for (const { results } of webResults) {
+      if (collected.length >= MAX_CANDIDATE_POOL) break;
 
       for (const result of results) {
-        if (collected.length >= MAX_COMPETITORS) break;
+        if (collected.length >= MAX_CANDIDATE_POOL) break;
         if (isDirectoryOrAggregatorUrl(result.url)) continue;
         if (!webResultMatchesRegion(result, locationHints)) {
           onLog?.(`Skipping web result outside region: ${result.title}`);
@@ -511,9 +712,17 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
 
   if (collected.length === 0) {
     onLog?.('No competitors passed filters — check location, API keys, or search queries');
+    return { filtered: [], query: queries[0] || 'local business' };
   }
 
-  return { filtered: collected, query: queries[0] || 'local business' };
+  onLog?.('Checking competitors match your niche...');
+  const filtered = await filterCandidatesByNiche(collected, business, analysis, searchPlan, onLog);
+
+  if (filtered.length === 0) {
+    onLog?.('No same-niche competitors found after filtering');
+  }
+
+  return { filtered, query: queries[0] || 'local business' };
 }
 
 async function scrapeCompetitorsInParallel(places, onLog) {
@@ -648,6 +857,7 @@ export async function* streamBenchmark(context) {
   yield { type: 'log', message: 'AI is determining what competitors to search for...' };
   const searchPlan = await planCompetitorSearch(business, analysis);
   yield { type: 'log', message: `Identified: ${searchPlan.businessSummary}` };
+  yield { type: 'log', message: `Niche: ${searchPlan.primaryCategory}` };
   yield { type: 'log', message: `Service lines: ${searchPlan.serviceLines.join(', ')}` };
 
   yield { type: 'log', message: 'Starting competitor search...' };
@@ -662,13 +872,16 @@ export async function* streamBenchmark(context) {
     yield { type: 'log', message: `Searching competitors near ${business.location} via ${sources}...` };
 
     const pendingSearchLogs = [];
-    const { filtered, query } = await findCompetitorCandidates(business, searchPlan, (msg) => pendingSearchLogs.push(msg));
+    const { filtered, query } = await findCompetitorCandidates(business, analysis, searchPlan, (msg) => pendingSearchLogs.push(msg));
     for (const msg of pendingSearchLogs) {
       yield { type: 'log', message: msg };
     }
 
     if (filtered.length === 0) {
-      yield { type: 'error', error: `No competitors found for "${query}" near ${business.location}. Try updating the location or services in your profile.` };
+      yield {
+        type: 'error',
+        error: `No ${searchPlan.primaryCategory} competitors found near ${business.location}. Try updating your services or location in your profile.`,
+      };
       return;
     }
 
