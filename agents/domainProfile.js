@@ -102,12 +102,22 @@ export function placeMatchesDomainSignal(text, signals) {
   });
 }
 
-export function matchesDomain(place, domainProfile, { strict = false } = {}) {
+export function passesLeadExcludes(place, domainProfile) {
+  return !isExcludedPlace(place, domainProfile.stringExcludes);
+}
+
+export function matchesDomain(place, domainProfile, { strict = false, mode = 'competitor' } = {}) {
   const text = getPlaceText(place);
   if (isExcludedPlace(place, domainProfile.stringExcludes)) return false;
 
+  // Lead search queries already target buyers — only hard-exclude wrong types at collection.
+  if (mode === 'lead' && !strict) return true;
+
   const signals = domainProfile.domainSignals || [];
   if (signals.length === 0) return true;
+
+  const discoveryQuery = String(place.discoveryQuery || '').toLowerCase();
+  if (discoveryQuery && placeMatchesDomainSignal(discoveryQuery, signals)) return true;
 
   if (placeMatchesDomainSignal(text, signals)) return true;
 
@@ -183,24 +193,12 @@ export function getLeadDomainProfile(business, selectedGap, analysis, searchPlan
       searchQueries: searchPlan?.searchQueries,
     });
 
-  const userNiche = analysis?.niche || '';
   const excludeSignals = [
     ...(searchPlan?.excludeSignals || []),
     ...(searchPlan?.excludeTypes || []),
     ...LEAD_BASE_EXCLUDES,
     ...UNIVERSAL_VENUE_EXCLUDES,
-    ...GENERIC_NOISE_EXCLUDES,
   ];
-
-  // Exclude the user's own business category when it differs from the gap buyer type
-  const buyerText = `${selectedGap?.recommendedTarget || ''} ${selectedGap?.niche || ''}`.toLowerCase();
-  const userIsBuyer = userNiche && buyerText.includes(String(userNiche).toLowerCase().split(/[/,&|]+/)[0]?.trim());
-  if (userNiche && !userIsBuyer) {
-    excludeSignals.push(...deriveSignalsFromSources({
-      nicheText: userNiche,
-      services: business?.services,
-    }).slice(0, 6));
-  }
 
   return buildDomainProfile({
     label,

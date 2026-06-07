@@ -1,12 +1,12 @@
-import { SONNET_MODEL, HAIKU_MODEL } from './config.js';
+import { SONNET_MODEL } from './config.js';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
 function validateModel(model) {
   const lower = model.toLowerCase();
-  if (!lower.includes('sonnet') && !lower.includes('haiku')) {
+  if (!lower.includes('sonnet')) {
     throw new Error(
-      `Model "${model}" is not allowed. This project only uses Haiku and Sonnet models.`
+      `Model "${model}" is not allowed. This project only uses Sonnet (claude-sonnet-4-6).`,
     );
   }
 }
@@ -51,11 +51,8 @@ export async function callSonnet({ system, messages, maxTokens = 4096 }) {
   return requestAnthropic({ model: SONNET_MODEL, system, messages, maxTokens });
 }
 
-export async function callHaiku({ system, messages, maxTokens = 1024 }) {
-  console.log(`[anthropic] Haiku: ${HAIKU_MODEL}`);
-  return requestAnthropic({ model: HAIKU_MODEL, system, messages, maxTokens });
-}
-
 // Backward-compatible aliases
 export const callClaude = callSonnet;
 export const callReasoning = callSonnet;
+/** @deprecated Use callSonnet — Haiku is no longer used in this project */
+export const callHaiku = callSonnet;

@@ -5,7 +5,7 @@ import {
   isDirectoryOrAggregatorUrl,
   searchWeb,
 } from '../backend/webSearch.js';
-import { callSonnet, callHaiku } from '../backend/anthropic.js';
+import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import { hasGooglePlaces, hasAnthropic, hasFirecrawl } from '../backend/config.js';
 
@@ -441,7 +441,7 @@ async function filterCandidatesByNiche(candidates, business, analysis, searchPla
   }));
 
   try {
-    const { content } = await callHaiku({
+    const { content } = await callSonnet({
       system: NICHE_FILTER_SYSTEM,
       messages: [
         {
@@ -697,7 +697,7 @@ async function planCompetitorSearch(business, analysis) {
   }
 
   try {
-    const { content } = await callHaiku({
+    const { content } = await callSonnet({
       system: SEARCH_PLAN_SYSTEM,
       messages: [
         {

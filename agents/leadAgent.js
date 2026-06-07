@@ -1,14 +1,14 @@
 import { geocodeLocation, searchPlaces } from '../backend/googlePlaces.js';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { getBusinessReviews } from '../backend/yelp.js';
-import { callSonnet, callHaiku } from '../backend/anthropic.js';
+import { callSonnet } from '../backend/anthropic.js';
 import { hasAnthropic, hasGooglePlaces } from '../backend/config.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import {
   getLeadDomainProfile,
   getPlaceName,
   isExcludedPlace,
-  matchesDomain,
+  passesLeadExcludes,
   normalizeSignalList,
   deriveSignalsFromSources,
 } from './domainProfile.js';
@@ -81,16 +81,16 @@ Rules for searchQueries:
 Rules for excludeTypes:
 - Mirror excludeSignals — 4-10 adjacent categories that are NOT valid leads`;
 
-const LEAD_NICHE_FILTER_SYSTEM = `You filter local business search results to keep ONLY valid LEAD buyers for a market gap — NOT competitors, franchises, or wrong industries.
+const LEAD_NICHE_FILTER_SYSTEM = `You filter local business search results to keep valid LEAD buyers for a market gap — NOT competitors or franchises.
 
 Rules:
 - A valid lead is an independent local business that would BUY from the user's business per the gap's recommendedTarget
-- Use domainSignals: the business MUST match at least one signal (they are the right buyer type)
-- EXCLUDE anything matching excludeSignals — user's competitor categories, franchises, venue operators, wrong industries
-- EXCLUDE businesses that sell the same thing as the user (competitors), not buy it
-- When unsure, EXCLUDE — quality over quantity. Return { "keep": [] } if none match.
+- These candidates were already found via targeted Google Maps searches for buyer types — lean toward KEEPING them
+- EXCLUDE clear mismatches: user's direct competitors, franchises/chains, venue operators that don't buy
+- EXCLUDE only when clearly the wrong industry — NOT when the name is generic but the search query fits
+- When unsure, KEEP — the qualification agent will score fit next
 
-Return ONLY valid JSON: { "keep": [0, 2] } — array of candidate index integers to keep.`;
+Return ONLY valid JSON: { "keep": [0, 2, ...] } — index array. Include all plausible buyers.`;
 
 const FRANCHISE_CLASSIFY_SYSTEM = `You classify whether a business is a franchise, national chain, or corporate multi-location brand.
 
@@ -166,10 +166,10 @@ function fallbackLeadSearchPlan(business, selectedGap, analysis) {
     cleanTarget.split(/\s+/).slice(0, 3).join(' '),
     selectedGap?.niche?.split(/\s+/).slice(0, 4).join(' '),
     business.targetMarket?.split(/[,;]/)[0]?.trim(),
-  ].filter((q) => q && q.split(' ').length <= 5))].slice(0, 6);
+    'independent local business',
+  ].filter((q) => q && q.split(' ').length <= 5))].slice(0, 8);
 
   const excludeSignals = normalizeSignalList([
-    ...(analysis?.niche ? deriveSignalsFromSources({ nicheText: analysis.niche, services: business?.services }).slice(0, 6) : []),
     'franchise', 'chain', 'food truck park', 'truck park', 'food hall',
   ]);
 
@@ -201,7 +201,7 @@ function normalizeSearchPlan(raw, business, selectedGap, analysis) {
   const excludeSignals = normalizeSignalList([
     ...(Array.isArray(plan.excludeSignals) ? plan.excludeSignals : []),
     ...(Array.isArray(plan.excludeTypes) ? plan.excludeTypes : []),
-    ...fallback.excludeSignals,
+    'franchise', 'chain', 'food truck park', 'truck park', 'food hall',
   ]);
 
   return {
@@ -220,7 +220,7 @@ async function planLeadSearch(business, selectedGap, analysis) {
   }
 
   try {
-    const { content } = await callHaiku({
+    const { content } = await callSonnet({
       system: LEAD_SEARCH_PLAN_SYSTEM,
       messages: [
         {
@@ -316,7 +316,7 @@ async function isFranchise(name, content = '', place = {}) {
   }
 
   try {
-    const { content: result } = await callHaiku({
+    const { content: result } = await callSonnet({
       system: FRANCHISE_CLASSIFY_SYSTEM,
       messages: [
         {
@@ -341,22 +341,23 @@ Website excerpt: ${content.slice(0, 2000)}`,
 }
 
 async function filterLeadCandidatesByNiche(candidates, business, selectedGap, analysis, searchPlan, domainProfile, onLog) {
-  const keywordFiltered = candidates.filter((place) => matchesDomain(place, domainProfile));
-  if (keywordFiltered.length === 0) return [];
+  const excludeFiltered = candidates.filter((place) => passesLeadExcludes(place, domainProfile));
+  if (excludeFiltered.length === 0) return [];
 
-  if (!hasAnthropic || keywordFiltered.length <= 1) {
-    return keywordFiltered;
+  if (!hasAnthropic || excludeFiltered.length <= 2) {
+    return excludeFiltered;
   }
 
-  const entries = keywordFiltered.map((place, index) => ({
+  const entries = excludeFiltered.map((place, index) => ({
     index,
     name: getPlaceNameLocal(place),
     address: place.formattedAddress || '',
     website: place.websiteUri || '',
+    foundVia: place.discoveryQuery || '',
   }));
 
   try {
-    const { content } = await callHaiku({
+    const { content } = await callSonnet({
       system: LEAD_NICHE_FILTER_SYSTEM,
       messages: [
         {
@@ -366,36 +367,36 @@ User niche (competitors — NOT leads): ${analysis?.niche || 'unknown'}
 Gap buyer niche: ${selectedGap?.niche}
 Recommended target: ${selectedGap?.recommendedTarget}
 
-Domain signals (lead must match): ${domainProfile.domainSignals.join(', ') || searchPlan.targetSummary}
-Exclude signals: ${domainProfile.stringExcludes.slice(0, 12).join(', ')}
+Domain signals (buyer type hints): ${domainProfile.domainSignals.slice(0, 10).join(', ') || searchPlan.targetSummary}
+Exclude signals: ${domainProfile.stringExcludes.slice(0, 10).join(', ')}
 
-Candidates (return index numbers of valid BUYER leads only):
+Candidates were found via targeted buyer searches — remove only clear mismatches (competitors, franchises, wrong industry):
 ${JSON.stringify(entries, null, 2)}`,
         },
       ],
-      maxTokens: 256,
+      maxTokens: 384,
     });
 
     const parsed = parseClaudeJson(content);
     const keep = Array.isArray(parsed?.keep)
-      ? parsed.keep.filter((i) => Number.isInteger(i) && i >= 0 && i < keywordFiltered.length)
+      ? parsed.keep.filter((i) => Number.isInteger(i) && i >= 0 && i < excludeFiltered.length)
       : [];
 
     if (keep.length === 0) {
-      onLog?.('No candidates matched the gap buyer niche after AI review');
-      return [];
+      onLog?.('AI filter removed all candidates — keeping search results for qualification');
+      return excludeFiltered;
     }
 
-    const filtered = keep.map((i) => keywordFiltered[i]);
-    const removed = keywordFiltered.length - filtered.length;
+    const filtered = keep.map((i) => excludeFiltered[i]);
+    const removed = excludeFiltered.length - filtered.length;
     if (removed > 0) {
-      onLog?.(`Removed ${removed} business${removed === 1 ? '' : 'es'} outside the gap buyer niche`);
+      onLog?.(`Removed ${removed} clear mismatch${removed === 1 ? '' : 'es'} (competitors/franchises/wrong industry)`);
     }
     return filtered;
   } catch (err) {
     console.warn(`[leadAgent] Lead niche filter failed: ${err.message}`);
-    onLog?.('Lead niche filter unavailable — using keyword matching');
-    return keywordFiltered;
+    onLog?.('Lead niche filter unavailable — using search results');
+    return excludeFiltered;
   }
 }
 
@@ -427,15 +428,11 @@ async function findLeadPlaces(business, searchPlan, domainProfile, competitors =
       if (isOwnBusiness(place, business)) continue;
       if (isCompetitorPlace(place, competitors)) continue;
       if (isExcludedPlace(place, domainProfile.stringExcludes)) continue;
-      if (!matchesDomain(place, domainProfile)) {
-        onLog?.(`Skipping outside gap niche: ${getPlaceNameLocal(place)}`);
-        continue;
-      }
       if (isKnownChain(getPlaceNameLocal(place))) continue;
       const id = place.id || getPlaceNameLocal(place);
       if (seen.has(id)) continue;
       seen.add(id);
-      collected.push(place);
+      collected.push({ ...place, discoveryQuery: query });
     }
     if (collected.length >= MAX_CANDIDATES) break;
   }
@@ -447,7 +444,7 @@ function calculatePriorityScore(fit, budget, response) {
   return Math.round((fit * 0.3 + budget * 0.3 + response * 0.4) * 10) / 10;
 }
 
-async function buildLeadFromPlace(place, business, selectedGap, searchPlan, domainProfile) {
+async function buildLeadFromPlace(place, business, selectedGap, searchPlan) {
   const name = getPlaceNameLocal(place);
   const website = place.websiteUri || '';
 
@@ -470,15 +467,6 @@ async function buildLeadFromPlace(place, business, selectedGap, searchPlan, doma
     return null;
   }
 
-  const scrapedPlace = {
-    displayName: name,
-    formattedAddress: place.formattedAddress || '',
-    scrapedContent: scraped.content,
-  };
-  if (!matchesDomain(scrapedPlace, domainProfile, { strict: true })) {
-    console.log(`[leadAgent] Skipping ${name} — scraped content doesn't match gap buyer niche`);
-    return null;
-  }
   const { content } = await callSonnet({
     system: LEAD_SYSTEM,
     messages: [
@@ -618,7 +606,7 @@ export async function* streamLeads(context) {
     const name = getPlaceNameLocal(place);
     try {
       yield { type: 'log', message: `Analyzing: ${name}...` };
-      const lead = await buildLeadFromPlace(place, business, selectedGap, searchPlan, domainProfile);
+      const lead = await buildLeadFromPlace(place, business, selectedGap, searchPlan);
       if (!lead) {
         yield { type: 'log', message: `Skipped: ${name} (filtered out)` };
         continue;

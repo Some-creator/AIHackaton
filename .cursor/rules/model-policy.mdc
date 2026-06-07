@@ -1,12 +1,11 @@
 ---
-description: Only Haiku and Sonnet models allowed in this project
+description: Only Sonnet 4.6 allowed in this project
 alwaysApply: true
 ---
 
 # Model Policy
 
-- This project only uses two Anthropic model families: **Sonnet** and **Haiku**.
-- Never use Opus or any other model family.
-- **Sonnet** (`claude-sonnet-4-6`): all 5 agent pipelines (ingestion, analysis, benchmark, gap, leads).
-- **Haiku** (`claude-3-5-haiku-latest`): simple classification only (e.g. franchise detection).
-- Use `callSonnet()` and `callHaiku()` from `backend/anthropic.js` — never call the Anthropic API directly with other models.
+- This project uses **Sonnet only** — `claude-sonnet-4-6`.
+- Never use Haiku, Opus, or any other model family.
+- **Sonnet** (`claude-sonnet-4-6`): all agent pipelines (ingestion, analysis, benchmark, gap, leads), including search planning, niche filtering, and franchise classification.
+- Use `callSonnet()` from `backend/anthropic.js` — never call the Anthropic API directly with other models.
