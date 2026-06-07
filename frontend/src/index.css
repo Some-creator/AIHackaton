@@ -170,10 +170,12 @@
   /* Primary action button with subtle lift */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-white font-button
-      bg-hookline-500 transition-all duration-200 shadow-glow-sm;
+      bg-hookline-500 transition-all duration-200;
+    box-shadow: 0 2px 12px -2px rgba(79, 110, 247, 0.25);
   }
   .btn-primary:hover {
-    @apply bg-hookline-600 shadow-glow -translate-y-0.5;
+    @apply bg-hookline-600 -translate-y-0.5;
+    box-shadow: 0 8px 30px -6px rgba(79, 110, 247, 0.35);
   }
   .btn-primary:active {
     @apply translate-y-0;
