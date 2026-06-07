@@ -160,6 +160,30 @@ export async function getCompanyForUser(companyId, userId) {
   return company;
 }
 
+export async function assertCompanyWritable(companyId, userId) {
+  if (!companyId) return { ok: true };
+
+  const company = await getCompany(companyId);
+  if (!company) return { ok: true };
+
+  if (company.userId) {
+    if (!userId) {
+      return { ok: false, error: 'Sign in required to update this analysis' };
+    }
+    if (company.userId !== userId) {
+      return { ok: false, error: 'Not authorized to update this analysis' };
+    }
+  }
+
+  return { ok: true };
+}
+
+export async function updateCompanyIfAllowed(companyId, userId, data) {
+  const check = await assertCompanyWritable(companyId, userId);
+  if (!check.ok) return { saved: false, error: check.error };
+  return updateCompany(companyId, data);
+}
+
 export async function listCompaniesForUser(userId, limit = 50) {
   const firestore = initFirebase();
   if (!firestore || !userId) return [];

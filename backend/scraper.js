@@ -1,6 +1,8 @@
 import { isSocialHostname, isSocialUrl } from './socialDomains.js';
+import { assertPublicHttpUrl } from './security.js';
 
 export async function scrapeWebsite(url) {
+  assertPublicHttpUrl(url, 'Website URL');
   try {
     const urlWithProto = url.includes('://') ? url : `http://${url}`;
     const parsed = new URL(urlWithProto);

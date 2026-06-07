@@ -10,8 +10,25 @@ import { benchmarkAgent, streamBenchmark } from '../agents/benchmarkAgent.js';
 import { gapAgent, streamGaps } from '../agents/gapAgent.js';
 import { streamLeads } from '../agents/leadAgent.js';
 import { sendEmail } from './sendgrid.js';
-import { createCompany, updateCompany, getCompany, getCompanyForUser, listCompaniesForUser, initFirebase, getFirebaseStatus } from './firebase.js';
+import {
+  createCompany,
+  updateCompany,
+  updateCompanyIfAllowed,
+  assertCompanyWritable,
+  getCompany,
+  getCompanyForUser,
+  listCompaniesForUser,
+  initFirebase,
+  getFirebaseStatus,
+} from './firebase.js';
 import { optionalAuth, requireAuth } from './auth.js';
+import {
+  assertPublicHttpUrl,
+  createRateLimiter,
+  createSessionId,
+  getCorsOptions,
+  isValidEmail,
+} from './security.js';
 import {
   FREE_SCAN_COUNT,
   SCAN_PACKS,
@@ -43,9 +60,32 @@ const benchmarkSessions = new Map();
 const gapSessions = new Map();
 const analysisSessions = new Map();
 
-app.use(cors());
-app.use(express.json());
+const corsOptions = getCorsOptions();
+if (corsOptions) {
+  app.use(cors(corsOptions));
+} else {
+  app.use(cors());
+}
+
+app.use(express.json({ limit: '512kb' }));
+app.set('trust proxy', 1);
 app.use('/api', optionalAuth);
+
+const agentRateLimit = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 40 });
+const emailRateLimit = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 20 });
+
+async function guardCompanyWrite(req, companyId) {
+  const check = await assertCompanyWritable(companyId, req.user?.uid || null);
+  if (!check.ok) {
+    const err = new Error(check.error);
+    err.status = 403;
+    throw err;
+  }
+}
+
+function ownerUserId(req, session = null) {
+  return session?.userId || session?._ownerUserId || req.user?.uid || null;
+}
 
 initFirebase();
 
@@ -112,10 +152,11 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-app.post('/api/ingest', async (req, res) => {
+app.post('/api/ingest', agentRateLimit, async (req, res) => {
   try {
     const { url, socialProfiles = [] } = req.body;
     if (!url) return res.status(400).json({ error: 'Website URL is required' });
+    assertPublicHttpUrl(url, 'Website URL');
 
     const result = await ingestionAgent(url, socialProfiles);
     const { id: companyId, saved, error: saveError } = await createCompany({
@@ -130,14 +171,15 @@ app.post('/api/ingest', async (req, res) => {
 
     res.json({ ...result, companyId, saved, saveError });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-app.post('/api/ingest/session', async (req, res) => {
+app.post('/api/ingest/session', agentRateLimit, async (req, res) => {
   try {
     const { url, socialProfiles = [] } = req.body;
     if (!url) return res.status(400).json({ error: 'Website URL is required' });
+    assertPublicHttpUrl(url, 'Website URL');
 
     let scansRemaining = null;
     if (req.user?.uid) {
@@ -152,7 +194,7 @@ app.post('/api/ingest/session', async (req, res) => {
       scansRemaining = spent.scansRemaining;
     }
 
-    const sessionId = `ingest-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const sessionId = createSessionId('ingest');
     ingestSessions.set(sessionId, { url, socialProfiles, ...ownerFields(req) });
 
     setTimeout(() => ingestSessions.delete(sessionId), 10 * 60 * 1000);
@@ -162,7 +204,7 @@ app.post('/api/ingest/session', async (req, res) => {
       ...(scansRemaining !== null ? { scansRemaining } : {}),
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -214,7 +256,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
         let saveError = null;
 
         if (companyId) {
-          const update = await updateCompany(companyId, {
+          const update = await updateCompanyIfAllowed(companyId, ownerUserId(req, session), {
             url: session.url,
             socialProfiles: session.socialProfiles,
             business: event.business,
@@ -267,14 +309,15 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
   }
 });
 
-app.post('/api/analyze', async (req, res) => {
+app.post('/api/analyze', agentRateLimit, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business) return res.status(400).json({ error: 'Business profile required' });
+    await guardCompanyWrite(req, context.companyId);
 
     const result = await analysisAgent(context);
     if (context.companyId) {
-      await updateCompany(context.companyId, {
+      await updateCompanyIfAllowed(context.companyId, req.user?.uid || null, {
         business: context.business,
         analysis: result.analysis,
         socialScrapes: context.socialScrapes || [],
@@ -283,23 +326,24 @@ app.post('/api/analyze', async (req, res) => {
     }
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-app.post('/api/analyze/session', (req, res) => {
+app.post('/api/analyze/session', agentRateLimit, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business) return res.status(400).json({ error: 'Business profile required' });
+    await guardCompanyWrite(req, context.companyId);
 
-    const sessionId = `analyze-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    analysisSessions.set(sessionId, context);
+    const sessionId = createSessionId('analyze');
+    analysisSessions.set(sessionId, { ...context, _ownerUserId: req.user?.uid || null });
 
     setTimeout(() => analysisSessions.delete(sessionId), 10 * 60 * 1000);
 
     res.json({ sessionId });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -321,7 +365,7 @@ app.get('/api/analyze/stream/:sessionId', async (req, res) => {
         if (!ok) break;
       } else if (event.type === 'complete') {
         if (context.companyId) {
-          await updateCompany(context.companyId, {
+          await updateCompanyIfAllowed(context.companyId, ownerUserId(req, context), {
             business: context.business,
             analysis: event.analysis,
             socialScrapes: context.socialScrapes || [],
@@ -348,16 +392,17 @@ app.get('/api/analyze/stream/:sessionId', async (req, res) => {
   }
 });
 
-app.post('/api/benchmark', async (req, res) => {
+app.post('/api/benchmark', agentRateLimit, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.analysis) {
       return res.status(400).json({ error: 'Business and analysis required' });
     }
+    await guardCompanyWrite(req, context.companyId);
 
     const result = await benchmarkAgent(context);
     if (context.companyId) {
-      await updateCompany(context.companyId, {
+      await updateCompanyIfAllowed(context.companyId, req.user?.uid || null, {
         business: context.business,
         analysis: context.analysis,
         competitors: result.competitors,
@@ -366,25 +411,26 @@ app.post('/api/benchmark', async (req, res) => {
     }
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-app.post('/api/benchmark/session', (req, res) => {
+app.post('/api/benchmark/session', agentRateLimit, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.analysis) {
       return res.status(400).json({ error: 'Business and analysis required' });
     }
+    await guardCompanyWrite(req, context.companyId);
 
-    const sessionId = `benchmark-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    benchmarkSessions.set(sessionId, context);
+    const sessionId = createSessionId('benchmark');
+    benchmarkSessions.set(sessionId, { ...context, _ownerUserId: req.user?.uid || null });
 
     setTimeout(() => benchmarkSessions.delete(sessionId), 10 * 60 * 1000);
 
     res.json({ sessionId });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -406,7 +452,7 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
         if (!ok) break;
       } else if (event.type === 'complete') {
         if (context.companyId) {
-          await updateCompany(context.companyId, {
+          await updateCompanyIfAllowed(context.companyId, ownerUserId(req, context), {
             business: context.business,
             analysis: context.analysis,
             competitors: event.competitors,
@@ -434,16 +480,17 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
   }
 });
 
-app.post('/api/gap', async (req, res) => {
+app.post('/api/gap', agentRateLimit, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.competitors) {
       return res.status(400).json({ error: 'Business and competitors required' });
     }
+    await guardCompanyWrite(req, context.companyId);
 
     const result = await gapAgent(context);
     if (context.companyId) {
-      await updateCompany(context.companyId, {
+      await updateCompanyIfAllowed(context.companyId, req.user?.uid || null, {
         business: context.business,
         analysis: context.analysis,
         competitors: context.competitors,
@@ -454,25 +501,26 @@ app.post('/api/gap', async (req, res) => {
     }
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-app.post('/api/gap/session', (req, res) => {
+app.post('/api/gap/session', agentRateLimit, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.competitors) {
       return res.status(400).json({ error: 'Business and competitors required' });
     }
+    await guardCompanyWrite(req, context.companyId);
 
-    const sessionId = `gap-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    gapSessions.set(sessionId, context);
+    const sessionId = createSessionId('gap');
+    gapSessions.set(sessionId, { ...context, _ownerUserId: req.user?.uid || null });
 
     setTimeout(() => gapSessions.delete(sessionId), 10 * 60 * 1000);
 
     res.json({ sessionId });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -494,7 +542,7 @@ app.get('/api/gap/stream/:sessionId', async (req, res) => {
         if (!ok) break;
       } else if (event.type === 'complete') {
         if (context.companyId) {
-          await updateCompany(context.companyId, {
+          await updateCompanyIfAllowed(context.companyId, ownerUserId(req, context), {
             business: context.business,
             analysis: context.analysis,
             competitors: context.competitors,
@@ -529,7 +577,7 @@ app.get('/api/history', requireAuth, async (req, res) => {
     const items = await listCompaniesForUser(req.user.uid);
     res.json({ items });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -539,7 +587,7 @@ app.get('/api/companies/:companyId', requireAuth, async (req, res) => {
     if (!company) return res.status(404).json({ error: 'Company not found' });
     res.json(company);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -552,7 +600,7 @@ app.get('/api/credits', requireAuth, async (req, res) => {
       packs: SCAN_PACKS,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -572,22 +620,23 @@ app.post('/api/credits/purchase', requireAuth, async (req, res) => {
       message: 'Scans added to your account. Connect Stripe for live payments.',
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
-app.post('/api/leads/session', async (req, res) => {
+app.post('/api/leads/session', agentRateLimit, async (req, res) => {
   try {
     const context = req.body;
     if (!context.business || !context.gaps) {
       return res.status(400).json({ error: 'Business and gaps required' });
     }
+    await guardCompanyWrite(req, context.companyId);
 
-    const sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    leadSessions.set(sessionId, context);
+    const sessionId = createSessionId('leads');
+    leadSessions.set(sessionId, { ...context, _ownerUserId: req.user?.uid || null });
 
     if (context.companyId) {
-      await updateCompany(context.companyId, {
+      await updateCompanyIfAllowed(context.companyId, req.user?.uid || null, {
         business: context.business,
         analysis: context.analysis,
         competitors: context.competitors,
@@ -601,7 +650,7 @@ app.post('/api/leads/session', async (req, res) => {
 
     res.json({ sessionId });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -626,7 +675,7 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
         const leads = event.leads || [];
 
         if (context.companyId) {
-          await updateCompany(context.companyId, {
+          await updateCompanyIfAllowed(context.companyId, ownerUserId(req, context), {
             leads,
             step: 'leads_generated',
           });
@@ -646,10 +695,14 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
   }
 });
 
-app.post('/api/send-email', async (req, res) => {
+app.post('/api/send-email', requireAuth, emailRateLimit, async (req, res) => {
   try {
     const { to, subject, body, from } = req.body;
     if (!to || !body) return res.status(400).json({ error: 'Recipient and body required' });
+    if (!isValidEmail(to)) return res.status(400).json({ error: 'Invalid recipient email address' });
+    if (String(body).length > 10000) {
+      return res.status(400).json({ error: 'Email body is too long' });
+    }
 
     const result = await sendEmail({
       to,
@@ -659,7 +712,7 @@ app.post('/api/send-email', async (req, res) => {
     });
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 

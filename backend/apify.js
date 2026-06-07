@@ -71,10 +71,13 @@ async function runActor(actorId, input) {
   if (!token) throw new Error('APIFY_API_KEY not configured');
 
   const response = await fetch(
-    `${APIFY_BASE}/acts/${actorId}/run-sync-get-dataset-items?token=${token}`,
+    `${APIFY_BASE}/acts/${actorId}/run-sync-get-dataset-items`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(input),
       signal: AbortSignal.timeout(120000),
     }
