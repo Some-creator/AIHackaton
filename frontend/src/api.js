@@ -176,13 +176,12 @@ export async function createLeadSession(context) {
   return post('/leads/session', context);
 }
 
-export function streamLeads(sessionId, { onLead, onComplete, onError, onStart }) {
+export function streamLeads(sessionId, { onLog, onComplete, onError }) {
   const eventSource = new EventSource(`${API_BASE}/leads/stream/${sessionId}`);
 
   eventSource.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    if (data.type === 'start') onStart?.(data);
-    else if (data.type === 'lead') onLead?.(data.lead);
+    if (data.type === 'log') onLog?.(data.message);
     else if (data.type === 'complete') {
       onComplete?.(data);
       eventSource.close();

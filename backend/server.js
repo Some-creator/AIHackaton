@@ -529,21 +529,22 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
 
   const stopHeartbeat = openSseStream(req, res);
 
-  res.write(`data: ${JSON.stringify({ type: 'start', message: 'Lead generation started' })}\n\n`);
-
   try {
-    const leads = [];
-    for await (const lead of streamLeads(context)) {
-      leads.push(lead);
-      res.write(`data: ${JSON.stringify({ type: 'lead', lead })}\n\n`);
-    }
-    res.write(`data: ${JSON.stringify({ type: 'complete', message: 'All leads processed' })}\n\n`);
+    for await (const event of streamLeads(context)) {
+      if (event.type === 'log') {
+        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+      } else if (event.type === 'complete') {
+        const leads = event.leads || [];
 
-    if (context.companyId) {
-      await updateCompany(context.companyId, {
-        leads,
-        step: 'leads_generated',
-      });
+        if (context.companyId) {
+          await updateCompany(context.companyId, {
+            leads,
+            step: 'leads_generated',
+          });
+        }
+
+        res.write(`data: ${JSON.stringify({ type: 'complete', leads, message: 'All leads processed' })}\n\n`);
+      }
     }
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);

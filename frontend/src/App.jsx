@@ -71,6 +71,8 @@ export default function App() {
   const [benchmarkFinishing, setBenchmarkFinishing] = useState(false);
   const [gapLogs, setGapLogs] = useState([]);
   const [gapFinishing, setGapFinishing] = useState(false);
+  const [leadLogs, setLeadLogs] = useState([]);
+  const [leadFinishing, setLeadFinishing] = useState(false);
 
   const reportError = useCallback(async (err) => {
     const raw = err?.message || 'Something went wrong.';
@@ -126,7 +128,9 @@ export default function App() {
       gapsMock: company.gapsMock ?? false,
       socialScrapes: company.socialScrapes || [],
     });
-    setLeads(company.leads || []);
+    setLeads(
+      [...(company.leads || [])].sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0)),
+    );
     setStreamComplete(Boolean(company.leads?.length));
     setStreaming(false);
     setStep(stepFromCompanyRecord(company.step));
@@ -375,6 +379,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     setLeads([]);
+    setLeadLogs([]);
     setStreaming(true);
     setStreamComplete(false);
     setStep('leads');
@@ -385,28 +390,31 @@ export default function App() {
 
       const { sessionId } = await api.createLeadSession(updatedContext);
 
-      api.streamLeads(sessionId, {
-        onLead: (lead) => {
-          setLeads((prev) => {
-            const exists = prev.some((l) => l.name === lead.name);
-            if (exists) return prev;
-            return [...prev, lead];
-          });
-        },
-        onComplete: () => {
-          setStreaming(false);
-          setStreamComplete(true);
-        },
-        onError: (err) => {
-          reportError(err);
-          setStreaming(false);
-        },
+      await new Promise((resolve, reject) => {
+        api.streamLeads(sessionId, {
+          onLog: (message) => setLeadLogs((prev) => [...prev, message]),
+          onComplete: async (data) => {
+            setLeadFinishing(true);
+            await new Promise((r) => setTimeout(r, 1000));
+
+            const sortedLeads = [...(data.leads || [])].sort(
+              (a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0),
+            );
+            setLeads(sortedLeads);
+            setStreaming(false);
+            setStreamComplete(true);
+            resolve();
+          },
+          onError: reject,
+        });
       });
     } catch (err) {
       reportError(err);
       setStreaming(false);
     } finally {
+      setLeadFinishing(false);
       setLoading(false);
+      setLeadLogs([]);
     }
   };
 
@@ -711,6 +719,8 @@ const currentStepIndex = STEPS.indexOf(step);
             marketGap={context.gaps?.[context.recommendedGap]}
             streaming={streaming}
             streamComplete={streamComplete}
+            leadLogs={leadLogs}
+            leadFinishing={leadFinishing}
             onSkip={handleSkip}
             skippedLeads={skippedLeads}
             onBack={handleBack}
