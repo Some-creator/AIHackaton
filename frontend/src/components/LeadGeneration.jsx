@@ -130,7 +130,7 @@ export default function LeadGeneration({
 
   const sortedLeads = [...leads].sort((a, b) => b.priorityScore - a.priorityScore);
   const visibleLeads = sortedLeads.filter((lead) => !skippedLeads.has(lead.name));
-  const mapLeads = sortedLeads.filter((l) => {
+  const mapLeads = visibleLeads.filter((l) => {
     const lat = parseFloat(l.lat);
     const lng = parseFloat(l.lng);
     return !isNaN(lat) && !isNaN(lng);
@@ -150,6 +150,11 @@ export default function LeadGeneration({
   const selectLead = useCallback((lead) => {
     setSelectedLeadName(lead.name);
   }, []);
+
+  const handleDismissLead = useCallback((lead) => {
+    delete markerRefs.current[lead.name];
+    onSkip(lead);
+  }, [onSkip]);
 
   const goToLead = useCallback((index) => {
     const lead = visibleLeads[index];
@@ -325,7 +330,7 @@ export default function LeadGeneration({
                   business={business}
                   analysis={analysis}
                   marketGap={marketGap}
-                  onSkip={onSkip}
+                  onSkip={handleDismissLead}
                   skipped={false}
                   selected
                   onSelect={() => selectLead(activeLead)}
