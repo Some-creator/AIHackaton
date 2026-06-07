@@ -11,6 +11,7 @@ import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
 import { useAuth } from './context/AuthContext';
 import * as api from './api';
+import { sortLeadsByPriority } from './lib/leadUtils';
 import { appendMockHistory, buildMockHistoryEntry, getMockCompany } from './lib/mockHistory';
 
 const STEPS = ['home', 'auth', 'dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
@@ -128,10 +129,9 @@ export default function App() {
       gapsMock: company.gapsMock ?? false,
       socialScrapes: company.socialScrapes || [],
     });
-    setLeads(
-      [...(company.leads || [])].sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0)),
-    );
-    setStreamComplete(Boolean(company.leads?.length));
+    const ratedLeads = sortLeadsByPriority(company.leads || []);
+    setLeads(ratedLeads);
+    setStreamComplete(ratedLeads.length > 0);
     setStreaming(false);
     setStep(stepFromCompanyRecord(company.step));
   }, []);
@@ -397,10 +397,7 @@ export default function App() {
             setLeadFinishing(true);
             await new Promise((r) => setTimeout(r, 1000));
 
-            const sortedLeads = [...(data.leads || [])].sort(
-              (a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0),
-            );
-            setLeads(sortedLeads);
+            setLeads(sortLeadsByPriority(data.leads || []));
             setStreaming(false);
             setStreamComplete(true);
             resolve();

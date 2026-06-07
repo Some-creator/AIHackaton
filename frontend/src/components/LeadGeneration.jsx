@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../context/ThemeContext';
+import { sortLeadsByPriority } from '../lib/leadUtils';
 import ActivityLog from './ActivityLog';
 import LeadCard from './LeadCard';
 import StepNavigation from './StepNavigation';
@@ -128,7 +129,7 @@ export default function LeadGeneration({
     }
   }, [leads.length]);
 
-  const sortedLeads = [...leads].sort((a, b) => b.priorityScore - a.priorityScore);
+  const sortedLeads = sortLeadsByPriority(leads);
   const visibleLeads = sortedLeads.filter((lead) => !skippedLeads.has(lead.name));
   const mapLeads = visibleLeads.filter((l) => {
     const lat = parseFloat(l.lat);

@@ -58,6 +58,19 @@ Return ONLY valid JSON:
   }
 }`;
 
+const SOCIAL_SUMMARY_SYSTEM = `You summarize scraped social media profile data for a business intelligence dashboard.
+
+Given raw profile stats and sampled posts, return ONLY valid JSON:
+{
+  "topics": "2-4 concise sentences on what this account posts about — themes, tone, products/services highlighted, and who they seem to speak to. Synthesize across posts; do NOT list or quote individual posts.",
+  "engagement": "2-3 concise sentences summarizing follower/like counts, typical post performance, posting activity, and overall engagement level (strong, moderate, or limited). Use numbers when available. If metrics are missing, say what is unknown."
+}
+
+Rules:
+- Never reproduce post captions verbatim or enumerate posts one-by-one
+- Focus on patterns and business-relevant insights
+- Keep each field under 80 words`;
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function normalizeUrl(url) {
@@ -124,7 +137,64 @@ async function scrapeSocialProfiles(urls, onLog) {
 
 function formatSocialContent(socialScrapes) {
   if (!socialScrapes.length) return 'No social media content scraped.';
-  return socialScrapes.map(({ url, content }) => `--- SOCIAL: ${url} ---\n${content}`).join('\n\n');
+  return socialScrapes.map(({ url, content, summary, platform }) => {
+    const header = `--- SOCIAL: ${url}${platform ? ` (${platform})` : ''} ---`;
+    if (summary?.topics || summary?.engagement) {
+      const parts = [header];
+      if (summary.topics) parts.push(`Topics: ${summary.topics}`);
+      if (summary.engagement) parts.push(`Engagement: ${summary.engagement}`);
+      return parts.join('\n');
+    }
+    return `${header}\n${content}`;
+  }).join('\n\n');
+}
+
+async function summarizeSocialScrape(scrape) {
+  if (!hasAnthropic || !scrape?.content?.trim()) {
+    return null;
+  }
+
+  try {
+    const { content } = await callSonnet({
+      system: SOCIAL_SUMMARY_SYSTEM,
+      messages: [{
+        role: 'user',
+        content: `Platform: ${scrape.platform || socialLabel(scrape.url)}
+URL: ${scrape.url}
+Source: ${scrape.source || 'unknown'}
+
+Scraped profile and post data:
+${scrape.content.slice(0, 6000)}`,
+      }],
+      maxTokens: 500,
+    });
+
+    const parsed = parseClaudeJson(content);
+    if (!parsed?.topics && !parsed?.engagement) return null;
+    return {
+      topics: parsed.topics?.trim() || null,
+      engagement: parsed.engagement?.trim() || null,
+    };
+  } catch (err) {
+    console.warn(`[ingestionAgent] Social summary failed for ${scrape.url}: ${err.message}`);
+    return null;
+  }
+}
+
+async function summarizeSocialScrapes(scrapes, onLog) {
+  const enriched = [];
+  for (const scrape of scrapes) {
+    const label = socialLabel(scrape.url);
+    onLog?.(`Summarizing ${label} posts and engagement...`);
+    const summary = await summarizeSocialScrape(scrape);
+    enriched.push({ ...scrape, summary });
+    if (summary?.topics) {
+      onLog?.(`${label} summary ready`);
+    } else {
+      onLog?.(`Could not summarize ${label} — showing limited data`);
+    }
+  }
+  return enriched;
 }
 
 async function verifyExtractedLocation(locationFields, onLog) {
@@ -234,6 +304,13 @@ export async function* streamIngestion(url, socialProfiles = []) {
       const pendingLogs = [];
       socialScrapes = await scrapeSocialProfiles(socialUrls, (msg) => pendingLogs.push(msg));
       for (const msg of pendingLogs) yield { type: 'log', message: msg };
+
+      if (socialScrapes.length) {
+        yield { type: 'log', message: 'AI summarizing social posts and engagement...' };
+        const summaryLogs = [];
+        socialScrapes = await summarizeSocialScrapes(socialScrapes, (msg) => summaryLogs.push(msg));
+        for (const msg of summaryLogs) yield { type: 'log', message: msg };
+      }
     } else {
       yield { type: 'log', message: 'No social profiles found — using website only' };
     }
@@ -242,7 +319,7 @@ export async function* streamIngestion(url, socialProfiles = []) {
 
     const truncatedContent = scraped.content.slice(0, 30000);
     const socialContent = formatSocialContent(socialScrapes);
-    const combinedContent = `${truncatedContent}\n\n${socialScrapes.map((s) => s.content).join('\n')}`;
+    const combinedContent = `${truncatedContent}\n\n${formatSocialContent(socialScrapes)}`;
     const addressCandidates = extractAddressCandidates(combinedContent);
 
     if (addressCandidates.length) {

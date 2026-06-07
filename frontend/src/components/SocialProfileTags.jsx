@@ -92,7 +92,7 @@ function ScrapePopover({ scrape, url, label, onEnter, onLeave, isDark, position 
       >
         <div className="flex items-center justify-between gap-2 mb-2">
           <span className={`text-xs font-bold ${isDark ? 'text-zinc-200' : 'text-gray-900'}`}>
-            {label} — scraped data
+            {label} — AI summary
           </span>
           {scrape?.mock && (
             <span
@@ -105,25 +105,43 @@ function ScrapePopover({ scrape, url, label, onEnter, onLeave, isDark, position 
           )}
         </div>
 
-        {scrape?.content?.trim() ? (
-          <>
-            <div className="flex gap-1.5 mb-2">
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                  isDark ? 'bg-zinc-900 text-zinc-400 border border-zinc-800' : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {scrape.source || 'unknown'}
-              </span>
-            </div>
-            <p
-              className={`text-xs leading-relaxed max-h-48 overflow-y-auto ${
-                isDark ? 'text-zinc-300' : 'text-gray-700'
-              } whitespace-pre-wrap`}
-            >
-              {scrape.content}
-            </p>
-          </>
+        <div className="flex gap-1.5 mb-3">
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+              isDark ? 'bg-zinc-900 text-zinc-400 border border-zinc-800' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            {scrape.source || 'unknown'}
+          </span>
+        </div>
+
+        {scrape?.summary?.topics || scrape?.summary?.engagement ? (
+          <div className="space-y-3">
+            {scrape.summary.topics && (
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+                  What they post about
+                </p>
+                <p className={`text-xs leading-relaxed ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
+                  {scrape.summary.topics}
+                </p>
+              </div>
+            )}
+            {scrape.summary.engagement && (
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-wide mb-1 ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+                  Engagement
+                </p>
+                <p className={`text-xs leading-relaxed ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
+                  {scrape.summary.engagement}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : scrape?.content?.trim() ? (
+          <p className={`text-xs italic ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+            AI summary unavailable for this profile. Re-run analysis to refresh.
+          </p>
         ) : (
           <p className={`text-xs italic ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
             No scraped data for this profile yet.
@@ -246,7 +264,9 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
         )}
         {items.map((item, i) => {
           const scrape = findScrape(item, socialScrapes);
-          const hasData = Boolean(scrape?.content?.trim());
+          const hasData = Boolean(
+            scrape?.summary?.topics || scrape?.summary?.engagement || scrape?.content?.trim(),
+          );
           const isActive = activeUrl && profileKey(activeUrl) === profileKey(item);
           const label = socialLabel(item);
           const key = profileKey(item);

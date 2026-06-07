@@ -7,6 +7,13 @@ import { parseClaudeJson } from '../backend/parseJson.js';
 
 const MAX_LEADS = 8;
 const MAX_CANDIDATES = 24;
+const MIN_LEAD_RATING = 5;
+
+function meetsRatingThreshold(lead) {
+  const rating = Number(lead?.rating);
+  if (!Number.isFinite(rating)) return true;
+  return rating >= MIN_LEAD_RATING;
+}
 
 const FRANCHISE_INDICATORS = [
   'franchise', 'franchising', 'franchisee', 'franchise opportunities',
@@ -452,6 +459,11 @@ export async function* streamLeads(context) {
       const lead = await buildLeadFromPlace(place, business, selectedGap, searchPlan);
       if (!lead) {
         yield { type: 'log', message: `Skipped: ${name} (filtered out)` };
+        continue;
+      }
+
+      if (!meetsRatingThreshold(lead)) {
+        yield { type: 'log', message: `Skipped: ${name} (rating ${Number(lead.rating).toFixed(1)} below ${MIN_LEAD_RATING}.0)` };
         continue;
       }
 

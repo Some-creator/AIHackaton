@@ -96,10 +96,17 @@ function formatInstagramData(items) {
   if (profile.followersCount != null) lines.push(`Followers: ${profile.followersCount}`);
   if (profile.postsCount != null) lines.push(`Posts: ${profile.postsCount}`);
 
-  const posts = items.filter((item) => item.caption).slice(0, 3);
-  posts.forEach((post, i) => {
-    lines.push(`Recent post ${i + 1}: ${post.caption?.slice(0, 300)}`);
-  });
+  const posts = items.filter((item) => item.caption).slice(0, 10);
+  if (posts.length) {
+    lines.push(`Recent posts (${posts.length} sampled):`);
+    posts.forEach((post, i) => {
+      const metrics = [];
+      if (post.likesCount != null) metrics.push(`${post.likesCount} likes`);
+      if (post.commentsCount != null) metrics.push(`${post.commentsCount} comments`);
+      const metricStr = metrics.length ? ` [${metrics.join(', ')}]` : '';
+      lines.push(`  ${i + 1}. ${post.caption?.slice(0, 400)}${metricStr}`);
+    });
+  }
 
   return lines.join('\n');
 }
@@ -114,8 +121,25 @@ function formatFacebookData(items) {
   if (page.description) lines.push(`Description: ${page.description}`);
   if (page.category) lines.push(`Category: ${page.category}`);
   if (page.website) lines.push(`Website: ${page.website}`);
-  if (page.likes != null) lines.push(`Likes: ${page.likes}`);
+  if (page.likes != null) lines.push(`Page likes: ${page.likes}`);
   if (page.followers != null) lines.push(`Followers: ${page.followers}`);
+  if (page.rating != null) lines.push(`Rating: ${page.rating}`);
+  if (page.checkIns != null) lines.push(`Check-ins: ${page.checkIns}`);
+
+  const posts = (page.posts || items.filter((item) => item.text || item.message)).slice(0, 8);
+  if (posts.length) {
+    lines.push(`Recent posts (${posts.length} sampled):`);
+    posts.forEach((post, i) => {
+      const text = post.text || post.message || '';
+      const metrics = [];
+      if (post.likes != null) metrics.push(`${post.likes} likes`);
+      if (post.comments != null) metrics.push(`${post.comments} comments`);
+      if (post.shares != null) metrics.push(`${post.shares} shares`);
+      const metricStr = metrics.length ? ` [${metrics.join(', ')}]` : '';
+      lines.push(`  ${i + 1}. ${text.slice(0, 400)}${metricStr}`);
+    });
+  }
+
   return lines.join('\n');
 }
 
@@ -128,7 +152,25 @@ function formatTikTokData(items) {
   if (meta.nickname || meta.name) lines.push(`Name: ${meta.nickname || meta.name}`);
   if (meta.signature || profile.signature) lines.push(`Bio: ${meta.signature || profile.signature}`);
   if (meta.fans != null) lines.push(`Followers: ${meta.fans}`);
-  if (profile.text) lines.push(`Recent post: ${profile.text.slice(0, 300)}`);
+  if (meta.heart != null) lines.push(`Total likes: ${meta.heart}`);
+  if (meta.video != null) lines.push(`Videos: ${meta.video}`);
+
+  const posts = items.filter((item) => item.text || item.desc).slice(0, 10);
+  if (posts.length) {
+    lines.push(`Recent posts (${posts.length} sampled):`);
+    posts.forEach((post, i) => {
+      const text = post.text || post.desc || '';
+      const metrics = [];
+      if (post.diggCount != null) metrics.push(`${post.diggCount} likes`);
+      if (post.commentCount != null) metrics.push(`${post.commentCount} comments`);
+      if (post.playCount != null) metrics.push(`${post.playCount} views`);
+      const metricStr = metrics.length ? ` [${metrics.join(', ')}]` : '';
+      lines.push(`  ${i + 1}. ${text.slice(0, 400)}${metricStr}`);
+    });
+  } else if (profile.text) {
+    lines.push(`Recent post: ${profile.text.slice(0, 300)}`);
+  }
+
   return lines.join('\n');
 }
 
