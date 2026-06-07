@@ -6,13 +6,8 @@ import { useAuth } from '../context/AuthContext';
 
 export default function AuthPage({ onSuccess, onClose }) {
   const { theme } = useTheme();
-  const { configured, signInWithEmail, signUpWithEmail, signInWithGoogle, signInMock } = useAuth();
+  const { configured, signInWithEmail, signUpWithEmail, signInWithGoogle } = useAuth();
   const isDark = theme === 'dark';
-
-  const handleMockBypass = () => {
-    signInMock();
-    onSuccess?.();
-  };
 
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
@@ -80,18 +75,11 @@ export default function AuthPage({ onSuccess, onClose }) {
         Add your Firebase web app credentials to <code className="text-hookline-400">frontend/.env</code> using the
         variables in <code className="text-hookline-400">frontend/.env.example</code>, then restart the dev server.
       </p>
-      <ol className={`text-sm space-y-2 list-decimal list-inside font-medium mb-6 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+      <ol className={`text-sm space-y-2 list-decimal list-inside font-medium ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
         <li>Create a project at console.firebase.google.com</li>
         <li>Enable Email/Password and Google in Authentication</li>
         <li>Add a Web app and copy the config values</li>
       </ol>
-      <button
-        type="button"
-        onClick={handleMockBypass}
-        className="btn-primary-pill w-full"
-      >
-        Bypass Auth (Mock Mode)
-      </button>
     </>
   ) : (
     <>
@@ -202,16 +190,6 @@ export default function AuthPage({ onSuccess, onClose }) {
           {mode === 'signin' ? 'Sign up' : 'Sign in'}
         </button>
       </p>
-
-      <div className="mt-4 pt-4 border-t border-zinc-800/20 text-center">
-        <button
-          type="button"
-          onClick={handleMockBypass}
-          className={`text-xs font-bold transition hover:underline ${isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          Bypass with Mock User (Local Test)
-        </button>
-      </div>
     </>
   );
 
