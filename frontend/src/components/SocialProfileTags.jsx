@@ -101,7 +101,7 @@ function ScrapePopover({ scrape, url, label, onEnter, onLeave, isDark, position 
               isDark ? 'bg-zinc-900 text-zinc-400 border border-zinc-800' : 'bg-gray-100 text-gray-600'
             }`}
           >
-            {scrape.source || 'unknown'}
+            {scrape?.source || 'unknown'}
           </span>
         </div>
 
@@ -189,7 +189,7 @@ export default function SocialProfileTags({ items, socialScrapes = [], onChange 
       setPopoverPosition(null);
       return;
     }
-    const anchor = anchorRefs.current[profileKey(activeUrl)];
+    const anchor = anchorRefs.current[socialProfileKey(activeUrl)];
     if (!anchor) {
       setPopoverPosition(null);
       return;
