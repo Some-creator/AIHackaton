@@ -94,7 +94,7 @@ export default function Onboarding({ onSubmit, loading, ingestFinishing = false,
             </div>
 
             <label className={`block text-sm font-semibold mt-5 mb-2 ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
-              Social media links <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>(optional, comma-separated)</span>
+              Social media links <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>(optional — we also scan your website for these)</span>
             </label>
             <div className="relative">
               <Share2 className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-zinc-500' : 'text-gray-400'}`} />

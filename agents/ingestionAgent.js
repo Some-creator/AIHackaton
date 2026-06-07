@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { scrapeWebsite } from '../backend/scraper.js';
 import { scrapeSocialProfile, canScrapeSocial, needsApify, cleanSocialUrl } from '../backend/apify.js';
+import { extractSocialLinksFromPage, partitionSocialLinks } from '../backend/socialLinks.js';
 import { geocodeLocation } from '../backend/googlePlaces.js';
 import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
@@ -19,15 +20,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const VALID_TYPES = ['fixed location', 'mobile vendor', 'service provider'];
 const MAX_SOCIAL_SCRAPES = 4;
 
-const SOCIAL_URL_PATTERNS = [
-  /https?:\/\/(?:www\.)?instagram\.com\/[\w.-]+\/?/gi,
-  /https?:\/\/(?:www\.)?facebook\.com\/[\w.-]+\/?/gi,
-  /https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[\w.-]+\/?/gi,
-  /https?:\/\/(?:www\.)?tiktok\.com\/@?[\w.-]+\/?/gi,
-  /https?:\/\/(?:www\.)?linkedin\.com\/(?:company|in)\/[\w.-]+\/?/gi,
-  /https?:\/\/(?:www\.)?youtube\.com\/(?:@|channel\/|c\/)[\w.-]+\/?/gi,
-];
-
 const EXTRACTION_SYSTEM = `You are a business data extraction agent. Extract structured business info from scraped website and social media content.
 
 Rules:
@@ -40,6 +32,7 @@ Rules:
 - services must be specific offerings from the content, not guesses
 - type must be exactly one of: "fixed location", "mobile vendor", "service provider"
 - targetMarket: who the business sells to, based on site/social language
+- socialProfiles: include any Instagram, Facebook, TikTok, X/Twitter, LinkedIn, or YouTube profile URLs found in the website content, footer, or header links
 
 Return ONLY valid JSON:
 {
@@ -89,15 +82,6 @@ function socialLabel(url) {
   if (/linkedin/i.test(url)) return 'LinkedIn';
   if (/youtube/i.test(url)) return 'YouTube';
   return 'social profile';
-}
-
-function discoverSocialLinks(websiteContent, userProfiles) {
-  const links = new Set(userProfiles.map((u) => cleanSocialUrl(normalizeUrl(u))).filter(Boolean));
-  for (const pattern of SOCIAL_URL_PATTERNS) {
-    const matches = websiteContent.match(pattern) || [];
-    matches.forEach((match) => links.add(cleanSocialUrl(normalizeUrl(match))));
-  }
-  return [...links].slice(0, MAX_SOCIAL_SCRAPES);
 }
 
 async function scrapeSocialProfiles(urls, onLog) {
@@ -294,10 +278,23 @@ export async function* streamIngestion(url, socialProfiles = []) {
 
     yield { type: 'log', message: 'Website loaded' };
 
-    const socialUrls = discoverSocialLinks(scraped.content, normalizedSocial);
+    yield { type: 'log', message: 'Scanning website for social profile links...' };
+    const discoveredSocial = extractSocialLinksFromPage({
+      content: scraped.content,
+      links: scraped.links || [],
+      userProfiles: normalizedSocial,
+    });
+    const socialUrls = discoveredSocial.slice(0, MAX_SOCIAL_SCRAPES);
+    const { fromWebsite } = partitionSocialLinks(socialUrls, normalizedSocial);
 
     let socialScrapes = [];
     if (socialUrls.length) {
+      if (fromWebsite.length) {
+        yield {
+          type: 'log',
+          message: `Found on website: ${fromWebsite.map((u) => socialLabel(u)).join(', ')}`,
+        };
+      }
       yield { type: 'log', message: `Found ${socialUrls.length} social profile${socialUrls.length > 1 ? 's' : ''}` };
       const labels = socialUrls.map((u) => socialLabel(cleanSocialUrl(u))).join(', ');
       yield { type: 'log', message: `Reading ${labels} — this step can take 10–30 seconds...` };

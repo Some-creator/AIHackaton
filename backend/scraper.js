@@ -14,8 +14,8 @@ export async function scrapeWebsite(url) {
     },
     body: JSON.stringify({
       url,
-      formats: ['markdown'],
-      onlyMainContent: true,
+      formats: ['markdown', 'links'],
+      onlyMainContent: false,
     }),
     signal: AbortSignal.timeout(20000),
   });
@@ -27,10 +27,11 @@ export async function scrapeWebsite(url) {
 
   const data = await response.json();
   const content = data.data?.markdown || data.data?.content || '';
+  const links = Array.isArray(data.data?.links) ? data.data.links : [];
 
   if (!content.trim()) {
     throw new Error('Firecrawl returned empty content');
   }
 
-  return { url, content, success: true, mock: false };
+  return { url, content, links, success: true, mock: false };
 }
