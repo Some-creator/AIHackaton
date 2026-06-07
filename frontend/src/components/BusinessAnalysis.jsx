@@ -4,6 +4,7 @@ import ServiceTags from './ServiceTags';
 import SocialProfileTags from './SocialProfileTags';
 import ActivityLog from './ActivityLog';
 import StepNavigation from './StepNavigation';
+import PrimaryButton from './ui/PrimaryButton';
 import {
   US_STATE_OPTIONS,
   applyUserLocationUpdate,
@@ -125,7 +126,7 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
         )}
       </div>
 
-      <div className={`rounded-2xl border p-6 mb-8 space-y-5 transition-all duration-300 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md' : 'bg-white border-gray-200'}`}>
+      <div className="surface-card p-6 mb-8 space-y-5">
         <p className={`text-xs ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>
           <span className="text-red-500">*</span> Required fields
         </p>
@@ -236,27 +237,14 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
 
       {!hasAnalysis ? (
         <>
-          <button
+          <PrimaryButton
             onClick={handleAnalyze}
-            disabled={loading || needsLocation}
-            className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-              loading || needsLocation
-                ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
-            }`}
+            disabled={needsLocation}
+            loading={loading}
+            loadingText="Analyzing your business..."
           >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Analyzing your business...
-              </>
-            ) : (
-              'Analyze My Business'
-            )}
-          </button>
+            Analyze My Business
+          </PrimaryButton>
 
           {(loading || analysisFinishing) && (
             <ActivityLog
@@ -282,27 +270,14 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             <AnalysisSection title="Missing" items={analysis.missing} color="red" isDark={isDark} />
           </div>
 
-          <button
+          <PrimaryButton
             onClick={handleContinue}
-            disabled={loading || needsLocation}
-            className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-              loading || needsLocation
-                ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-                : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
-            }`}
+            disabled={needsLocation}
+            loading={loading}
+            loadingText="Benchmarking competitors..."
           >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Benchmarking competitors...
-              </>
-            ) : (
-              'Continue to Competitor Benchmark'
-            )}
-          </button>
+            Continue to Competitor Benchmark
+          </PrimaryButton>
 
           {(loading || benchmarkFinishing) && (
             <ActivityLog

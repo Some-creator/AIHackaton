@@ -3,6 +3,7 @@ import { Sparkles, Globe, Star, Share2, Users, ArrowRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ActivityLog from './ActivityLog';
 import StepNavigation from './StepNavigation';
+import PrimaryButton from './ui/PrimaryButton';
 
 const SCAN_CHIPS = [
   { label: 'Website', icon: Globe },
@@ -107,30 +108,17 @@ export default function Onboarding({ onSubmit, loading, ingestFinishing = false,
               />
             </div>
 
-            <button
+            <PrimaryButton
               type="submit"
-              disabled={loading || !url.trim()}
-              className={`group w-full mt-6 px-6 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-                loading || !url.trim()
-                  ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-hookline-500 to-hookline-600 hover:to-hookline-500 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
-              }`}
+              width="full"
+              disabled={!url.trim()}
+              loading={loading}
+              loadingText="Analyzing your business..."
+              icon={<ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />}
+              className="group mt-6"
             >
-              {loading ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Analyzing your business...
-                </>
-              ) : (
-                <>
-                  Get Started
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                </>
-              )}
-            </button>
+              Get Started
+            </PrimaryButton>
 
             {/* What we scan */}
             <div className="mt-6 pt-5 border-t border-dashed border-zinc-500/20">

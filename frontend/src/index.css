@@ -184,6 +184,45 @@
     @apply bg-hookline-500/40 text-white/60 cursor-not-allowed shadow-none translate-y-0;
   }
 
+  /* Pill-shaped primary action (marketing / hero / auth) */
+  .btn-primary-pill {
+    @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-white font-button
+      bg-hookline-500 transition-all duration-200;
+    box-shadow: 0 2px 12px -2px rgba(79, 110, 247, 0.25);
+  }
+  .btn-primary-pill:hover {
+    @apply bg-hookline-600 -translate-y-0.5;
+    box-shadow: 0 8px 30px -6px rgba(79, 110, 247, 0.35);
+  }
+  .btn-primary-pill:active {
+    @apply translate-y-0;
+  }
+  .btn-primary-pill:disabled {
+    @apply bg-hookline-500/40 text-white/60 cursor-not-allowed shadow-none translate-y-0;
+  }
+
+  /* Standard content surface — consistent border / bg / radius across the app */
+  .surface-card {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300;
+  }
+  .dark .surface-card {
+    @apply border-zinc-800 bg-zinc-900/60 shadow-none backdrop-blur-md;
+  }
+
+  /* Interactive surface (clickable cards) — adds a hover affordance */
+  .surface-card-interactive {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 cursor-pointer;
+  }
+  .surface-card-interactive:hover {
+    @apply border-hookline-300 shadow-md;
+  }
+  .dark .surface-card-interactive {
+    @apply border-zinc-800 bg-zinc-900/60 shadow-none backdrop-blur-md;
+  }
+  .dark .surface-card-interactive:hover {
+    @apply border-hookline-500/40 shadow-none;
+  }
+
   /* Surface card with hover lift */
   .card-lift {
     @apply transition-all duration-300;

@@ -1,6 +1,7 @@
 import { useTheme } from '../context/ThemeContext';
 import ActivityLog from './ActivityLog';
 import StepNavigation from './StepNavigation';
+import PrimaryButton from './ui/PrimaryButton';
 
 export default function CompetitorBenchmark({ competitors, mock = false, mockReason, onContinue, loading, gapLogs = [], gapFinishing = false, onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
@@ -40,7 +41,7 @@ export default function CompetitorBenchmark({ competitors, mock = false, mockRea
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {competitors.map((comp, i) => (
-          <div key={i} className={`card-lift animate-rise rounded-2xl shadow-lg border p-6 ${isDark ? 'bg-zinc-900/60 border-zinc-800 backdrop-blur-md hover:border-zinc-700' : 'bg-white border-gray-200 hover:shadow-xl'}`} style={{ animationDelay: `${0.05 + i * 0.05}s` }}>
+          <div key={i} className="surface-card card-lift animate-rise p-6" style={{ animationDelay: `${0.05 + i * 0.05}s` }}>
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>{comp.name}</h3>
@@ -109,27 +110,9 @@ export default function CompetitorBenchmark({ competitors, mock = false, mockRea
         </div>
       )}
 
-      <button
-        onClick={onContinue}
-        disabled={loading}
-        className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-          loading
-            ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-            : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
-        }`}
-      >
-        {loading ? (
-          <>
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Finding market gaps...
-          </>
-        ) : (
-          'Find Market Gaps'
-        )}
-      </button>
+      <PrimaryButton onClick={onContinue} loading={loading} loadingText="Finding market gaps...">
+        Find Market Gaps
+      </PrimaryButton>
     </div>
   );
 }

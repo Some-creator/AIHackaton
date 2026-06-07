@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import StepNavigation from './StepNavigation';
+import PrimaryButton from './ui/PrimaryButton';
 
 const competitionColors = {
   low: 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300',
@@ -100,27 +101,9 @@ export default function MarketGap({ gaps, recommendedGap, onConfirm, loading, on
         })}
       </div>
 
-      <button
-        onClick={() => onConfirm(selectedIdx)}
-        disabled={loading}
-        className={`w-full md:w-auto px-8 py-3.5 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
-          loading
-            ? 'bg-hookline-500/40 text-white/60 cursor-not-allowed'
-            : 'bg-hookline-500 hover:bg-hookline-600 text-white shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5'
-        }`}
-      >
-        {loading ? (
-          <>
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Generating leads...
-          </>
-        ) : (
-          'Confirm Target & Generate Leads'
-        )}
-      </button>
+      <PrimaryButton onClick={() => onConfirm(selectedIdx)} loading={loading} loadingText="Generating leads...">
+        Confirm Target &amp; Generate Leads
+      </PrimaryButton>
     </div>
   );
 }

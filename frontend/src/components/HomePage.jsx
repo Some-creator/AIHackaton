@@ -67,7 +67,7 @@ export default function HomePage({ onGetStarted }) {
           <button
             type="button"
             onClick={onGetStarted}
-            className="w-full sm:w-auto px-8 py-3.5 bg-hookline-500 hover:bg-hookline-600 text-white font-button rounded-full transition-all duration-200 shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5"
+            className="btn-primary-pill w-full sm:w-auto"
           >
             Get Started — It&apos;s Free
           </button>
@@ -231,7 +231,7 @@ export default function HomePage({ onGetStarted }) {
             <button
               type="button"
               onClick={onGetStarted}
-              className="px-8 py-3.5 bg-hookline-500 hover:bg-hookline-600 text-white font-button rounded-full transition-all duration-200 shadow-glow-sm hover:shadow-glow hover:-translate-y-0.5"
+              className="btn-primary-pill"
             >
               Analyze My Business
             </button>
