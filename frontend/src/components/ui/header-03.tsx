@@ -1,13 +1,15 @@
 import * as React from 'react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowUpRight, Menu, Moon, Sun, X, Zap } from 'lucide-react';
+import { ArrowUpRight, Menu, Moon, Sun, X } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import HookLineLogo from '@/components/HookLineLogo';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Toggle } from '@/components/ui/toggle';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
+  { name: 'Who it\'s for', href: '#who-its-for' },
   { name: 'How it works', href: '#how-it-works' },
   { name: 'Features', href: '#features' },
   { name: 'Pricing', href: '#pricing', route: true },
@@ -34,6 +36,7 @@ type HeaderProps = {
   user?: HeaderUser | null;
   showAuthButtons?: boolean;
   showGetStarted?: boolean;
+  workflowMode?: boolean;
   centerContent?: ReactNode;
 };
 
@@ -48,10 +51,11 @@ export function Header({
   user,
   showAuthButtons = false,
   showGetStarted = false,
+  workflowMode = false,
   centerContent,
 }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const showHomeNav = !centerContent;
+  const showHomeNav = !centerContent && !workflowMode;
 
   const handleNavClick = (item: (typeof navLinks)[number]) => (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -77,16 +81,15 @@ export function Header({
             type="button"
             onClick={onLogoClick}
             aria-label="HookLine home"
-            className="group flex h-11 items-center gap-2 rounded-xl bg-hookline-600 px-3 transition-colors duration-200 hover:bg-hookline-500 md:h-12 md:px-3.5"
+            className="-ml-0.5 rounded-xl py-1 transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Zap className="h-4 w-4 shrink-0 text-white md:h-[18px] md:w-[18px]" aria-hidden="true" />
-            <span className="hidden pr-0.5 font-heading text-lg font-bold tracking-tight text-white sm:inline md:text-xl">
-              HookLine
-            </span>
+            <HookLineLogo size="md" />
           </button>
 
           {centerContent ? (
             <div className="hidden flex-1 justify-center md:flex">{centerContent}</div>
+          ) : workflowMode ? (
+            <div className="hidden flex-1 md:block" aria-hidden="true" />
           ) : (
             <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
               {navLinks.map((item) => (
@@ -152,11 +155,8 @@ export function Header({
             </SheetTrigger>
             <SheetContent side="right" className="w-full overflow-y-auto border-border bg-background p-6 sm:max-w-md">
               <div className="flex h-full flex-col">
-                <div className="mb-6 flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-hookline-600">
-                    <Zap className="h-5 w-5 text-white" />
-                  </div>
-                  <span className="font-heading text-lg font-bold">HookLine</span>
+                <div className="mb-6">
+                  <HookLineLogo size="lg" showTagline />
                 </div>
 
                 {showHomeNav && (

@@ -1,17 +1,17 @@
-const SOCIAL_DOMAINS = /instagram\.com|facebook\.com|twitter\.com|x\.com|tiktok\.com|linkedin\.com|youtube\.com/i;
+import { isSocialHostname, isSocialUrl } from './socialDomains.js';
 
 export async function scrapeWebsite(url) {
   try {
     const urlWithProto = url.includes('://') ? url : `http://${url}`;
     const parsed = new URL(urlWithProto);
-    if (SOCIAL_DOMAINS.test(parsed.hostname)) {
+    if (isSocialHostname(parsed.hostname)) {
       throw new Error(`Social media URLs (${parsed.hostname}) cannot be scraped directly. Please use a standard business website or verify social scraper configuration.`);
     }
   } catch (err) {
     if (err.message.includes('cannot be scraped')) {
       throw err;
     }
-    if (SOCIAL_DOMAINS.test(url)) {
+    if (isSocialUrl(url)) {
       throw new Error('Social media URLs cannot be scraped directly. Please use a standard business website or verify social scraper configuration.');
     }
   }
@@ -37,7 +37,20 @@ export async function scrapeWebsite(url) {
 
   if (!response.ok) {
     const errBody = await response.text().catch(() => '');
-    throw new Error(`Firecrawl scrape failed (${response.status}): ${errBody.slice(0, 200)}`);
+    const statusHint =
+      response.status === 404
+        ? 'Page not found (404)'
+        : response.status === 403
+          ? 'Access blocked (403)'
+          : response.status === 408 || response.status === 504
+            ? 'Request timed out'
+            : null;
+    const detail = errBody.slice(0, 200);
+    throw new Error(
+      statusHint
+        ? `Could not read website — ${statusHint}. Check the URL and try your homepage.`
+        : `Could not read website (scraper error ${response.status})${detail ? `: ${detail}` : ''}`,
+    );
   }
 
   const data = await response.json();

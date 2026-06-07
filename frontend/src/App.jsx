@@ -9,6 +9,7 @@ import MarketGap from './components/MarketGap';
 import LeadGeneration from './components/LeadGeneration';
 import Dashboard from './components/Dashboard';
 import PricingPage from './components/PricingPage';
+import WorkflowStepper from './components/WorkflowStepper';
 import AmbientBackground from './components/ui/AmbientBackground';
 import { Header } from '@/components/ui/header-03';
 import { useTheme } from './context/ThemeContext';
@@ -16,17 +17,10 @@ import { useAuth } from './context/AuthContext';
 import { useCredits } from './context/CreditsContext';
 import * as api from './api';
 import { sortLeadsByPriority } from './lib/leadUtils';
+import { humanizeIngestError } from './lib/urlValidation';
 import { appendMockHistory, buildMockHistoryEntry, getMockCompany } from './lib/mockHistory';
 
 const STEPS = ['home', 'auth', 'pricing', 'dashboard', 'onboarding', 'analysis', 'competitors', 'gap', 'leads'];
-
-const stepLabels = {
-  onboarding: 'Start',
-  analysis: 'Analysis',
-  competitors: 'Competitors',
-  gap: 'Market Gap',
-  leads: 'Leads',
-};
 
 const PREVIOUS_STEP = {
   auth: 'home',
@@ -56,7 +50,7 @@ const NEXT_LABELS = {
 
 const FLOW_STEPS = ['onboarding', 'analysis', 'competitors', 'gap', 'leads'];
 
-const HOME_SECTIONS = new Set(['how-it-works', 'features']);
+const HOME_SECTIONS = new Set(['who-its-for', 'how-it-works', 'features']);
 
 function scrollToHomeSection(sectionId) {
   const el = document.getElementById(sectionId);
@@ -92,6 +86,7 @@ export default function App() {
   const [leadLogs, setLeadLogs] = useState([]);
   const [leadFinishing, setLeadFinishing] = useState(false);
   const [pendingHomeSection, setPendingHomeSection] = useState(null);
+  const [animatingConnectorIndex, setAnimatingConnectorIndex] = useState(null);
 
   const handleHomeSectionNav = useCallback((sectionId) => {
     if (!HOME_SECTIONS.has(sectionId)) return;
@@ -171,7 +166,7 @@ export default function App() {
   }, [step, pendingPurchasePackId, user, purchasePack, refreshCredits]);
 
   const reportError = useCallback(async (err) => {
-    const raw = err?.message || 'Something went wrong.';
+    const raw = humanizeIngestError(err?.message || 'Something went wrong.');
     const looksLikeConnection = /stream lost|Failed to fetch|NetworkError|load failed|Health check failed/i.test(raw);
     if (!looksLikeConnection) {
       setError(raw);
@@ -290,6 +285,7 @@ export default function App() {
 
   const handleIngest = async (url, socialProfiles) => {
     setLoading(true);
+    setAnimatingConnectorIndex(1);
     setError(null);
     setIngestLogs([]);
     try {
@@ -362,6 +358,7 @@ export default function App() {
     } finally {
       setIngestFinishing(false);
       setLoading(false);
+      setAnimatingConnectorIndex(null);
       setIngestLogs([]);
     }
   };
@@ -411,6 +408,7 @@ export default function App() {
 
   const handleContinueToBenchmark = async (updatedBusiness) => {
     setLoading(true);
+    setAnimatingConnectorIndex(2);
     setError(null);
     setBenchmarkLogs([]);
     try {
@@ -449,12 +447,14 @@ export default function App() {
     } finally {
       setBenchmarkFinishing(false);
       setLoading(false);
+      setAnimatingConnectorIndex(null);
       setBenchmarkLogs([]);
     }
   };
 
   const handleFindGaps = async () => {
     setLoading(true);
+    setAnimatingConnectorIndex(3);
     setError(null);
     setGapLogs([]);
     try {
@@ -493,12 +493,14 @@ export default function App() {
     } finally {
       setGapFinishing(false);
       setLoading(false);
+      setAnimatingConnectorIndex(null);
       setGapLogs([]);
     }
   };
 
   const handleConfirmGap = async (gapIndex) => {
     setLoading(true);
+    setAnimatingConnectorIndex(4);
     setError(null);
     setLeads([]);
     setLeadLogs([]);
@@ -533,6 +535,7 @@ export default function App() {
     } finally {
       setLeadFinishing(false);
       setLoading(false);
+      setAnimatingConnectorIndex(null);
       setLeadLogs([]);
     }
   };
@@ -669,70 +672,33 @@ export default function App() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [step]);
 
-  const currentStepIndex = STEPS.indexOf(step);
-
   const isHomeOrAuth = step === 'home' || step === 'auth' || step === 'pricing';
+  const isWorkflowStep =
+    step === 'onboarding' ||
+    step === 'analysis' ||
+    step === 'competitors' ||
+    step === 'gap' ||
+    step === 'leads';
 
-  const stepNav =
-    step !== 'home' && step !== 'auth' && step !== 'dashboard' && step !== 'onboarding' ? (
-      <nav className="flex items-center gap-1">
-        {STEPS.slice(4).map((s, i) => {
-          const stepIndex = i + 4;
-          const isActive = currentStepIndex === stepIndex;
-          const isBehind = currentStepIndex > stepIndex;
-          const isAheadComplete = currentStepIndex < stepIndex && canNavigateToStep(s);
-          const isClickable = !loading && (isBehind || isAheadComplete);
-          return (
-            <div key={s} className="flex items-center">
-              {i > 0 && (
-                <div
-                  className={`w-6 h-0.5 ${
-                    isBehind || isAheadComplete
-                      ? isDark
-                        ? 'bg-hookline-400/70'
-                        : 'bg-hookline-400'
-                      : isDark
-                        ? 'bg-zinc-700'
-                        : 'bg-gray-200'
-                  }`}
-                />
-              )}
-              {isClickable ? (
-                <button
-                  type="button"
-                  onClick={() => handleGoToStep(s)}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-full transition hover:opacity-80 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-hookline-500 to-violet-600 text-white shadow-sm shadow-hookline-500/25'
-                      : isDark
-                        ? 'bg-hookline-500/20 text-hookline-300'
-                        : 'bg-hookline-100 text-hookline-700'
-                  }`}
-                >
-                  {stepLabels[s]}
-                </button>
-              ) : (
-                <span
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
-                    isActive
-                      ? 'bg-gradient-to-r from-hookline-500 to-violet-600 text-white shadow-sm shadow-hookline-500/25'
-                      : isBehind || isAheadComplete
-                        ? isDark
-                          ? 'bg-hookline-500/20 text-hookline-300'
-                          : 'bg-hookline-100 text-hookline-700'
-                        : isDark
-                          ? 'bg-zinc-800 text-zinc-500'
-                          : 'bg-gray-100 text-gray-400'
-                  }`}
-                >
-                  {stepLabels[s]}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </nav>
-    ) : null;
+  const workflowTransitionActive =
+    animatingConnectorIndex != null &&
+    (loading ||
+      streaming ||
+      ingestFinishing ||
+      analysisFinishing ||
+      benchmarkFinishing ||
+      gapFinishing ||
+      leadFinishing);
+
+  const workflowStepperProps = {
+    currentStep: step,
+    onGoToStep: handleGoToStep,
+    canNavigateToStep,
+    loading,
+    isDark,
+    animatingConnectorIndex,
+    transitionActive: workflowTransitionActive,
+  };
 
   return (
     <div className={`min-h-screen flex flex-col pt-16 md:pt-20 transition-colors duration-300 ${isHomeOrAuth ? (isDark ? 'bg-background' : 'bg-[#f5f5f7]') : 'app-atmosphere'}`}>
@@ -747,19 +713,31 @@ export default function App() {
         user={user}
         showAuthButtons={(step === 'home' || step === 'pricing') && !user}
         showGetStarted={step === 'home' || step === 'auth' || step === 'pricing'}
-        centerContent={stepNav}
+        workflowMode={isWorkflowStep}
       />
 
       {!isHomeOrAuth && <AmbientBackground />}
 
-      <main className={isHomeOrAuth ? 'flex-1 w-full' : 'relative z-10 flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full'}>
+      {isWorkflowStep && (
+        <aside className="hidden lg:block fixed left-3 xl:left-6 2xl:left-10 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+          <div className="pointer-events-auto">
+            <WorkflowStepper {...workflowStepperProps} orientation="vertical" />
+          </div>
+        </aside>
+      )}
+
+      <main
+        className={`relative z-10 flex-1 w-full py-10 ${
+          isHomeOrAuth ? 'max-w-none' : 'mx-auto px-4 sm:px-6 max-w-6xl'
+        }`}
+      >
         {authLoading && !isHomeOrAuth && (
           <div className={`mb-6 text-center text-sm font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
             Checking authentication…
           </div>
         )}
 
-        {error && (
+        {error && step !== 'onboarding' && (
           <div className={`mb-8 rounded-2xl border overflow-hidden ${
             isDark ? 'border-red-500/30 bg-red-950/20' : 'border-red-200 bg-red-50'
           }`}>
@@ -809,6 +787,17 @@ export default function App() {
         )}
 
         {!isHomeOrAuth && (
+            <div className="w-full">
+              {isWorkflowStep && (
+                <div
+                  className={`lg:hidden sticky top-16 md:top-20 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mb-6 border-b backdrop-blur-md ${
+                    isDark ? 'border-zinc-800/80 bg-background/90' : 'border-gray-200 bg-white/90'
+                  }`}
+                >
+                  <WorkflowStepper {...workflowStepperProps} orientation="horizontal" />
+                </div>
+              )}
+
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={step}
@@ -832,6 +821,8 @@ export default function App() {
                   loading={loading}
                   ingestFinishing={ingestFinishing}
                   logs={ingestLogs}
+                  submitError={error}
+                  onClearError={() => setError(null)}
                   onBack={handleBack}
                   backLabel={BACK_LABELS[PREVIOUS_STEP.onboarding]}
                   onNext={nextStep ? handleNext : null}
@@ -913,6 +904,7 @@ export default function App() {
               )}
             </motion.div>
           </AnimatePresence>
+            </div>
         )}
       </main>
     </div>

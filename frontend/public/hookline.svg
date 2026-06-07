@@ -1,6 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#4f6ef7"/>
-  <path d="M8 16c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-  <circle cx="16" cy="18" r="2" fill="white"/>
-  <path d="M16 20v4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="hookline">
+  <defs>
+    <linearGradient id="hl-icon-blue" x1="6" y1="4" x2="26" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="9" fill="url(#hl-icon-blue)"/>
+  <circle cx="12" cy="9" r="2.2" stroke="#ffffff" stroke-width="1.8"/>
+  <path d="M12 11.5V22" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M12 17.5C12 17.5 18 17.5 20.5 20C23 22.5 21.5 26.5 17 26.5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="17" cy="26.5" r="1.5" fill="#ffffff"/>
 </svg>

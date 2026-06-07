@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Sparkles, Globe, Star, Share2, Users, ArrowRight } from 'lucide-react';
+import { Sparkles, Globe, Star, Share2, Users, ArrowRight, AlertCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ActivityLog from './ActivityLog';
 import StepNavigation from './StepNavigation';
 import PrimaryButton from './ui/PrimaryButton';
+import { humanizeIngestError, validateBusinessUrl } from '../lib/urlValidation';
 
 const SCAN_CHIPS = [
   { label: 'Website', icon: Globe },
@@ -12,21 +13,44 @@ const SCAN_CHIPS = [
   { label: 'Competitors', icon: Users },
 ];
 
-export default function Onboarding({ onSubmit, loading, ingestFinishing = false, logs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
+export default function Onboarding({
+  onSubmit,
+  loading,
+  ingestFinishing = false,
+  logs = [],
+  submitError = null,
+  onClearError,
+  onBack,
+  backLabel,
+  onNext,
+  nextLabel,
+  navDisabled,
+}) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [url, setUrl] = useState('');
+  const [fieldError, setFieldError] = useState('');
 
   const [socialLinks, setSocialLinks] = useState('');
 
+  const displayError = fieldError || (submitError ? humanizeIngestError(submitError) : '');
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+    setFieldError('');
+    onClearError?.();
+
+    const check = validateBusinessUrl(url);
+    if (!check.ok) {
+      setFieldError(check.error);
+      return;
+    }
+
     const socialProfiles = socialLinks
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
-    onSubmit(formattedUrl, socialProfiles);
+    onSubmit(check.url, socialProfiles);
   };
 
   return (
@@ -56,7 +80,7 @@ export default function Onboarding({ onSubmit, loading, ingestFinishing = false,
             <span className="text-gradient-animate">business</span>
           </h1>
           <p className={`max-w-md mx-auto text-base ${isDark ? 'text-zinc-400' : 'text-gray-600'}`}>
-            Drop in your website and HookLine builds your full profile in seconds.
+            Paste the website for your local business — cafés, caterers, shops, and service providers work best.
           </p>
         </div>
 
@@ -77,13 +101,44 @@ export default function Onboarding({ onSubmit, loading, ingestFinishing = false,
               <input
                 type="text"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (fieldError) setFieldError('');
+                  if (submitError) onClearError?.();
+                }}
                 placeholder="yourbusiness.com"
-                className={`w-full pl-11 pr-4 py-3 rounded-xl border outline-none transition focus:ring-2 focus:ring-hookline-500 focus:border-hookline-500 ${isDark ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500' : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'}`}
+                aria-invalid={Boolean(displayError)}
+                aria-describedby={displayError ? 'url-error' : undefined}
+                className={`w-full pl-11 pr-4 py-3 rounded-xl border outline-none transition focus:ring-2 focus:ring-hookline-500 focus:border-hookline-500 ${
+                  displayError
+                    ? isDark
+                      ? 'bg-zinc-900 border-red-500/60 text-white placeholder:text-zinc-500'
+                      : 'bg-white border-red-400 text-gray-900 placeholder:text-gray-400'
+                    : isDark
+                      ? 'bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder:text-gray-400'
+                }`}
                 required
                 disabled={loading}
               />
             </div>
+            {displayError && (
+              <div
+                id="url-error"
+                role="alert"
+                className={`mt-2 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm ${
+                  isDark
+                    ? 'border-red-500/30 bg-red-950/30 text-red-200'
+                    : 'border-red-200 bg-red-50 text-red-800'
+                }`}
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" aria-hidden="true" />
+                <p>{displayError}</p>
+              </div>
+            )}
+            <p className={`mt-2 text-xs ${isDark ? 'text-zinc-500' : 'text-gray-500'}`}>
+              Use your main business site — not Instagram, Facebook, or a big brand store page.
+            </p>
 
             <label className={`block text-sm font-semibold mt-5 mb-2 ${isDark ? 'text-zinc-300' : 'text-gray-700'}`}>
               Social media links <span className={`font-normal ${isDark ? 'text-zinc-500' : 'text-gray-400'}`}>(optional — we also scan your website for these)</span>

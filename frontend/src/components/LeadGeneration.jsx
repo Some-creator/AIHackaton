@@ -9,8 +9,7 @@ import LeadCard from './LeadCard';
 import StepNavigation from './StepNavigation';
 
 const createDotIcon = (lead, selected = false) => {
-  const isPriority = parseFloat(lead.priorityScore) >= 8.0;
-  const dotColor = isPriority ? '#ef4444' : '#3b82f6';
+  const dotColor = '#3b82f6';
   return L.divIcon({
     html: `
       <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; height: 60px; pointer-events: none;">

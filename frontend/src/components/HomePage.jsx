@@ -50,6 +50,22 @@ const features = [
   },
 ];
 
+const audience = [
+  {
+    title: 'Local business owners',
+    description: 'Independent cafés, caterers, shops, and service providers who want more customers without guessing.',
+  },
+  {
+    title: 'Operators ready to grow',
+    description: 'You have a website and reviews, but need clarity on competitors, gaps, and who to reach out to next.',
+  },
+  {
+    title: 'Not built for',
+    description: 'National chains, franchise pages, or big e-commerce catalogs — HookLine works best for local SMBs.',
+    muted: true,
+  },
+];
+
 export default function HomePage({ onGetStarted, onScrollToSection }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -62,7 +78,7 @@ export default function HomePage({ onGetStarted, onScrollToSection }) {
         title1="Are businesses ignoring you?"
         title1Highlight="businesses"
         title2="Don't worry."
-        description="Paste your website. HookLine analyzes your business, finds market gaps, and generates qualified leads — fast."
+        description="HookLine turns your website into a growth playbook — analyze your business, benchmark local competitors, find market gaps, and generate qualified leads."
       >
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-lg sm:max-w-none mx-auto">
           <button
@@ -111,6 +127,50 @@ export default function HomePage({ onGetStarted, onScrollToSection }) {
       >
         <DashboardPreview theme={theme} />
       </ContainerScroll>
+
+      <section
+        id="who-its-for"
+        className={`scroll-mt-20 md:scroll-mt-24 transition-colors duration-300 ${
+          isDark ? 'bg-background' : 'bg-white'
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 md:py-16">
+          <div className="text-center mb-10 max-w-2xl mx-auto">
+            <p className="eyebrow mb-3">Purpose</p>
+            <h2 className={`font-section-title text-3xl sm:text-4xl ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              Built for local businesses that need customers, not corporate dashboards
+            </h2>
+            <p className={`mt-4 font-body-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              HookLine reads your website, maps how you compare to nearby competitors, surfaces market gaps,
+              and hands you qualified leads with contact info — so you know who to call and why.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {audience.map((item) => (
+              <div
+                key={item.title}
+                className={`rounded-3xl border p-6 ${
+                  item.muted
+                    ? isDark
+                      ? 'border-zinc-800/80 bg-zinc-900/30'
+                      : 'border-gray-200 bg-gray-50'
+                    : isDark
+                      ? 'border-zinc-800 bg-zinc-900/60 hover:border-hookline-500/40 transition'
+                      : 'border-gray-200 bg-[#f5f5f7] hover:border-hookline-300 transition'
+                }`}
+              >
+                <h3 className={`font-section-title mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  {item.title}
+                </h3>
+                <p className={`text-sm font-body leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section
         id="how-it-works"

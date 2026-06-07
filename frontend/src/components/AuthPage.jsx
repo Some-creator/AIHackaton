@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Mail, Lock, Loader2, X } from 'lucide-react';
+import HookLineLogo from './HookLineLogo';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -95,6 +96,9 @@ export default function AuthPage({ onSuccess, onClose }) {
   ) : (
     <>
       <div className="text-center mb-8 pr-6">
+        <div className="mb-5 flex justify-center">
+          <HookLineLogo size="lg" showTagline />
+        </div>
         <h1 className={`text-3xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {mode === 'signin' ? 'Welcome back' : 'Create your account'}
         </h1>
