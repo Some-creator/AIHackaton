@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { buildLeadEmailTemplate, buildMailtoLink } from '../lib/leadEmailTemplate';
 
@@ -50,8 +50,16 @@ export default function LeadCard({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [showEmail, setShowEmail] = useState(false);
+  const [emailTemplate, setEmailTemplate] = useState(null);
   const [hookExpanded, setHookExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setShowEmail(false);
+    setEmailTemplate(null);
+    setCopied(false);
+    setHookExpanded(false);
+  }, [lead.name]);
 
   if (skipped) return null;
 
@@ -60,17 +68,26 @@ export default function LeadCard({
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`
     : null;
 
-  const emailTemplate = buildLeadEmailTemplate({ lead, business, analysis, marketGap });
-  const mailtoLink = buildMailtoLink(lead.email, emailTemplate.subject, emailTemplate.body);
+  const mailtoLink = emailTemplate
+    ? buildMailtoLink(lead.email, emailTemplate.subject, emailTemplate.body)
+    : null;
 
   const handleGenerateEmail = (e) => {
     e.stopPropagation();
-    setShowEmail((prev) => !prev);
+    if (showEmail) {
+      setShowEmail(false);
+      setEmailTemplate(null);
+      setCopied(false);
+      return;
+    }
+    setEmailTemplate(buildLeadEmailTemplate({ lead, business, analysis, marketGap }));
+    setShowEmail(true);
     setCopied(false);
   };
 
   const handleCopyEmail = async (e) => {
     e.stopPropagation();
+    if (!emailTemplate) return;
     const text = `Subject: ${emailTemplate.subject}\n\n${emailTemplate.body}`;
     try {
       await navigator.clipboard.writeText(text);
@@ -220,7 +237,7 @@ export default function LeadCard({
           {showEmail ? 'Hide template email' : 'Generate template email'}
         </button>
 
-        {showEmail && (
+        {showEmail && emailTemplate && (
           <div
             className={`rounded-xl space-y-2 border max-h-36 overflow-y-auto ${
               compact ? 'p-3' : 'p-4 mb-4'
