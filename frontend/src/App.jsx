@@ -98,11 +98,31 @@ export default function App() {
     try {
       const { sessionId } = await api.createIngestSession(url, socialProfiles);
 
+      const INGEST_TIMEOUT_MS = 120000;
       const ingestResult = await new Promise((resolve, reject) => {
-        api.streamIngest(sessionId, {
+        let settled = false;
+        let eventSource;
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          eventSource?.close();
+          reject(new Error('Analysis timed out after 2 minutes. Try again, or remove long tracking links from the URL.'));
+        }, INGEST_TIMEOUT_MS);
+
+        eventSource = api.streamIngest(sessionId, {
           onLog: (message) => setIngestLogs((prev) => [...prev, message]),
-          onComplete: resolve,
-          onError: reject,
+          onComplete: (data) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            resolve(data);
+          },
+          onError: (err) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            reject(err);
+          },
         });
       });
 

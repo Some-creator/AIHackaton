@@ -203,10 +203,12 @@ export async function* streamIngestion(url, socialProfiles = []) {
   if (!normalizedUrl) throw new Error('Website URL is required');
 
   if (!hasFirecrawl) {
-    throw new Error('Website scraping unavailable — FIRECRAWL_API_KEY not set in .env');
+    yield { type: 'error', error: 'Website scraping unavailable — FIRECRAWL_API_KEY not set in .env' };
+    return;
   }
   if (!hasAnthropic) {
-    throw new Error('AI analysis unavailable — ANTHROPIC_API_KEY not set in .env');
+    yield { type: 'error', error: 'AI analysis unavailable — ANTHROPIC_API_KEY not set in .env' };
+    return;
   }
 
   yield { type: 'log', message: 'Starting website analysis...' };
@@ -227,6 +229,8 @@ export async function* streamIngestion(url, socialProfiles = []) {
     let socialScrapes = [];
     if (socialUrls.length) {
       yield { type: 'log', message: `Found ${socialUrls.length} social profile${socialUrls.length > 1 ? 's' : ''}` };
+      const labels = socialUrls.map((u) => socialLabel(cleanSocialUrl(u))).join(', ');
+      yield { type: 'log', message: `Reading ${labels} — this step can take 10–30 seconds...` };
       const pendingLogs = [];
       socialScrapes = await scrapeSocialProfiles(socialUrls, (msg) => pendingLogs.push(msg));
       for (const msg of pendingLogs) yield { type: 'log', message: msg };

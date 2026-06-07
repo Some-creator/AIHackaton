@@ -131,6 +131,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
   }
 
   const stopHeartbeat = openSseStream(req, res);
+  res.write(`data: ${JSON.stringify({ type: 'log', message: 'Agent connected — preparing analysis...' })}\n\n`);
 
   let companyId = null;
 
