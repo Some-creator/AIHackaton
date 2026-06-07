@@ -87,7 +87,7 @@ export default function AuthPage({ onSuccess, onClose }) {
       <button
         type="button"
         onClick={handleMockBypass}
-        className="w-full py-3.5 bg-hookline-500 hover:bg-hookline-600 text-white font-bold rounded-full transition flex items-center justify-center gap-2"
+        className="btn-primary-pill w-full"
       >
         Bypass Auth (Mock Mode)
       </button>
@@ -178,7 +178,7 @@ export default function AuthPage({ onSuccess, onClose }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 bg-hookline-500 hover:bg-hookline-600 text-white font-bold rounded-full transition disabled:opacity-50 flex items-center justify-center gap-2"
+          className="btn-primary-pill w-full"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
           {mode === 'signin' ? 'Sign In' : 'Create Account'}

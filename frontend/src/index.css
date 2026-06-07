@@ -184,6 +184,45 @@
     @apply bg-hookline-500/40 text-white/60 cursor-not-allowed shadow-none translate-y-0;
   }
 
+  /* Pill-shaped primary action (marketing / hero / auth) */
+  .btn-primary-pill {
+    @apply inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-white font-button
+      bg-hookline-500 transition-all duration-200;
+    box-shadow: 0 2px 12px -2px rgba(79, 110, 247, 0.25);
+  }
+  .btn-primary-pill:hover {
+    @apply bg-hookline-600 -translate-y-0.5;
+    box-shadow: 0 8px 30px -6px rgba(79, 110, 247, 0.35);
+  }
+  .btn-primary-pill:active {
+    @apply translate-y-0;
+  }
+  .btn-primary-pill:disabled {
+    @apply bg-hookline-500/40 text-white/60 cursor-not-allowed shadow-none translate-y-0;
+  }
+
+  /* Standard content surface — consistent border / bg / radius across the app */
+  .surface-card {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300;
+  }
+  .dark .surface-card {
+    @apply border-zinc-800 bg-zinc-900/60 shadow-none backdrop-blur-md;
+  }
+
+  /* Interactive surface (clickable cards) — adds a hover affordance */
+  .surface-card-interactive {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 cursor-pointer;
+  }
+  .surface-card-interactive:hover {
+    @apply border-hookline-300 shadow-md;
+  }
+  .dark .surface-card-interactive {
+    @apply border-zinc-800 bg-zinc-900/60 shadow-none backdrop-blur-md;
+  }
+  .dark .surface-card-interactive:hover {
+    @apply border-hookline-500/40 shadow-none;
+  }
+
   /* Surface card with hover lift */
   .card-lift {
     @apply transition-all duration-300;
@@ -233,6 +272,42 @@
       animation: none;
       background-position: 0% center;
     }
+
+    .interactive-cta-gradient {
+      animation: none;
+    }
+
+    .animate-cta-float-a,
+    .animate-cta-float-b,
+    .animate-cta-float-c {
+      animation: none;
+    }
+  }
+
+  .interactive-cta-gradient {
+    background: linear-gradient(
+      125deg,
+      #0ea5e9 0%,
+      #2563eb 22%,
+      #4f46e5 44%,
+      #0284c7 66%,
+      #0369a1 88%,
+      #0ea5e9 100%
+    );
+    background-size: 300% 300%;
+    animation: cta-gradient-shift 14s ease infinite;
+  }
+
+  .animate-cta-float-a {
+    animation: cta-float-a 10s ease-in-out infinite;
+  }
+
+  .animate-cta-float-b {
+    animation: cta-float-b 12s ease-in-out infinite;
+  }
+
+  .animate-cta-float-c {
+    animation: cta-float-c 11s ease-in-out infinite;
   }
 }
 
@@ -253,6 +328,48 @@
 }
 .animate-drift { animation: drift 16s ease-in-out infinite; }
 .animate-drift-slow { animation: drift-slow 22s ease-in-out infinite; }
+
+@keyframes cta-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes cta-float-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(24px, 18px) scale(1.08);
+  }
+}
+
+@keyframes cta-float-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-20px, -16px) scale(1.06);
+  }
+}
+
+@keyframes cta-float-c {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(calc(-50% + 12px), calc(-50% - 10px)) scale(1.05);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-drift,
@@ -308,19 +425,47 @@
   border-radius: 0 2px 2px 0;
 }
 
-/* ─── Terminal log scrollbar ─── */
-.font-mono::-webkit-scrollbar {
+/* ─── Activity log / terminal console ─── */
+:root {
+  --terminal-bg: 0 0% 100%;
+  --terminal-header-bg: 210 40% 98%;
+  --terminal-border: 214.3 31.8% 91.4%;
+  --terminal-title: 215.4 16.3% 46.9%;
+  --terminal-text: 215.4 16.3% 38%;
+  --terminal-text-muted: 215.4 16.3% 52%;
+  --terminal-active-bg: 229 91% 64% / 0.08;
+  --terminal-active-text: 229 57% 42%;
+  --terminal-progress-track: 214.3 31.8% 91.4%;
+  --terminal-scrollbar: 229 91% 64% / 0.28;
+  --terminal-scrollbar-hover: 229 91% 64% / 0.45;
+}
+
+.dark {
+  --terminal-bg: 240 10% 3.9%;
+  --terminal-header-bg: 240 6% 10%;
+  --terminal-border: 240 3.7% 15.9%;
+  --terminal-title: 240 5% 64.9%;
+  --terminal-text: 240 5% 72%;
+  --terminal-text-muted: 240 4% 56%;
+  --terminal-active-bg: 229 94% 68% / 0.12;
+  --terminal-active-text: 229 80% 76%;
+  --terminal-progress-track: 240 3.7% 15.9%;
+  --terminal-scrollbar: 229 94% 68% / 0.32;
+  --terminal-scrollbar-hover: 229 94% 68% / 0.5;
+}
+
+.activity-log-scroll::-webkit-scrollbar {
   width: 4px;
 }
-.font-mono::-webkit-scrollbar-track {
+.activity-log-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
-.font-mono::-webkit-scrollbar-thumb {
-  background: rgba(79, 110, 247, 0.3);
+.activity-log-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--terminal-scrollbar));
   border-radius: 2px;
 }
-.font-mono::-webkit-scrollbar-thumb:hover {
-  background: rgba(79, 110, 247, 0.5);
+.activity-log-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--terminal-scrollbar-hover));
 }
 
 /* ─── Global Scrollbar Styling ─── */

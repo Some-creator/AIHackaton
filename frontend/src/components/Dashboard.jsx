@@ -111,7 +111,7 @@ export default function Dashboard({ user, onOpenRun, onNewAnalysis, onBack }) {
       )}
 
       {loading && (
-        <div className={`rounded-2xl border p-10 text-center ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'}`}>
+        <div className="surface-card p-10 text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-hookline-500 border-t-transparent" />
           <p className={`mt-4 text-sm ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>Loading your history…</p>
         </div>
@@ -124,7 +124,7 @@ export default function Dashboard({ user, onOpenRun, onNewAnalysis, onBack }) {
       )}
 
       {!loading && !error && items.length === 0 && (
-        <div className={`rounded-[1.75rem] border p-10 text-center ${isDark ? 'bg-zinc-900/60 border-zinc-800' : 'bg-white border-gray-200'}`}>
+        <div className="surface-card p-10 text-center">
           <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${isDark ? 'bg-hookline-500/15 text-hookline-300' : 'bg-hookline-50 text-hookline-600'}`}>
             <LayoutDashboard className="w-7 h-7" />
           </div>
@@ -145,11 +145,7 @@ export default function Dashboard({ user, onOpenRun, onNewAnalysis, onBack }) {
               <button
                 type="button"
                 onClick={() => onOpenRun(item.id)}
-                className={`card-lift group w-full text-left rounded-2xl border p-5 transition-all ${
-                  isDark
-                    ? 'bg-zinc-900/60 border-zinc-800 hover:border-hookline-500/40'
-                    : 'bg-white border-gray-200 hover:border-hookline-300 hover:shadow-md'
-                }`}
+                className="surface-card-interactive card-lift group w-full text-left p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">

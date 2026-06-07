@@ -10,7 +10,9 @@ export async function getBusinessReviews(businessName, location) {
   if (!searchResponse.ok) throw new Error(`Yelp search failed: ${searchResponse.status}`);
   const searchData = await searchResponse.json();
   const business = searchData.businesses?.[0];
-  if (!business) return { businessName, reviews: [], location };
+  if (!business) {
+    return { businessName, rating: null, reviewCount: null, reviews: [], location };
+  }
 
   const reviewsResponse = await fetch(
     `https://api.yelp.com/v3/businesses/${business.id}/reviews`,
@@ -19,5 +21,12 @@ export async function getBusinessReviews(businessName, location) {
 
   if (!reviewsResponse.ok) throw new Error(`Yelp reviews failed: ${reviewsResponse.status}`);
   const reviewsData = await reviewsResponse.json();
-  return { businessName, reviews: reviewsData.reviews || [], location };
+  return {
+    businessName,
+    yelpId: business.id,
+    rating: business.rating ?? null,
+    reviewCount: business.review_count ?? null,
+    reviews: reviewsData.reviews || [],
+    location,
+  };
 }

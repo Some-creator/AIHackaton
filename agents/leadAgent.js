@@ -366,6 +366,28 @@ Lead data: ${JSON.stringify({ place, scraped, yelpData })}`,
 
   const parsedLead = parseClaudeJson(content);
   const contactEmail = extractContactEmail(scraped.content);
+
+  const googleRating = place.rating ?? null;
+  const googleReviewCount = place.userRatingCount ?? null;
+  const yelpRating = yelpData?.rating ?? null;
+  const yelpReviewCount = yelpData?.reviewCount ?? null;
+
+  const rating = googleRating ?? yelpRating;
+  const reviewCount = googleReviewCount ?? yelpReviewCount;
+  const reviewSource = googleReviewCount != null || googleRating != null
+    ? 'google'
+    : (yelpReviewCount != null || yelpRating != null ? 'yelp' : null);
+
+  const recentReviews = (yelpData?.reviews || [])
+    .slice(0, 2)
+    .map((review) => ({
+      text: review.text?.trim() || '',
+      rating: review.rating ?? null,
+      author: review.user?.name || 'Yelp user',
+      source: 'yelp',
+    }))
+    .filter((review) => review.text);
+
   const lead = {
     name,
     address: place.formattedAddress || '',
@@ -374,6 +396,10 @@ Lead data: ${JSON.stringify({ place, scraped, yelpData })}`,
     email: contactEmail,
     lat: place.location?.latitude || null,
     lng: place.location?.longitude || null,
+    rating,
+    reviewCount,
+    reviewSource,
+    recentReviews,
     hook: parsedLead.hook,
     fitScore: parsedLead.fitScore,
     budgetScore: parsedLead.budgetScore,
