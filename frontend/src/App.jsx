@@ -66,8 +66,11 @@ export default function App() {
   const [ingestLogs, setIngestLogs] = useState([]);
   const [ingestFinishing, setIngestFinishing] = useState(false);
   const [analysisLogs, setAnalysisLogs] = useState([]);
+  const [analysisFinishing, setAnalysisFinishing] = useState(false);
   const [benchmarkLogs, setBenchmarkLogs] = useState([]);
+  const [benchmarkFinishing, setBenchmarkFinishing] = useState(false);
   const [gapLogs, setGapLogs] = useState([]);
+  const [gapFinishing, setGapFinishing] = useState(false);
 
   const reportError = useCallback(async (err) => {
     const raw = err?.message || 'Something went wrong.';
@@ -213,7 +216,7 @@ export default function App() {
       });
 
       setIngestFinishing(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       setContext({
         business: ingestResult.business,
@@ -255,6 +258,9 @@ export default function App() {
         });
       });
 
+      setAnalysisFinishing(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setContext((prev) => ({
         ...prev,
         business: updatedBusiness,
@@ -271,6 +277,7 @@ export default function App() {
     } catch (err) {
       reportError(err);
     } finally {
+      setAnalysisFinishing(false);
       setLoading(false);
       setAnalysisLogs([]);
     }
@@ -294,6 +301,9 @@ export default function App() {
         });
       });
 
+      setBenchmarkFinishing(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setContext((prev) => ({
         ...prev,
         competitors: benchmarkResult.competitors,
@@ -311,6 +321,7 @@ export default function App() {
     } catch (err) {
       reportError(err);
     } finally {
+      setBenchmarkFinishing(false);
       setLoading(false);
       setBenchmarkLogs([]);
     }
@@ -330,6 +341,9 @@ export default function App() {
           onError: reject,
         });
       });
+
+      setGapFinishing(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       setContext((prev) => ({
         ...prev,
@@ -351,6 +365,7 @@ export default function App() {
     } catch (err) {
       reportError(err);
     } finally {
+      setGapFinishing(false);
       setLoading(false);
       setGapLogs([]);
     }
@@ -647,6 +662,8 @@ const currentStepIndex = STEPS.indexOf(step);
             loading={loading}
             analysisLogs={analysisLogs}
             benchmarkLogs={benchmarkLogs}
+            analysisFinishing={analysisFinishing}
+            benchmarkFinishing={benchmarkFinishing}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.analysis]}
             onNext={nextStep ? handleNext : null}
@@ -663,6 +680,7 @@ const currentStepIndex = STEPS.indexOf(step);
             onContinue={handleFindGaps}
             loading={loading}
             gapLogs={gapLogs}
+            gapFinishing={gapFinishing}
             onBack={handleBack}
             backLabel={BACK_LABELS[PREVIOUS_STEP.competitors]}
             onNext={nextStep ? handleNext : null}

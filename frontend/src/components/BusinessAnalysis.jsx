@@ -61,7 +61,7 @@ function AnalysisSection({ title, items, color, isDark }) {
   );
 }
 
-export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
+export default function BusinessAnalysis({ business, analysis, socialScrapes = [], onAnalyze, onContinue, loading, companyId, analysisLogs = [], benchmarkLogs = [], analysisFinishing = false, benchmarkFinishing = false, onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [profile, setProfile] = useState(() => initialProfileFromBusiness(business));
@@ -258,8 +258,13 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             )}
           </button>
 
-          {loading && (
-            <ActivityLog logs={analysisLogs} title="Agent 2 — Analyzing your business" />
+          {(loading || analysisFinishing) && (
+            <ActivityLog
+              logs={analysisLogs}
+              title="Agent 2 — Analyzing your business"
+              loading={loading}
+              finishing={analysisFinishing}
+            />
           )}
         </>
       ) : (
@@ -299,7 +304,14 @@ export default function BusinessAnalysis({ business, analysis, socialScrapes = [
             )}
           </button>
 
-          <ActivityLog logs={benchmarkLogs} title="Competitor benchmark" loading={loading} />
+          {(loading || benchmarkFinishing) && (
+            <ActivityLog
+              logs={benchmarkLogs}
+              title="Competitor benchmark"
+              loading={loading}
+              finishing={benchmarkFinishing}
+            />
+          )}
         </>
       )}
     </div>

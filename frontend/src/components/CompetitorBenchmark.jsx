@@ -2,7 +2,7 @@ import { useTheme } from '../context/ThemeContext';
 import ActivityLog from './ActivityLog';
 import StepNavigation from './StepNavigation';
 
-export default function CompetitorBenchmark({ competitors, mock = false, mockReason, onContinue, loading, gapLogs = [], onBack, backLabel, onNext, nextLabel, navDisabled }) {
+export default function CompetitorBenchmark({ competitors, mock = false, mockReason, onContinue, loading, gapLogs = [], gapFinishing = false, onBack, backLabel, onNext, nextLabel, navDisabled }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -98,9 +98,14 @@ export default function CompetitorBenchmark({ competitors, mock = false, mockRea
         ))}
       </div>
 
-      {loading && (
+      {(loading || gapFinishing) && (
         <div className="mb-6">
-          <ActivityLog logs={gapLogs} title="Agent 4 — Finding market gaps" />
+          <ActivityLog
+            logs={gapLogs}
+            title="Agent 4 — Finding market gaps"
+            loading={loading}
+            finishing={gapFinishing}
+          />
         </div>
       )}
 
