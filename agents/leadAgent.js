@@ -290,15 +290,23 @@ async function findLeadPlaces(business, searchPlan, competitors = []) {
 
   const anchor = await geocodeLocation(location);
 
-  for (const query of searchPlan.searchQueries) {
-    if (collected.length >= MAX_CANDIDATES) break;
+  const searchPromises = searchPlan.searchQueries.map(async (query) => {
+    try {
+      const result = await searchPlaces(query, location, {
+        anchor,
+        pageSize: 20,
+      });
+      return { query, places: result.places || [] };
+    } catch (err) {
+      console.warn(`[leadAgent] Search failed for query "${query}": ${err.message}`);
+      return { query, places: [] };
+    }
+  });
 
-    const { places } = await searchPlaces(query, location, {
-      anchor,
-      pageSize: 20,
-    });
+  const searchResults = await Promise.all(searchPromises);
 
-    for (const place of places || []) {
+  for (const { query, places } of searchResults) {
+    for (const place of places) {
       if (collected.length >= MAX_CANDIDATES) break;
       if (isOwnBusiness(place, business)) continue;
       if (isCompetitorPlace(place, competitors)) continue;
@@ -310,6 +318,7 @@ async function findLeadPlaces(business, searchPlan, competitors = []) {
       seen.add(id);
       collected.push(place);
     }
+    if (collected.length >= MAX_CANDIDATES) break;
   }
 
   return collected;

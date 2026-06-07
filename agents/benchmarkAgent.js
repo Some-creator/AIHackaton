@@ -277,21 +277,32 @@ async function searchGooglePlacesForCandidates({
     onLog?.('Broadening Google Places search...');
   }
 
-  for (let i = 0; i < queries.length; i++) {
-    if (collected.length >= MAX_COMPETITORS) break;
-
-    const query = queries[i];
+  const searchPromises = queries.map(async (query, i) => {
     if (i > 0 || relaxed) {
       onLog?.(`${label}: "${query}"...`);
     }
+    try {
+      const result = await searchPlaces(query, location, {
+        anchor,
+        relaxed,
+        onSkip: ({ name, address, reason }) => {
+          onLog?.(`Skipping distant result: ${name}${address ? ` (${address})` : ''} — ${reason}`);
+        },
+      });
+      return { query, result };
+    } catch (err) {
+      console.warn(`[benchmarkAgent] Google Places search failed for "${query}": ${err.message}`);
+      onLog?.(`Places search failed for "${query}" — continuing`);
+      return { query, result: { places: [], rawCount: 0 } };
+    }
+  });
 
-    const { places, rawCount } = await searchPlaces(query, location, {
-      anchor,
-      relaxed,
-      onSkip: ({ name, address, reason }) => {
-        onLog?.(`Skipping distant result: ${name}${address ? ` (${address})` : ''} — ${reason}`);
-      },
-    });
+  const searchResults = await Promise.all(searchPromises);
+
+  for (const { query, result } of searchResults) {
+    if (collected.length >= MAX_COMPETITORS) break;
+
+    const { places, rawCount } = result;
 
     if (rawCount > 0 && places.length === 0) {
       onLog?.(`Google returned ${rawCount} result${rawCount === 1 ? '' : 's'} for "${query}" but all were filtered out`);
@@ -366,32 +377,37 @@ async function findCompetitorCandidates(business, searchPlan, onLog) {
 
   if (hasFirecrawl) {
     onLog?.('Searching the web for local competitors...');
-    for (let i = 0; i < queries.length; i++) {
-      if (collected.length >= MAX_COMPETITORS) break;
-
-      const query = queries[i];
+    const webPromises = queries.map(async (query) => {
       try {
         const { results } = await searchWeb(query, { location, limit: 8, scrape: false });
         if (!results.length) {
           onLog?.(`Web search returned no business sites for "${query}"`);
         }
-
-        for (const result of results) {
-          if (collected.length >= MAX_COMPETITORS) break;
-          if (isDirectoryOrAggregatorUrl(result.url)) continue;
-          if (!webResultMatchesRegion(result, locationHints)) {
-            onLog?.(`Skipping web result outside region: ${result.title}`);
-            continue;
-          }
-
-          const candidate = webResultToCandidate(result);
-          if (addCompetitorCandidate(collected, seen, candidate, business, searchPlan, onLog)) {
-            onLog?.(`Web result: ${getPlaceName(candidate)}`);
-          }
-        }
+        return { query, results };
       } catch (err) {
         console.warn(`[benchmarkAgent] Web search failed for "${query}": ${err.message}`);
         onLog?.(`Web search failed for "${query}" — continuing`);
+        return { query, results: [] };
+      }
+    });
+
+    const webResults = await Promise.all(webPromises);
+
+    for (const { query, results } of webResults) {
+      if (collected.length >= MAX_COMPETITORS) break;
+
+      for (const result of results) {
+        if (collected.length >= MAX_COMPETITORS) break;
+        if (isDirectoryOrAggregatorUrl(result.url)) continue;
+        if (!webResultMatchesRegion(result, locationHints)) {
+          onLog?.(`Skipping web result outside region: ${result.title}`);
+          continue;
+        }
+
+        const candidate = webResultToCandidate(result);
+        if (addCompetitorCandidate(collected, seen, candidate, business, searchPlan, onLog)) {
+          onLog?.(`Web result: ${getPlaceName(candidate)}`);
+        }
       }
     }
   }

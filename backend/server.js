@@ -49,6 +49,17 @@ function ownerFields(req) {
 // Opens an SSE response and keeps it alive with periodic heartbeat comments so
 // that proxies (e.g. Railway/nginx) don't drop the connection during long,
 // silent agent steps. Returns a cleanup function to stop the heartbeat.
+function safeWrite(res, req, data) {
+  if (req.destroyed || res.writableEnded) return false;
+  try {
+    res.write(data);
+    return true;
+  } catch (err) {
+    console.warn('[sse] Write failed:', err.message);
+    return false;
+  }
+}
+
 function openSseStream(req, res) {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -57,10 +68,13 @@ function openSseStream(req, res) {
     'X-Accel-Buffering': 'no',
     'Access-Control-Allow-Origin': '*',
   });
-  res.write(': connected\n\n');
+  safeWrite(res, req, ': connected\n\n');
 
   const heartbeat = setInterval(() => {
-    if (!res.writableEnded) res.write(': ping\n\n');
+    if (!res.writableEnded && !req.destroyed) {
+      const ok = safeWrite(res, req, ': ping\n\n');
+      if (!ok) clearInterval(heartbeat);
+    }
   }, 15000);
 
   let stopped = false;
@@ -138,7 +152,7 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
   }
 
   const stopHeartbeat = openSseStream(req, res);
-  res.write(`data: ${JSON.stringify({ type: 'log', message: 'Agent connected — preparing analysis...' })}\n\n`);
+  safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Agent connected — preparing analysis...' })}\n\n`);
 
   let companyId = null;
   const sessionOwner = {
@@ -157,19 +171,21 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
     companyId = initialSave.id;
 
     if (initialSave.saved) {
-      res.write(`data: ${JSON.stringify({ type: 'log', message: `Database record created (${companyId})` })}\n\n`);
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: `Database record created (${companyId})` })}\n\n`);
     } else {
-      res.write(`data: ${JSON.stringify({ type: 'log', message: `Warning: could not save to database — ${initialSave.error || 'Firebase not configured'}` })}\n\n`);
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: `Warning: could not save to database — ${initialSave.error || 'Firebase not configured'}` })}\n\n`);
     }
 
     for await (const event of streamIngestion(session.url, session.socialProfiles)) {
+      if (req.destroyed || res.writableEnded) break;
       if (event.type === 'log') {
-        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+        const ok = safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+        if (!ok) break;
       } else if (event.type === 'error') {
-        res.write(`data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
+        safeWrite(res, req, `data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
         return;
       } else if (event.type === 'complete') {
-        res.write(`data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
+        safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: 'Saving your profile...' })}\n\n`);
 
         let saved = false;
         let saveError = null;
@@ -203,10 +219,10 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
         }
 
         if (!saved) {
-          res.write(`data: ${JSON.stringify({ type: 'log', message: `Warning: profile not saved to database — ${saveError || 'unknown error'}` })}\n\n`);
+          safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: `Warning: profile not saved to database — ${saveError || 'unknown error'}` })}\n\n`);
         }
 
-        res.write(`data: ${JSON.stringify({
+        safeWrite(res, req, `data: ${JSON.stringify({
           type: 'complete',
           business: event.business,
           socialScrapes: event.socialScrapes || [],
@@ -218,7 +234,9 @@ app.get('/api/ingest/stream/:sessionId', async (req, res) => {
       }
     }
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    if (!req.destroyed && !res.writableEnded) {
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    }
   } finally {
     stopHeartbeat();
     ingestSessions.delete(sessionId);
@@ -274,8 +292,10 @@ app.get('/api/analyze/stream/:sessionId', async (req, res) => {
 
   try {
     for await (const event of streamAnalysis(context)) {
+      if (req.destroyed || res.writableEnded) break;
       if (event.type === 'log') {
-        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+        const ok = safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+        if (!ok) break;
       } else if (event.type === 'complete') {
         if (context.companyId) {
           await updateCompany(context.companyId, {
@@ -286,7 +306,7 @@ app.get('/api/analyze/stream/:sessionId', async (req, res) => {
           });
         }
 
-        res.write(`data: ${JSON.stringify({
+        safeWrite(res, req, `data: ${JSON.stringify({
           type: 'complete',
           analysis: event.analysis,
           mock: event.mock ?? false,
@@ -295,7 +315,9 @@ app.get('/api/analyze/stream/:sessionId', async (req, res) => {
       }
     }
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    if (!req.destroyed && !res.writableEnded) {
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    }
   } finally {
     stopHeartbeat();
     analysisSessions.delete(sessionId);
@@ -355,8 +377,10 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
 
   try {
     for await (const event of streamBenchmark(context)) {
+      if (req.destroyed || res.writableEnded) break;
       if (event.type === 'log') {
-        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+        const ok = safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+        if (!ok) break;
       } else if (event.type === 'complete') {
         if (context.companyId) {
           await updateCompany(context.companyId, {
@@ -366,18 +390,20 @@ app.get('/api/benchmark/stream/:sessionId', async (req, res) => {
             step: 'benchmarked',
           });
         }
-        res.write(`data: ${JSON.stringify({
+        safeWrite(res, req, `data: ${JSON.stringify({
           type: 'complete',
           competitors: event.competitors,
           mock: event.mock ?? false,
           mockReason: event.mockReason || null,
         })}\n\n`);
       } else if (event.type === 'error') {
-        res.write(`data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
+        safeWrite(res, req, `data: ${JSON.stringify({ type: 'error', error: event.error })}\n\n`);
       }
     }
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    if (!req.destroyed && !res.writableEnded) {
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    }
   } finally {
     stopHeartbeat();
     benchmarkSessions.delete(sessionId);
@@ -439,8 +465,10 @@ app.get('/api/gap/stream/:sessionId', async (req, res) => {
 
   try {
     for await (const event of streamGaps(context)) {
+      if (req.destroyed || res.writableEnded) break;
       if (event.type === 'log') {
-        res.write(`data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+        const ok = safeWrite(res, req, `data: ${JSON.stringify({ type: 'log', message: event.message })}\n\n`);
+        if (!ok) break;
       } else if (event.type === 'complete') {
         if (context.companyId) {
           await updateCompany(context.companyId, {
@@ -453,7 +481,7 @@ app.get('/api/gap/stream/:sessionId', async (req, res) => {
           });
         }
 
-        res.write(`data: ${JSON.stringify({
+        safeWrite(res, req, `data: ${JSON.stringify({
           type: 'complete',
           gaps: event.gaps,
           recommendedGap: event.recommendedGap,
@@ -463,7 +491,9 @@ app.get('/api/gap/stream/:sessionId', async (req, res) => {
       }
     }
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    if (!req.destroyed && !res.writableEnded) {
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    }
   } finally {
     stopHeartbeat();
     gapSessions.delete(sessionId);
@@ -529,15 +559,19 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
 
   const stopHeartbeat = openSseStream(req, res);
 
-  res.write(`data: ${JSON.stringify({ type: 'start', message: 'Lead generation started' })}\n\n`);
+  safeWrite(res, req, `data: ${JSON.stringify({ type: 'start', message: 'Lead generation started' })}\n\n`);
 
   try {
     const leads = [];
     for await (const lead of streamLeads(context)) {
+      if (req.destroyed || res.writableEnded) break;
       leads.push(lead);
-      res.write(`data: ${JSON.stringify({ type: 'lead', lead })}\n\n`);
+      const ok = safeWrite(res, req, `data: ${JSON.stringify({ type: 'lead', lead })}\n\n`);
+      if (!ok) break;
     }
-    res.write(`data: ${JSON.stringify({ type: 'complete', message: 'All leads processed' })}\n\n`);
+    if (!req.destroyed && !res.writableEnded) {
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'complete', message: 'All leads processed' })}\n\n`);
+    }
 
     if (context.companyId) {
       await updateCompany(context.companyId, {
@@ -546,7 +580,9 @@ app.get('/api/leads/stream/:sessionId', async (req, res) => {
       });
     }
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    if (!req.destroyed && !res.writableEnded) {
+      safeWrite(res, req, `data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+    }
   } finally {
     stopHeartbeat();
     leadSessions.delete(sessionId);

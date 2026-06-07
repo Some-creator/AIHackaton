@@ -1,6 +1,21 @@
 const SOCIAL_DOMAINS = /instagram\.com|facebook\.com|twitter\.com|x\.com|tiktok\.com|linkedin\.com|youtube\.com/i;
 
 export async function scrapeWebsite(url) {
+  try {
+    const urlWithProto = url.includes('://') ? url : `http://${url}`;
+    const parsed = new URL(urlWithProto);
+    if (SOCIAL_DOMAINS.test(parsed.hostname)) {
+      throw new Error(`Social media URLs (${parsed.hostname}) cannot be scraped directly. Please use a standard business website or verify social scraper configuration.`);
+    }
+  } catch (err) {
+    if (err.message.includes('cannot be scraped')) {
+      throw err;
+    }
+    if (SOCIAL_DOMAINS.test(url)) {
+      throw new Error('Social media URLs cannot be scraped directly. Please use a standard business website or verify social scraper configuration.');
+    }
+  }
+
   const apiKey = process.env.FIRECRAWL_API_KEY;
   if (!apiKey) {
     throw new Error('Website scraper unavailable — FIRECRAWL_API_KEY not configured');

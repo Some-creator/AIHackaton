@@ -46,7 +46,13 @@ function getPlatform(url) {
 }
 
 export function needsApify(url) {
-  return APIFY_BLOCKED_ON_FIRECRAWL.test(url);
+  try {
+    const urlWithProto = url.includes('://') ? url : `http://${url}`;
+    const parsed = new URL(urlWithProto);
+    return APIFY_BLOCKED_ON_FIRECRAWL.test(parsed.hostname);
+  } catch {
+    return APIFY_BLOCKED_ON_FIRECRAWL.test(url);
+  }
 }
 
 export function cleanSocialUrl(url) {
