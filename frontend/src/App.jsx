@@ -536,7 +536,15 @@ const currentStepIndex = STEPS.indexOf(step);
             <div key={s} className="flex items-center">
               {i > 0 && (
                 <div
-                  className={`w-6 h-0.5 ${isBehind || isAheadComplete ? 'bg-primary' : isDark ? 'bg-zinc-700' : 'bg-gray-200'}`}
+                  className={`w-6 h-0.5 ${
+                    isBehind || isAheadComplete
+                      ? isDark
+                        ? 'bg-hookline-400/70'
+                        : 'bg-hookline-400'
+                      : isDark
+                        ? 'bg-zinc-700'
+                        : 'bg-gray-200'
+                  }`}
                 />
               )}
               {isClickable ? (
@@ -545,10 +553,10 @@ const currentStepIndex = STEPS.indexOf(step);
                   onClick={() => handleGoToStep(s)}
                   className={`px-2.5 py-1 text-xs font-semibold rounded-full transition hover:opacity-80 ${
                     isActive
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-gradient-to-r from-hookline-500 to-violet-600 text-white shadow-sm shadow-hookline-500/25'
                       : isDark
                         ? 'bg-hookline-500/20 text-hookline-300'
-                        : 'bg-hookline-50 text-hookline-600'
+                        : 'bg-hookline-100 text-hookline-700'
                   }`}
                 >
                   {stepLabels[s]}
@@ -557,11 +565,11 @@ const currentStepIndex = STEPS.indexOf(step);
                 <span
                   className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
                     isActive
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-gradient-to-r from-hookline-500 to-violet-600 text-white shadow-sm shadow-hookline-500/25'
                       : isBehind || isAheadComplete
                         ? isDark
                           ? 'bg-hookline-500/20 text-hookline-300'
-                          : 'bg-hookline-50 text-hookline-600'
+                          : 'bg-hookline-100 text-hookline-700'
                         : isDark
                           ? 'bg-zinc-800 text-zinc-500'
                           : 'bg-gray-100 text-gray-400'

@@ -49,14 +49,14 @@ export function Header({
   const showHomeNav = !centerContent;
 
   return (
-    <header className="fixed top-0 left-0 z-50 w-full border-b border-border/60 bg-background/70 shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-background/55">
+    <header className="fixed top-0 left-0 z-50 w-full border-b border-border/60 bg-white/90 shadow-sm backdrop-blur-xl dark:bg-background/70 dark:supports-[backdrop-filter]:bg-background/55 supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto max-w-6xl px-3 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-3 md:h-20">
           <button
             type="button"
             onClick={onLogoClick}
             aria-label="HookLine home"
-            className="group flex h-11 items-center gap-2.5 rounded-xl bg-gradient-to-br from-hookline-400 to-hookline-600 px-3 shadow-glow-sm ring-1 ring-white/15 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glow md:h-12 md:px-4"
+            className="group flex h-11 items-center gap-2.5 rounded-xl bg-gradient-to-br from-hookline-600 via-hookline-500 to-violet-600 px-3 shadow-glow-sm ring-1 ring-hookline-700/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glow dark:from-hookline-500 dark:via-hookline-500 dark:to-violet-600 dark:ring-white/15 md:h-12 md:px-4"
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 transition group-hover:bg-white/30 md:h-8 md:w-8">
               <Zap className="h-4 w-4 text-white md:h-[18px] md:w-[18px]" aria-hidden="true" />
@@ -93,7 +93,7 @@ export function Header({
                   </Button>
                 )}
                 <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/60 py-1 pl-1 pr-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-hookline-400 to-hookline-600 text-xs font-bold text-white ring-1 ring-white/15">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-hookline-600 to-violet-600 text-xs font-bold text-white ring-1 ring-hookline-700/25 dark:from-hookline-400 dark:to-hookline-600 dark:ring-white/15">
                     {getInitial(user)}
                   </span>
                   <span
@@ -133,8 +133,8 @@ export function Header({
             <SheetContent side="right" className="w-full overflow-y-auto border-border bg-background p-6 sm:max-w-md">
               <div className="flex h-full flex-col">
                 <div className="mb-6 flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
-                    <Zap className="h-5 w-5 text-primary-foreground" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-gradient-to-br from-hookline-600 to-violet-600">
+                    <Zap className="h-5 w-5 text-white" />
                   </div>
                   <span className="font-heading text-lg font-bold">HookLine</span>
                 </div>
