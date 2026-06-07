@@ -165,13 +165,7 @@ export default function CompetitorBenchmark({
           >
             <span className="font-semibold">Demo competitors</span>
             {' — '}
-            {mockReason || 'live search unavailable'}
-            {mockReason?.includes('GOOGLE_PLACES') && (
-              <span className="block mt-1 text-xs opacity-80">
-                Add <code className="font-mono">GOOGLE_PLACES_API_KEY</code> and/or{' '}
-                <code className="font-mono">FIRECRAWL_API_KEY</code> for live competitor search (Places + web).
-              </span>
-            )}
+            {mockReason || 'Live search is unavailable — showing sample data'}
           </div>
         )}
       </div>
@@ -254,7 +248,7 @@ export default function CompetitorBenchmark({
         <div className="mb-6">
           <ActivityLog
             logs={gapLogs}
-            title="Finding market gaps"
+            title="Finding money on the table"
             loading={loading}
             finishing={gapFinishing}
           />

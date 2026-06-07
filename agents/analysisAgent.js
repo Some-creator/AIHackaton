@@ -57,20 +57,20 @@ export async function* streamAnalysis(context) {
     throw new Error('Business profile required');
   }
   if (!hasAnthropic) {
-    throw new Error('AI analysis unavailable — ANTHROPIC_API_KEY not configured');
+    throw new Error('AI analysis is unavailable right now. Please try again later.');
   }
 
   const { business } = context;
   const serviceCount = business.services?.length || 0;
 
-  yield { type: 'log', message: 'Starting business analysis...' };
+  yield { type: 'log', message: 'Time for a gentle(ish) roast...' };
   await delay(300);
 
-  yield { type: 'log', message: `Reviewing profile for ${business.name}...` };
+  yield { type: 'log', message: `Pulling up the file on ${business.name}...` };
   await delay(400);
-  yield { type: 'log', message: `Evaluating ${serviceCount} service${serviceCount === 1 ? '' : 's'} in ${business.location || 'your market'}...` };
+  yield { type: 'log', message: `Counting your ${serviceCount} service${serviceCount === 1 ? '' : 's'} in ${business.location || 'your market'}...` };
   await delay(300);
-  yield { type: 'log', message: 'AI is assessing strengths, weaknesses, and opportunities...' };
+  yield { type: 'log', message: 'AI is doing the SWOT thing. No crying in the debrief.' };
 
   const { content } = await callSonnet({
     system: ANALYSIS_SYSTEM,
@@ -82,13 +82,13 @@ export async function* streamAnalysis(context) {
     ],
   });
 
-  yield { type: 'log', message: 'Structuring strengths and improvement areas...' };
+  yield { type: 'log', message: 'Packaging feedback into bite-sized truths...' };
   const parsed = parseClaudeJson(content);
   const result = validateAndNormalize(parsed);
 
   yield {
     type: 'log',
-    message: `Analysis complete — ${result.analysis.strengths.length} strengths, ${result.analysis.improvements.length} recommendations`,
+    message: `Roast complete — ${result.analysis.strengths.length} strengths, ${result.analysis.improvements.length} recommendations. You survived.`,
   };
   yield { type: 'complete', ...result };
 }

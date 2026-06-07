@@ -111,8 +111,8 @@ export function humanizeIngestError(message) {
   if (/NO_SCANS|out of scans/i.test(m)) {
     return m;
   }
-  if (/FIRECRAWL|ANTHROPIC.*not set|API keys/i.test(m)) {
-    return "Analysis isn't available right now — our server is missing a required API key. Try again later.";
+  if (/FIRECRAWL|ANTHROPIC|APIFY|GOOGLE_PLACES|Apify|Firecrawl|Google Places|API keys?|API_KEY/i.test(m)) {
+    return "This step isn't available right now — please try again later.";
   }
 
   return m;

@@ -383,19 +383,19 @@ ${JSON.stringify(entries, null, 2)}`,
       : [];
 
     if (keep.length === 0) {
-      onLog?.('AI filter removed all candidates — keeping search results for qualification');
+      onLog?.('AI got picky and removed everyone — keeping the search results anyway');
       return excludeFiltered;
     }
 
     const filtered = keep.map((i) => excludeFiltered[i]);
     const removed = excludeFiltered.length - filtered.length;
     if (removed > 0) {
-      onLog?.(`Removed ${removed} clear mismatch${removed === 1 ? '' : 'es'} (competitors/franchises/wrong industry)`);
+      onLog?.(`Kicked ${removed} obvious mismatch${removed === 1 ? '' : 'es'} to the curb (chains, rivals, wrong industry)`);
     }
     return filtered;
   } catch (err) {
     console.warn(`[leadAgent] Lead niche filter failed: ${err.message}`);
-    onLog?.('Lead niche filter unavailable — using search results');
+    onLog?.('Filter is on break — trusting the search results');
     return excludeFiltered;
   }
 }
@@ -531,10 +531,10 @@ function sortLeadsByPriority(leads) {
 
 export async function* streamLeads(context) {
   if (!hasGooglePlaces) {
-    throw new Error('Google Places API key is missing. Cannot search for leads without it.');
+    throw new Error('Local business search is unavailable right now. Please try again later.');
   }
   if (!hasAnthropic) {
-    throw new Error('Anthropic API key is missing. Cannot analyze leads without it.');
+    throw new Error('AI analysis is unavailable right now. Please try again later.');
   }
 
   const { business, analysis, competitors = [] } = context;
@@ -543,9 +543,9 @@ export async function* streamLeads(context) {
   if (!business) throw new Error('Business profile required');
   if (!selectedGap) throw new Error('Market gap required — run Agent 4 first');
 
-  yield { type: 'log', message: 'Starting lead generation...' };
-  yield { type: 'log', message: `Target niche: "${selectedGap.niche}"` };
-  yield { type: 'log', message: 'AI is planning lead search queries...' };
+  yield { type: 'log', message: 'Lead hunt activated. Coffee optional, recommended.' };
+  yield { type: 'log', message: `Mission: "${selectedGap.niche}"` };
+  yield { type: 'log', message: 'AI is drafting a list of people to bother (politely)...' };
 
   const searchPlan = await planLeadSearch(business, selectedGap, analysis);
   const domainProfile = getLeadDomainProfile(business, selectedGap, analysis, searchPlan);
@@ -554,12 +554,8 @@ export async function* streamLeads(context) {
   console.log(`[leadAgent] Domain signals: ${domainProfile.domainSignals.slice(0, 6).join(', ')}`);
   console.log(`[leadAgent] Queries: ${searchPlan.searchQueries.join(', ')}`);
 
-  yield { type: 'log', message: `Target: ${searchPlan.targetSummary}` };
-  if (domainProfile.domainSignals?.length) {
-    yield { type: 'log', message: `Buyer signals: ${domainProfile.domainSignals.slice(0, 6).join(', ')}` };
-  }
-  yield { type: 'log', message: `Search queries: ${searchPlan.searchQueries.join(', ')}` };
-  yield { type: 'log', message: `Searching Google Places near ${business.location || 'your area'}...` };
+  yield { type: 'log', message: `Ideal customer looks like: ${searchPlan.targetSummary}` };
+  yield { type: 'log', message: `Scouring ${business.location || 'your area'} for prospects...` };
 
   const pendingSearchLogs = [];
   let candidates = await findLeadPlaces(
@@ -573,13 +569,13 @@ export async function* streamLeads(context) {
 
   console.log(`[leadAgent] Found ${candidates.length} local candidates near ${business.location}`);
 
-  yield { type: 'log', message: `Found ${candidates.length} candidate businesses` };
+  yield { type: 'log', message: `${candidates.length} businesses caught our eye` };
 
   if (candidates.length === 0) {
-    throw new Error(`No local candidates found near ${business.location} matching queries: ${searchPlan.searchQueries.slice(0, 3).join(', ')}`);
+    throw new Error(`No local businesses found near ${business.location}. Try updating your location or choosing a different gap.`);
   }
 
-  yield { type: 'log', message: 'Checking candidates match the gap buyer niche...' };
+  yield { type: 'log', message: 'Are these actually your people? Let\'s find out...' };
   const filterLogs = [];
   candidates = await filterLeadCandidatesByNiche(
     candidates,
@@ -596,8 +592,8 @@ export async function* streamLeads(context) {
     throw new Error(`No leads matched the gap buyer niche "${selectedGap.niche}" near ${business.location}. Try a different gap or update your location.`);
   }
 
-  yield { type: 'log', message: `${candidates.length} candidates match the buyer niche` };
-  yield { type: 'log', message: 'Qualifying leads (filtering franchises, scoring fit)...' };
+  yield { type: 'log', message: `${candidates.length} still in the running — not bad` };
+  yield { type: 'log', message: 'Separating the maybes from the heck-yeses...' };
 
   const leads = [];
   for (const place of candidates) {
@@ -605,23 +601,23 @@ export async function* streamLeads(context) {
 
     const name = getPlaceNameLocal(place);
     try {
-      yield { type: 'log', message: `Analyzing: ${name}...` };
+      yield { type: 'log', message: `Investigating ${name}...` };
       const lead = await buildLeadFromPlace(place, business, selectedGap, searchPlan);
       if (!lead) {
-        yield { type: 'log', message: `Skipped: ${name} (filtered out)` };
+        yield { type: 'log', message: `${name}? Hard pass.` };
         continue;
       }
 
       if (!meetsPriorityThreshold(lead)) {
-        yield { type: 'log', message: `Skipped: ${name} (priority ${Number(lead.priorityScore).toFixed(1)} below ${MIN_PRIORITY_SCORE}.0)` };
+        yield { type: 'log', message: `${name} scored ${Number(lead.priorityScore).toFixed(1)} — not worth the stamp` };
         continue;
       }
 
       leads.push(lead);
-      yield { type: 'log', message: `Qualified: ${name} (priority ${lead.priorityScore})` };
+      yield { type: 'log', message: `${name} is in — priority ${lead.priorityScore}` };
     } catch (err) {
       console.warn(`[leadAgent] Failed to process ${name}: ${err.message}`);
-      yield { type: 'log', message: `Failed: ${name} — ${err.message}` };
+      yield { type: 'log', message: `${name} was a whole situation — skipping` };
     }
   }
 
@@ -630,10 +626,10 @@ export async function* streamLeads(context) {
   }
 
   const sortedLeads = sortLeadsByPriority(leads);
-  yield { type: 'log', message: `Sorting ${sortedLeads.length} leads by priority (highest first)...` };
+  yield { type: 'log', message: `Ranking ${sortedLeads.length} leads by "would actually reply" score...` };
   yield {
     type: 'log',
-    message: `Lead generation complete — ${sortedLeads.length} leads ready. Top: ${sortedLeads[0].name} (${sortedLeads[0].priorityScore})`,
+    message: `Done. ${sortedLeads.length} leads ready. MVP: ${sortedLeads[0].name} (${sortedLeads[0].priorityScore})`,
   };
   yield { type: 'complete', leads: sortedLeads };
 }

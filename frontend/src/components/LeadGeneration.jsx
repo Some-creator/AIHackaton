@@ -228,7 +228,7 @@ export default function LeadGeneration({
         <div className="mb-8">
           <ActivityLog
             logs={leadLogs}
-            title="Generating leads"
+            title="Lead hunt"
             loading={streaming}
             finishing={leadFinishing}
           />

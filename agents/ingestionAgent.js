@@ -13,6 +13,7 @@ import { geocodeLocation } from '../backend/googlePlaces.js';
 import { callSonnet } from '../backend/anthropic.js';
 import { parseClaudeJson } from '../backend/parseJson.js';
 import { hasFirecrawl, hasAnthropic, hasGooglePlaces } from '../backend/config.js';
+import { sanitizeUserMessage } from '../backend/userFacing.js';
 import {
   buildBusinessLocationFields,
   extractAddressCandidates,
@@ -98,27 +99,27 @@ async function scrapeSocialProfiles(urls, onLog) {
     try {
       if (needsApify(url)) {
         if (!canScrapeSocial(url)) {
-          onLog?.(`${label} needs Apify — skipped (add APIFY_API_KEY)`);
+          onLog?.(`${label} said "private account" energy — skipped`);
           return null;
         }
-        onLog?.(`Reading ${label} via Apify...`);
+        onLog?.(`Sliding into ${label} (strictly business)...`);
         const scraped = await scrapeSocialProfile(url);
         if (scraped?.content?.trim()) {
-          onLog?.(`${label} profile loaded`);
+          onLog?.(`${label}: accessed. We saw things.`);
           return scraped;
         }
         return null;
       }
       if (!canScrapeSocial(url)) return null;
-      onLog?.(`Reading ${label}...`);
+      onLog?.(`Peeking at ${label}...`);
       const scraped = await scrapeWebsite(url);
       if (scraped.content?.trim()) {
-        onLog?.(`${label} loaded`);
+        onLog?.(`${label}: we're in.`);
         return { url, content: scraped.content.slice(0, 8000), mock: scraped.mock ?? false, source: 'firecrawl' };
       }
     } catch (err) {
       console.warn(`[ingestionAgent] Social scrape failed for ${url}: ${err.message}`);
-      onLog?.(`Could not read ${label} — continuing`);
+      onLog?.(`${label} ghosted us — moving on`);
     }
     return null;
   });
@@ -177,13 +178,13 @@ async function summarizeSocialScrapes(scrapes, onLog) {
   const enriched = [];
   for (const scrape of scrapes) {
     const label = socialLabel(scrape.url);
-    onLog?.(`Summarizing ${label} posts and engagement...`);
+    onLog?.(`Decoding ${label}'s posting habits...`);
     const summary = await summarizeSocialScrape(scrape);
     enriched.push({ ...scrape, summary });
     if (summary?.topics) {
-      onLog?.(`${label} summary ready`);
+      onLog?.(`${label} vibes captured.`);
     } else {
-      onLog?.(`Could not summarize ${label} — showing limited data`);
+      onLog?.(`${label} kept secrets — showing what we could get`);
     }
   }
   return enriched;
@@ -200,7 +201,7 @@ async function verifyExtractedLocation(locationFields, onLog) {
 
     const matches = geocodeMatchesLocation(anchor.formattedAddress, locationFields);
     if (matches) {
-      onLog?.(`Location verified: ${locationFields.location}`);
+      onLog?.(`Location checks out: ${locationFields.location}. GPS would be proud.`);
       return {
         ...locationFields,
         locationConfidence: locationFields.zipCode ? 'high' : 'medium',
@@ -209,7 +210,7 @@ async function verifyExtractedLocation(locationFields, onLog) {
       };
     }
 
-    onLog?.(`Could not verify ${locationFields.location} — please confirm city, state, and ZIP`);
+    onLog?.(`Location sus: ${locationFields.location} — you'll need to confirm`);
     return {
       ...locationFields,
       locationConfidence: 'low',
@@ -265,31 +266,31 @@ export async function* streamIngestion(url, socialProfiles = []) {
   if (!normalizedUrl) throw new Error('Website URL is required');
 
   if (!hasFirecrawl) {
-    yield { type: 'error', error: 'Website scraping unavailable — FIRECRAWL_API_KEY not set in .env' };
+    yield { type: 'error', error: 'Website reading is unavailable right now. Please try again later.' };
     return;
   }
   if (!hasAnthropic) {
-    yield { type: 'error', error: 'AI analysis unavailable — ANTHROPIC_API_KEY not set in .env' };
+    yield { type: 'error', error: 'AI analysis is unavailable right now. Please try again later.' };
     return;
   }
 
-  yield { type: 'log', message: 'Starting website analysis...' };
+  yield { type: 'log', message: 'Booting up the website detective...' };
   await delay(300);
 
   try {
-    yield { type: 'log', message: `Connecting to ${normalizedUrl}...` };
+    yield { type: 'log', message: 'AI is nose-deep in your website. Please don\'t refresh.' };
     let scraped;
     let socialScrapes = [];
     const mainIsSocial = needsApify(normalizedUrl);
 
     if (mainIsSocial) {
       if (!canScrapeSocial(normalizedUrl)) {
-        throw new Error(`Social media URLs (${normalizedUrl}) cannot be scraped without an APIFY_API_KEY. Please use a regular business website or configure Apify.`);
+        throw new Error('Social profile links need your business website in the main field — add Instagram or Facebook below instead.');
       }
-      yield { type: 'log', message: `Reading social profile via Apify...` };
+      yield { type: 'log', message: 'Sliding into your social profile (strictly business)...' };
       const res = await scrapeSocialProfile(normalizedUrl);
       if (!res || !res.content?.trim()) {
-        throw new Error(`Apify returned empty content for social profile ${normalizedUrl}`);
+        throw new Error('Could not read that social profile — try your business website instead.');
       }
       scraped = {
         url: normalizedUrl,
@@ -306,12 +307,12 @@ export async function* streamIngestion(url, socialProfiles = []) {
       throw new Error('Could not read website content — the scraper returned no data. Check the URL is publicly accessible.');
     }
 
-    yield { type: 'log', message: 'Website loaded' };
+    yield { type: 'log', message: 'Website acquired. No bite marks.' };
 
     let socialUrls = [];
     let fromWebsite = [];
     if (!mainIsSocial) {
-      yield { type: 'log', message: 'Scanning website for social profile links...' };
+      yield { type: 'log', message: 'Hunting for social links like it\'s 2009...' };
       const discoveredSocial = extractSocialLinksFromPage({
         content: scraped.content,
         links: scraped.links || [],
@@ -325,12 +326,12 @@ export async function* streamIngestion(url, socialProfiles = []) {
       if (fromWebsite.length) {
         yield {
           type: 'log',
-          message: `Found on website: ${fromWebsite.map((u) => socialLabel(u)).join(', ')}`,
+          message: `Your site snitched on: ${fromWebsite.map((u) => socialLabel(u)).join(', ')}`,
         };
       }
-      yield { type: 'log', message: `Found ${socialUrls.length} social profile${socialUrls.length > 1 ? 's' : ''}` };
+      yield { type: 'log', message: `Spotted ${socialUrls.length} social profile${socialUrls.length > 1 ? 's' : ''}. Judging respectfully.` };
       const labels = socialUrls.map((u) => socialLabel(cleanSocialUrl(u))).join(', ');
-      yield { type: 'log', message: `Reading ${labels} — this step can take 10–30 seconds...` };
+      yield { type: 'log', message: `Reading ${labels} — grab a sip, this takes a sec...` };
       const pendingLogs = [];
       socialScrapes = dedupeSocialScrapes(
         await scrapeSocialProfiles(socialUrls, (msg) => pendingLogs.push(msg)),
@@ -338,16 +339,16 @@ export async function* streamIngestion(url, socialProfiles = []) {
       for (const msg of pendingLogs) yield { type: 'log', message: msg };
 
       if (socialScrapes.length) {
-        yield { type: 'log', message: 'AI summarizing social posts and engagement...' };
+        yield { type: 'log', message: 'AI is reading your posts so you don\'t have to...' };
         const summaryLogs = [];
         socialScrapes = await summarizeSocialScrapes(socialScrapes, (msg) => summaryLogs.push(msg));
         for (const msg of summaryLogs) yield { type: 'log', message: msg };
       }
     } else if (!mainIsSocial) {
-      yield { type: 'log', message: 'No social profiles found — using website only' };
+      yield { type: 'log', message: 'No socials found. Website only. Very mysterious.' };
     }
 
-    yield { type: 'log', message: 'AI extracting business profile...' };
+    yield { type: 'log', message: 'Extracting your business vibe into data...' };
 
     const truncatedContent = scraped.content.slice(0, 30000);
     const socialContent = formatSocialContent(socialScrapes);
@@ -357,7 +358,7 @@ export async function* streamIngestion(url, socialProfiles = []) {
     if (addressCandidates.length) {
       yield {
         type: 'log',
-        message: `Found ${addressCandidates.length} address hint${addressCandidates.length > 1 ? 's' : ''} on site`,
+        message: `Found ${addressCandidates.length} address hint${addressCandidates.length > 1 ? 's' : ''} — detective work pays off`,
       };
     }
 
@@ -382,7 +383,7 @@ ${socialContent}`,
       }],
     });
 
-    yield { type: 'log', message: 'Structuring profile...' };
+    yield { type: 'log', message: 'Turning chaos into a neat little profile...' };
     const parsed = parseClaudeJson(content);
     let result = validateAndNormalize(parsed, normalizedUrl, socialUrls, addressCandidates);
 
@@ -400,15 +401,15 @@ ${socialContent}`,
     };
 
     if (result.business.locationNeedsInput) {
-      yield { type: 'log', message: 'Location needs confirmation — you will be asked to verify city, state, and ZIP' };
+      yield { type: 'log', message: 'We think we know where you are. You should double-check.' };
     } else {
-      yield { type: 'log', message: `Location: ${result.business.location}` };
+      yield { type: 'log', message: `Pin dropped: ${result.business.location}` };
     }
 
-    yield { type: 'log', message: `Found: ${result.business.name}` };
+    yield { type: 'log', message: `Plot twist: you're ${result.business.name}` };
     yield { type: 'complete', ...result, socialScrapes };
   } catch (err) {
-    yield { type: 'error', error: err.message };
+    yield { type: 'error', error: sanitizeUserMessage(err.message) };
   }
 }
 

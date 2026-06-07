@@ -192,7 +192,7 @@ export default function Onboarding({
             {(loading || ingestFinishing) && (
               <ActivityLog
                 logs={logs}
-                title="Reading your website"
+                title="Nose-deep in your site"
                 loading={loading}
                 finishing={ingestFinishing}
               />
