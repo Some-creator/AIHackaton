@@ -65,6 +65,18 @@ export async function getCompany(companyId) {
   return res.json();
 }
 
+export async function deleteCompany(companyId) {
+  const res = await fetch(`${API_BASE}/companies/${companyId}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function getCredits() {
   let res;
   try {

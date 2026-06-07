@@ -17,6 +17,11 @@ export function appendMockHistory(entry) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_ITEMS)));
 }
 
+export function removeMockHistory(id) {
+  const items = getMockHistory().filter((item) => item.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
 export function getMockCompany(id) {
   return getMockHistory().find((item) => item.id === id)?.fullRecord || null;
 }

@@ -184,6 +184,30 @@ export async function updateCompanyIfAllowed(companyId, userId, data) {
   return updateCompany(companyId, data);
 }
 
+export async function deleteCompanyForUser(companyId, userId) {
+  const firestore = initFirebase();
+  if (!firestore || !companyId || !userId) {
+    return { deleted: false, error: 'Firebase not configured or missing identifiers' };
+  }
+
+  const company = await getCompany(companyId);
+  if (!company) {
+    return { deleted: false, error: 'Analysis not found', status: 404 };
+  }
+  if (company.userId !== userId) {
+    return { deleted: false, error: 'Not authorized to delete this analysis', status: 403 };
+  }
+
+  try {
+    await firestore.collection('companies').doc(companyId).delete();
+    console.log(`[firebase] Deleted company ${companyId}`);
+    return { deleted: true };
+  } catch (err) {
+    console.error(`[firebase] deleteCompanyForUser failed for ${companyId}: ${err.message}`);
+    return { deleted: false, error: err.message };
+  }
+}
+
 export async function listCompaniesForUser(userId, limit = 50) {
   const firestore = initFirebase();
   if (!firestore || !userId) return [];

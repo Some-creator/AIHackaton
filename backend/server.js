@@ -17,6 +17,7 @@ import {
   assertCompanyWritable,
   getCompany,
   getCompanyForUser,
+  deleteCompanyForUser,
   listCompaniesForUser,
   initFirebase,
   getFirebaseStatus,
@@ -608,6 +609,18 @@ app.get('/api/companies/:companyId', requireAuth, async (req, res) => {
     const company = await getCompanyForUser(req.params.companyId, req.user.uid);
     if (!company) return res.status(404).json({ error: 'Company not found' });
     res.json(company);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/companies/:companyId', requireAuth, async (req, res) => {
+  try {
+    const result = await deleteCompanyForUser(req.params.companyId, req.user.uid);
+    if (!result.deleted) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+    res.json({ deleted: true });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
   }
