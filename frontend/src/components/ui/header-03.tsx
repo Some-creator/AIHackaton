@@ -56,12 +56,10 @@ export function Header({
             type="button"
             onClick={onLogoClick}
             aria-label="HookLine home"
-            className="group flex h-11 items-center gap-2.5 rounded-xl bg-gradient-to-br from-hookline-600 via-hookline-500 to-violet-600 px-3 shadow-glow-sm ring-1 ring-hookline-700/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glow dark:from-hookline-500 dark:via-hookline-500 dark:to-violet-600 dark:ring-white/15 md:h-12 md:px-4"
+            className="group flex h-11 items-center gap-2 rounded-xl bg-hookline-600 px-3 transition-colors duration-200 hover:bg-hookline-500 md:h-12 md:px-3.5"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 transition group-hover:bg-white/30 md:h-8 md:w-8">
-              <Zap className="h-4 w-4 text-white md:h-[18px] md:w-[18px]" aria-hidden="true" />
-            </div>
-            <span className="hidden pr-1 font-heading text-lg font-bold tracking-tight text-white sm:inline md:text-xl">
+            <Zap className="h-4 w-4 shrink-0 text-white md:h-[18px] md:w-[18px]" aria-hidden="true" />
+            <span className="hidden pr-0.5 font-heading text-lg font-bold tracking-tight text-white sm:inline md:text-xl">
               HookLine
             </span>
           </button>
@@ -93,7 +91,7 @@ export function Header({
                   </Button>
                 )}
                 <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/60 py-1 pl-1 pr-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-hookline-600 to-violet-600 text-xs font-bold text-white ring-1 ring-hookline-700/25 dark:from-hookline-400 dark:to-hookline-600 dark:ring-white/15">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-hookline-600 text-xs font-bold text-white">
                     {getInitial(user)}
                   </span>
                   <span
@@ -133,7 +131,7 @@ export function Header({
             <SheetContent side="right" className="w-full overflow-y-auto border-border bg-background p-6 sm:max-w-md">
               <div className="flex h-full flex-col">
                 <div className="mb-6 flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-gradient-to-br from-hookline-600 to-violet-600">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-hookline-600">
                     <Zap className="h-5 w-5 text-white" />
                   </div>
                   <span className="font-heading text-lg font-bold">HookLine</span>
